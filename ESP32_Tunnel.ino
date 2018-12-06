@@ -26,8 +26,6 @@ declenchement Alarme
 
 Surveillance Batterie solaire
 
-calcul SleepTime
-
  */
  
 #include <credentials_home.h>
@@ -54,7 +52,7 @@ byte calendrier[13][32];
 char filecal[13] = "/filecal.csv"; // fichier en SPIFFS contenant le calendrier de circulation
 const String soft = "ESP32_Tunnel.ino.d32"; // nom du soft
 String  ver = "1";
-int Magique = 1234;
+int Magique = 2345;
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
@@ -192,7 +190,7 @@ void setup() {
 		config.tempPDL 		= 3000;
 		config.Cpt_PDL		= 2;
 		config.timeoutWifi= 10*60;
-		String temp 			=	"TPCF_TCnls";// TPCF_TCnls
+		String temp 			=	"TPCF_Canal";// TPCF_TCnls
     temp.toCharArray(config.Idchar, 11);
 		EEPROM.put(confign,config);
 		
@@ -226,7 +224,7 @@ void setup() {
 			Serial.println(F("End"));
 		})
 		.onProgress([](unsigned int progress, unsigned int total) {
-			Serial.printf("Progress: %u%%\r\n", (progress / (total / 100)));
+			Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
 		})
 		.onError([](ota_error_t error) {
 			Serial.printf("Error[%u]: ", error);
@@ -1153,9 +1151,10 @@ void ResetSonnerie() {
   ArretSonnerie();
 }
 //---------------------------------------------------------------------------
-void OnceOnly(){
-	
+void OnceOnly(){	
 	// Analyse si jour circulé lancement normal
+	// lecture calendrier
+	OuvrirCalendrier(); // ouvre calendrier circulation en SPIFFS
 	if(calendrier[month()][day()] == 0){
 		// si non retour, deep sleep SIM800 et ESP32
 		Serial.println(F("Jour non circulé")); // on entre en sleep pour 23h55
@@ -1166,6 +1165,7 @@ void OnceOnly(){
 		
 		// ESP sleeptime;
 	}
+	Serial.print(F("Duree sleep = ")),Serial.println(DureeSleep());	
 	Serial.println(F("Jour circulé")); // on continue normalement
 }
 //---------------------------------------------------------------------------
@@ -1425,6 +1425,7 @@ void PrintEEPROM(){
 	Serial.print(F("magic = "))										,Serial.println(config.magic);
 	Serial.print(F("Ala_Vie = "))									,Serial.println(config.Ala_Vie);
 	Serial.print(F("Fin jour = "))								,Serial.println(config.FinJour);
+	Serial.print(F("Lancement (s) = "))						,Serial.println(config.Tlancement);
 	Serial.print(F("Tempo Pedale (ms) = "))				,Serial.println(config.tempPDL);
 	Serial.print(F("Tempo Sortie (s) = "))				,Serial.println(config.tempSortie);
 	Serial.print(F("Time Out Eclairage (s) = "))	,Serial.println(config.timeOutS);
