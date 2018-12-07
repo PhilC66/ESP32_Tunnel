@@ -42,6 +42,7 @@ Surveillance Batterie solaire
 
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		34   // Batterie générale 12V adc
+#define PinBattSol		2    // V USB 5V adc
 #define PinPedale1		32   // Entrée Pedale1
 #define PinPedale2		33   // Entrée Pedale2
 #define PinEclairage	21   // Sortie Commande eclairage
@@ -527,7 +528,19 @@ void traite_sms(byte slot){
 		if((sms && nom.length() > 0) || !sms){          // si nom appelant existant dans phone book
 			numero.toCharArray(number,numero.length()+1); // on recupere le numéro
 			message = Id;
-			if(textesms.indexOf("WIFIOFF")>-1){
+			if(textesms.indexOf("TIMEOUTWIFI")>-1){ // Parametre Arret Wifi
+				if(textesms.substring(11,12) == "="){
+					int n = textesms.substring(12,textesms.length()).toInt();
+					if(n > 9 && n < 3601){
+						config.timeoutWifi = n;
+						sauvConfig();															// sauvegarde en EEPROM
+					}
+				}
+				message += F("TimeOut Wifi (s) = ");
+				message += config.timeoutWifi;
+				message += fl;
+			}
+			if(textesms.indexOf("WIFIOFF")>-1){ // Arret Wifi
 				Serial.println("Wifi off");
 				WiFi.disconnect(true);
 				WiFi.mode(WIFI_OFF);
@@ -536,9 +549,10 @@ void traite_sms(byte slot){
 				// WiFi.forceSleepBegin();
 				// esp_wifi_stop();
 				message += F("Wifi off");
+				message += fl;
 				EnvoyerSms(number, true);
 			}
-			else if(textesms.indexOf(F("Wifi"))>-1){
+			else if(textesms.indexOf(F("Wifi"))== 0){ // demande connexion Wifi
 				byte pos1 = textesms.indexOf(",");
 				byte pos2 = textesms.indexOf(",", pos1 + 1);
 				String ssids = textesms.substring(pos1 + 1,pos2);
@@ -547,8 +561,7 @@ void traite_sms(byte slot){
 				char pwd[20];
 				ssids.toCharArray(ssid,ssids.length()+1);
 				pwds.toCharArray(pwd,pwds.length()+1);
-				ConnexionWifi(ssid,pwd,number,sms);// message généré par routine
-				
+				ConnexionWifi(ssid,pwd,number,sms);// message généré par routine				
 			}
 			else if (textesms.indexOf(F("TEL")) == 0
             || textesms.indexOf(F("Tel")) == 0
@@ -595,6 +608,7 @@ fin_tel:
           //Serial.println(F("false"));
           message = Id ;
           message += F("Commande non reconnue ?");// non reconnu
+					message += fl;
           EnvoyerSms(number, sms);						// SMS non reconnu
         }
         else {
@@ -606,6 +620,7 @@ fin_tel:
           message = Id;
           message += F("Nouveau Num Tel: ");
           message += F("OK");
+					message += fl;
           EnvoyerSms(number, sms);
         }
       }
@@ -679,6 +694,7 @@ fin_i:
 				//V2-15
 				message += String(Battpct(VBatterieSol));
 				message += " %";
+				message += fl;
 				EnvoyerSms(number, sms);
 			}
 			else if (textesms.indexOf(F("ID=")) == 0) {			//	Id= nouvel Id
@@ -692,6 +708,7 @@ fin_i:
         }
         message = Id;
         message += F("Nouvel Id");
+				message += fl;
         EnvoyerSms(number, sms);
 			}
 			else if (textesms.indexOf(F("LOG")) == 0){	// demande log des 5 derniers commandes
@@ -796,6 +813,7 @@ fin_i:
 				message += ":";
 				message += int((config.Ala_Vie % 3600) / 60);
 				message += F("(hh:mm)");
+				message += fl;
 				EnvoyerSms(number, sms);
       }
 			else if (textesms.indexOf(F("SONN")) == 0) {			//	Durée Sonnerie
@@ -823,6 +841,7 @@ fin_i:
 				message += ":";
 				message += config.Dsonnrepos;
 				message += "(s)";
+				message += fl;
 				EnvoyerSms(number, sms);
       }
 			else if(textesms.indexOf(F("SIRENE")) == 0){			// Lancement SIRENE
@@ -831,12 +850,14 @@ fin_i:
 				message += F("Lancement Sirene");
 				message += fl;
 				message += config.Dsonn;
-				message += F("(s)");				
+				message += F("(s)");
+				message += fl;				
 				EnvoyerSms(number, sms);
 			}
 			else if(textesms.indexOf(F("TIME"))>-1){
 				message += F("Heure Sys = ");
 				message += displayTime(0);
+				message += fl;
 				EnvoyerSms(number, sms);
 			}			
 			else if (textesms.indexOf(F("MAJHEURE")) == 0) {	//	forcer mise a l'heure V2-19
@@ -865,6 +886,7 @@ fin_i:
 				message += ":";
 				message += int((config.FinJour % 3600) / 60);
 				message += F("(hh:mm)");
+				message += fl;
 				EnvoyerSms(number, sms);
       }
 			else if(textesms.indexOf(F("MOIS")) == 0){ // Calendrier pour un mois
@@ -897,15 +919,18 @@ fin_i:
 				else{
 					message += F("Format non reconnu !");
 				}
+				message += fl;
 				EnvoyerSms(number, sms);
 			}
 			else if (textesms == F("RST")) {							// demande RESET
         message += F("Le systeme va etre relance");	// apres envoie du SMS!
+				message += fl;
         FlagReset = true;														// reset prochaine boucle
 				EnvoyerSms(number, sms);
       }
 			else{
 				message += F("message non reconnu !");
+				message += fl;
 				EnvoyerSms(number, sms);
 			}
 		}
@@ -1490,7 +1515,7 @@ void Allumage(byte n){
 //---------------------------------------------------------------------------
 void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	
-	Serial.print("connexion Wifi:"),Serial.print(ssid),Serial.print(","),Serial.println(pwd);
+	Serial.print(F("connexion Wifi:")),Serial.print(ssid),Serial.print(","),Serial.println(pwd);
 	String ip;
 	WiFi.begin(ssid, pwd);
 	WiFi.mode(WIFI_STA);
@@ -1505,9 +1530,9 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 			break;
 		}
 	}
-	Serial.println("");
-	Serial.println("WiFi connected");
-	Serial.println("IP address: ");
+	Serial.println();
+	Serial.println(F("WiFi connected"));
+	Serial.println(F("IP address: "));
 	ip = WiFi.localIP().toString();
 	Serial.println(ip);
 	ArduinoOTA.begin();
@@ -1519,8 +1544,9 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 		message += String(ip);
 		message += fl;
 		message += String(WiFi.RSSI());
-		message += " dBm";
+		message += F(" dBm");
 		message += fl;
+		message += F("TimeOut Wifi ");
 		message += config.timeoutWifi;
 		message += " s";
 	}
