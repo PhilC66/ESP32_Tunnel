@@ -374,14 +374,14 @@ void Acquisition(){
 	TensionBatterie  = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, config.CoeffTension1);
 	VBatterieProc = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, config.CoeffTension2);
 	VUSB  = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, config.CoeffTension3);
-	if(Battpct(TensionBatterie) < 25 || VUSB < 4000){
+	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 5500){
 		nalaTension ++;
     if (nalaTension == 4) {
       FlagAlarmeTension = true;
       nalaTension = 0;
     }
 	}
-	else if (TensionBatterie > 75 && VUSB > 4800) {	//hysteresis et tempo sur Alarme Batterie
+	else if (TensionBatterie > 75 && VUSB > 4800 && VUSB < 5400) {	//hysteresis et tempo sur Alarme Batterie
     nRetourTension ++;
 		if(nRetourTension == 4){
 			FlagAlarmeTension = false;				
@@ -709,9 +709,16 @@ fin_i:
 				}					
 				message += TensionBatterie - ((TensionBatterie / 100) * 100);
 				message += "V, ";
-				//V2-15
 				message += String(Battpct(TensionBatterie));
 				message += " %";
+				message += fl;
+				message += F("V USB= ");				
+				message += String(VUSB / 100) + ",";	
+				if((VUSB-(VUSB / 100) * 100) < 10){//correction bug decimal<10
+					message += "0";
+				}					
+				message += VUSB - ((VUSB / 100) * 100);
+				message += "V";
 				message += fl;
 				EnvoyerSms(number, sms);
 			}
