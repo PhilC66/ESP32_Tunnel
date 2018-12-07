@@ -3,8 +3,8 @@ Gestion eclairage tunnel
 Alimentation sur panneaux solaires
 
 mode deep sleep 
-reveille tout les matins 06h55
-reception des SMS en attente si dispo
+reveille tout les matin 06h55
+reception des SMS en attente
 apres 5 min de fonctionnement
 envoie sms signal vie 
 analyse calendrier sauvegardé en SPIFFS
@@ -181,25 +181,25 @@ void setup() {
 				erreur lecture EEPROM ou carte vierge
     		on charge les valeurs par défaut
 		*/
-    Serial.println(F("Nouvelle Configuration !"));
-		config.magic 			   = Magique;
-		config.Ala_Vie		   = 7*60*60;
-		config.FinJour		   = 20*60*60;
+		Serial.println(F("Nouvelle Configuration !"));
+		config.magic         = Magique;
+		config.Ala_Vie       = 7*60*60;
+		config.FinJour       = 20*60*60;
 		config.Tlancement    = 5*60;
-		config.Intru 			   = false;
-    config.Silence		   = true;
-		config.Dsonn			   = 60;
-    config.DsonnMax		   = 90;
-    config.Dsonnrepos    = 120;
+		config.Intru         = false;
+		config.Silence       = true;
+		config.Dsonn         = 60;
+		config.DsonnMax      = 90;
+		config.Dsonnrepos    = 120;
 		config.tempSortie    = 10;
-		config.timeOutS		   = 60;	// 3600
-		config.tempPDL 		   = 3000;
-		config.Cpt_PDL		   = 2;
+		config.timeOutS      = 60;	// 3600
+		config.tempPDL       = 3000;
+		config.Cpt_PDL       = 2;
 		config.timeoutWifi   = 10*60;
 		config.CoeffTension1 = 6600;
 		config.CoeffTension2 = 6600;
 		config.CoeffTension3 = 6600;
-		String temp 			=	"TPCF_Canal";// TPCF_TCnls
+		String temp          =	"TPCF_Canal";// TPCF_TCnls
     temp.toCharArray(config.Idchar, 11);
 		EEPROM.put(confign,config);
 		
@@ -243,8 +243,6 @@ void setup() {
 			else if (error == OTA_RECEIVE_ERROR) 	Serial.println("Receive Failed");
 			else if (error == OTA_END_ERROR) 			Serial.println("End Failed");
 		});
-
-  
 	
 	OuvrirCalendrier(); // ouvre calendrier circulation en SPIFFS
 	Sim800l.reset(PIN);	// lancer SIM800	
@@ -259,10 +257,10 @@ void setup() {
 	FirstMessage = Alarm.timerOnce(config.Tlancement, OnceOnly); // appeler une fois apres 5min type=0
 	Alarm.enable(FirstMessage);
 	
-	TempoSortie = Alarm.timerRepeat(config.tempSortie, Extinction);// tempo extinction a la sortie
+	TempoSortie = Alarm.timerRepeat(config.tempSortie, Extinction); // tempo extinction a la sortie
 	Alarm.disable(TempoSortie);
 	
-	TimeOut = Alarm.timerRepeat(config.timeOutS, Extinction);// tempo time out extinction
+	TimeOut = Alarm.timerRepeat(config.timeOutS, Extinction); // tempo time out extinction
 	Alarm.disable(TimeOut);
 	
 	Svie = Alarm.alarmRepeat(config.Ala_Vie, SignalVie); // chaque jour
@@ -546,7 +544,7 @@ void traite_sms(byte slot){
 		if((sms && nom.length() > 0) || !sms){          // si nom appelant existant dans phone book
 			numero.toCharArray(number,numero.length()+1); // on recupere le numéro
 			message = Id;
-			if(textesms.indexOf("TIMEOUTWIFI")>-1){ // Parametre Arret Wifi
+			if(textesms.indexOf(F("TIMEOUTWIFI"))>-1){ // Parametre Arret Wifi
 				if(textesms.substring(11,12) == "="){
 					int n = textesms.substring(12,textesms.length()).toInt();
 					if(n > 9 && n < 3601){
@@ -558,7 +556,7 @@ void traite_sms(byte slot){
 				message += config.timeoutWifi;
 				message += fl;
 			}
-			if(textesms.indexOf("WIFIOFF")>-1){ // Arret Wifi
+			if(textesms.indexOf(F("WIFIOFF"))>-1){ // Arret Wifi
 				Serial.println("Wifi off");
 				WiFi.disconnect(true);
 				WiFi.mode(WIFI_OFF);
@@ -571,8 +569,8 @@ void traite_sms(byte slot){
 				EnvoyerSms(number, true);
 			}
 			else if(textesms.indexOf(F("Wifi"))== 0){ // demande connexion Wifi
-				byte pos1 = textesms.indexOf(",");
-				byte pos2 = textesms.indexOf(",", pos1 + 1);
+				byte pos1 = textesms.indexOf(char(44));
+				byte pos2 = textesms.indexOf(char(44), pos1 + 1);
 				String ssids = textesms.substring(pos1 + 1,pos2);
 				String pwds  = textesms.substring(pos2 + 1,textesms.length());
 				char ssid[20];
@@ -605,7 +603,7 @@ void traite_sms(byte slot){
           FlagOK = false;
         }
         if (textesms.indexOf("+") == j) {			// debut du num tel +
-          if (textesms.indexOf(",") == j + 12) {	// verif si longuer ok
+          if (textesms.indexOf(char(44)) == j + 12) {	// verif si longuer ok
             String numero = textesms.substring(j, j + 12);
             String nom = textesms.substring(j + 13, j + 27);	// pas de verif si long<>0?
             Send += F(",\"");
@@ -708,13 +706,13 @@ fin_i:
 					message += "0";
 				}					
 				message += TensionBatterie - ((TensionBatterie / 100) * 100);
-				message += "V, ";
+				message += F("V, ");
 				message += String(Battpct(TensionBatterie));
 				message += " %";
 				message += fl;
 				message += F("V USB= ");				
 				message += String(VUSB / 100) + ",";	
-				if((VUSB-(VUSB / 100) * 100) < 10){//correction bug decimal<10
+				if((VUSB-(VUSB / 100) * 100) < 10){ // correction bug decimal<10
 					message += "0";
 				}					
 				message += VUSB - ((VUSB / 100) * 100);
@@ -760,7 +758,7 @@ fin_i:
 						nom = F("console");
 						// bidon.toCharArray(nom,8);	//	si commande locale
 					}
-					logRecord(nom,"A");					// V2-14 renseigne le log
+					logRecord(nom,"A"); // V2-14 renseigne le log
 				}
 				generationMessage();
 				EnvoyerSms(number, sms);
@@ -849,7 +847,7 @@ fin_i:
 					int i = atoi(textesms.substring(5, x).c_str());			//	Dsonn Sonnerie
 					int j = atoi(textesms.substring(x + 1, y).c_str());	//	DsonnMax Sonnerie
 					int k = atoi(textesms.substring(y + 1).c_str()); 		//	Dsonnrepos Sonnerie
-					//Serial.print(i),Serial.print(","),Serial.print(j),Serial.print(","),Serial.println(k);
+					//Serial.print(i),Serial.print(char(44)),Serial.print(j),Serial.print(char(44)),Serial.println(k);
 					if (i > 5  && i <= 300 &&
 							j > i  && j <= 600 &&
 							k > 10 && k <= 300) {			//	ok si entre 10 et 300
@@ -976,7 +974,7 @@ fin_i:
 						int config.CoeffTension = CoeffTensionDefaut 6600 par défaut
 				*/
 				String bidon = textesms.substring(12,16);// texte apres =
-				//Serial.print(F("bidon=")),Serial.print(bidon),Serial.print(","),Serial.println(bidon.length());
+				//Serial.print(F("bidon=")),Serial.print(bidon),Serial.print(char(44)),Serial.println(bidon.length());
 				long tension = 0;
 				if(bidon.substring(0,1) == "." && bidon.length() > 1){// debut mode cal					
 					if(bidon.substring(1,2) == "1" ){M = 1; P = PinBattSol; coef = config.CoeffTension1;}
@@ -1535,7 +1533,7 @@ void OuvrirCalendrier(){
 	readFile(SPIFFS, filecal);
 	for(int m = 1; m < 13;m++){
 		for(int j = 1; j < 32; j++){
-			Serial.print(calendrier[m][j]),Serial.print(",");
+			Serial.print(calendrier[m][j]),Serial.print(char(44));
 		}
 		Serial.println();
 	}
@@ -1598,7 +1596,7 @@ void Allumage(byte n){
 	}
 	
 	Serial.print("Sub Allumage avec n= "),Serial.print(n);
-	Serial.print(" Al1,Al2 = "),Serial.print(Al1),Serial.print(","),Serial.println(Al2);
+	Serial.print(" Al1,Al2 = "),Serial.print(Al1),Serial.print(char(44)),Serial.println(Al2);
 	
 	if(!Allume){	// si pas Allumé
 		Serial.println(F("                   Allumage"));
@@ -1624,7 +1622,7 @@ void Allumage(byte n){
 //---------------------------------------------------------------------------
 void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	
-	Serial.print(F("connexion Wifi:")),Serial.print(ssid),Serial.print(","),Serial.println(pwd);
+	Serial.print(F("connexion Wifi:")),Serial.print(ssid),Serial.print(char(44)),Serial.println(pwd);
 	String ip;
 	WiFi.begin(ssid, pwd);
 	WiFi.mode(WIFI_STA);
@@ -1806,11 +1804,11 @@ void showNewData() {
 void interpretemessage() {
   String bidons;
   //demande.toUpperCase();
-  if (demande.indexOf("=") == 0) {
-    bidons = demande.substring(1); //(demande.indexOf("=")+1);
+  if (demande.indexOf(char(61)) == 0) {
+    bidons = demande.substring(1); //(demande.indexOf(char(61))+1);
     int lon0 = bidons.length();
     bidons.toCharArray(replybuffer, lon0 - 1);	// len-1 pour supprimer lf
-    //Serial.print(lon0),Serial.print(","),Serial.print(bidons),Serial.print(","),Serial.println(replybuffer);
+    //Serial.print(lon0),Serial.print(char(44)),Serial.print(bidons),Serial.print(char(44)),Serial.println(replybuffer);
     traite_sms(99);	//	traitement SMS en mode test local
   }
 
