@@ -38,11 +38,11 @@ Surveillance Batterie solaire
 #include <EEPROM.h>								// variable en EEPROM
 #include "SPIFFS.h"
 #include <ArduinoOTA.h>
-#include "coeff.h"							// coefficient mesure tension
+// #include "coeff.h"							// coefficient mesure tension
 
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		34   // Batterie générale 12V adc
-#define PinBattSol		2    // V USB 5V adc
+#define PinBattUSB		2    // V USB 5V adc
 #define PinPedale1		32   // Entrée Pedale1
 #define PinPedale2		33   // Entrée Pedale2
 #define PinEclairage	21   // Sortie Commande eclairage
@@ -53,7 +53,7 @@ byte calendrier[13][32];
 char filecal[13] = "/filecal.csv"; // fichier en SPIFFS contenant le calendrier de circulation
 const String soft = "ESP32_Tunnel.ino.d32"; // nom du soft
 String  ver = "1";
-int Magique = 2345;
+int Magique = 3456;
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
@@ -68,21 +68,24 @@ volatile unsigned long rebond1 = 0;			//	antirebond IRQ
 volatile unsigned long rebond2 = 0;
 byte confign = 0;						// Num enregistrement EEPROM
 bool Allume = false;
-bool FlagAlarmeTension 			= false;	//	Alarme tension Batterie
-bool FlagLastAlarmeTension		= false;
-bool FlagPIR 								= false;	// detection PIR ???verifier si necessaire???
-bool FlagAlarmeIntrusion			= false;	//	Alarme Defaut Cable detectée
+bool FlagAlarmeTension       = false;	// Alarme tension Batterie
+bool FlagLastAlarmeTension   = false;
+bool FlagPIR                 = false;	// detection PIR ???verifier si necessaire???
+bool FlagAlarmeIntrusion     = false;	// Alarme Defaut Cable detectée
 bool FlagLastAlarmeIntrusion = false;
 bool FirstSonn = false;					// Premier appel sonnerie
 bool SonnMax   = false;					// temps de sonnerie maxi atteint
 bool FlagReset = false;
+
+int  CoeffTensionDefaut = 7000;	// Coefficient par defaut
 RTC_DATA_ATTR int CptAllumage = 0;			// Nombre Allumage par jour en memoire RTC
 byte slot = 0;            			//this will be the slot number of the SMS
 char 		receivedChar;
 bool newData = false;
 String 	demande;
-long VBatterieSol  = 0; // Tension Batterie solaire
-long VBatterieProc = 0; // Tension Batterie Processeur
+long TensionBatterie  = 0; // Tension Batterie solaire
+long VBatterieProc    = 0; // Tension Batterie Processeur
+long VUSB             = 0; // Tension USB
 
 typedef struct											// declaration structure  pour les log
 {
@@ -110,7 +113,9 @@ struct  config_t 										// Structure configuration sauvée en EEPROM
   int 		Dsonnrepos;							// Durée repos Sonnerie
   boolean Intru   ;								// Alarme Intrusion active
   boolean Silence ;								// Mode Silencieux = true false par defaut
-	int     CoeffTension;						// Coefficient calibration Tension	
+	int     CoeffTension1;					// Coeff calibration Tension Batterie
+	int     CoeffTension2;					// Coeff calibration Tension Proc
+	int     CoeffTension3;					// Coeff calibration Tension USB
 	char 		Idchar[11];							// Id
 } ;
 config_t config;
@@ -177,20 +182,23 @@ void setup() {
     		on charge les valeurs par défaut
 		*/
     Serial.println(F("Nouvelle Configuration !"));
-		config.magic 			= Magique;
-		config.Ala_Vie		= 7*60*60;
-		config.FinJour		= 20*60*60;
-		config.Tlancement = 5*60;
-		config.Intru 			= false;
-    config.Silence		= true;
-		config.Dsonn			= 60;
-    config.DsonnMax		= 90;
-    config.Dsonnrepos = 120;
-		config.tempSortie = 10;
-		config.timeOutS		= 60;	// 3600
-		config.tempPDL 		= 3000;
-		config.Cpt_PDL		= 2;
-		config.timeoutWifi= 10*60;
+		config.magic 			   = Magique;
+		config.Ala_Vie		   = 7*60*60;
+		config.FinJour		   = 20*60*60;
+		config.Tlancement    = 5*60;
+		config.Intru 			   = false;
+    config.Silence		   = true;
+		config.Dsonn			   = 60;
+    config.DsonnMax		   = 90;
+    config.Dsonnrepos    = 120;
+		config.tempSortie    = 10;
+		config.timeOutS		   = 60;	// 3600
+		config.tempPDL 		   = 3000;
+		config.Cpt_PDL		   = 2;
+		config.timeoutWifi   = 10*60;
+		config.CoeffTension1 = 6600;
+		config.CoeffTension2 = 6600;
+		config.CoeffTension3 = 6600;
 		String temp 			=	"TPCF_Canal";// TPCF_TCnls
     temp.toCharArray(config.Idchar, 11);
 		EEPROM.put(confign,config);
@@ -363,16 +371,17 @@ void Acquisition(){
 
 	static byte nalaTension = 0;
 	static byte nRetourTension = 0;	
-	VBatterieSol  = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, CoeffTension1);
-	VBatterieProc = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension2);
-	if(Battpct(VBatterieSol) < 25){
+	TensionBatterie  = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, config.CoeffTension1);
+	VBatterieProc = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, config.CoeffTension2);
+	VUSB  = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, config.CoeffTension3);
+	if(Battpct(TensionBatterie) < 25 || VUSB < 4000){
 		nalaTension ++;
     if (nalaTension == 4) {
       FlagAlarmeTension = true;
       nalaTension = 0;
     }
 	}
-	else if (VBatterieSol > 75) {	//hysteresis et tempo sur Alarme Batterie
+	else if (TensionBatterie > 75 && VUSB > 4800) {	//hysteresis et tempo sur Alarme Batterie
     nRetourTension ++;
 		if(nRetourTension == 4){
 			FlagAlarmeTension = false;				
@@ -383,18 +392,20 @@ void Acquisition(){
     if (nalaTension > 0)nalaTension--;			//	efface progressivement le compteur
   }
 
-	message = F(", Batterie Solaire = ");
-	message += String(VBatterieSol / 100) + ",";	
-	if((VBatterieSol-(VBatterieSol / 100) * 100) < 10){
+	message = F(", Batt Solaire = ");
+	message += String(TensionBatterie / 100) + ",";	
+	if((TensionBatterie-(TensionBatterie / 100) * 100) < 10){
 		message += "0";
 	}					
-	message += VBatterieSol - ((VBatterieSol / 100) * 100);
+	message += TensionBatterie - ((TensionBatterie / 100) * 100);
 	message += "V, ";
-	message += String(Battpct(VBatterieSol));
+	message += String(Battpct(TensionBatterie));
 	message += " %";
 	Serial.print(message);
-	Serial.print(F(", Batterie Proc = "));
-	Serial.println(String(VBatterieProc) + " mV");
+	Serial.print(F(", Batt Proc = "));
+	Serial.print(String(VBatterieProc) + " mV");
+	Serial.print(F(", V USB = "));
+	Serial.println(String(VUSB) + " mV");
 
 	
 	// alarme cable a terminer
@@ -484,7 +495,7 @@ void traite_sms(byte slot){
 	char rep2[50];
 	char number[13];														// numero expediteur SMS
 	bool error;
-	String textesms;															// texte du SMS reçu
+	String textesms;														// texte du SMS reçu
 	textesms.reserve(140);
 	String numero;
 	String nom;
@@ -492,7 +503,14 @@ void traite_sms(byte slot){
 	byte i;
   byte j;
 	boolean sms = true;
-	static int tensionmemo = 0;	//	memorisation tension batterie lors de la calibration V2-122
+	
+	/* Variables pour mode calibration */
+	static int tensionmemo = 0;	//	memorisation tension batterie lors de la calibration
+	int coef = 0; // coeff temporaire
+	static byte P = 0; // Pin entrée a utiliser pour calibration
+	static byte M = 0; // Mode calibration 1,2,3
+	static bool FlagCalibration = false;		// Calibration Tension en cours
+	
 	if (slot == 99) sms = false;
   if (slot == 51) { // demande de traitement des SMS en attente
     i = 1;
@@ -685,14 +703,14 @@ fin_i:
         message += ver;
 				message += fl;
 				message += F("V Batt Sol= ");				
-				message += String(VBatterieSol / 100) + ",";	
-				if((VBatterieSol-(VBatterieSol / 100) * 100) < 10){//correction bug decimal<10
+				message += String(TensionBatterie / 100) + ",";	
+				if((TensionBatterie-(TensionBatterie / 100) * 100) < 10){//correction bug decimal<10
 					message += "0";
 				}					
-				message += VBatterieSol - ((VBatterieSol / 100) * 100);
+				message += TensionBatterie - ((TensionBatterie / 100) * 100);
 				message += "V, ";
 				//V2-15
-				message += String(Battpct(VBatterieSol));
+				message += String(Battpct(TensionBatterie));
 				message += " %";
 				message += fl;
 				EnvoyerSms(number, sms);
@@ -928,6 +946,86 @@ fin_i:
         FlagReset = true;														// reset prochaine boucle
 				EnvoyerSms(number, sms);
       }
+			else if (!sms && textesms.indexOf(F("CALIBRATION=")) == 0){	
+				/* 	Mode calibration mesure tension
+						Seulement en mode serie local
+						recoit message "CALIBRATION=.X"
+						entrer mode calibration
+						Selection de la tenssion à calibrer X
+						X = 1 TensionBatterie : PinBattSol : CoeffTension1
+						X = 2 VBatterieProc : PinBattProc : CoeffTension2
+						X = 3 VUSB : PinBattUSB : CoeffTension3
+						effectue mesure tension avec CoeffTensionDefaut retourne et stock resultat
+						recoit message "CALIBRATION=1250" mesure réelle en V*100
+						calcul nouveau coeff = mesure reelle/resultat stocké * CoeffTensionDefaut
+						applique nouveau coeff
+						stock en EEPROM
+						sort du mode calibration
+
+						variables
+						FlagCalibration true cal en cours, false par defaut
+						Static P pin d'entrée
+						static int tensionmemo memorisation de la premiere tension mesurée en calibration
+						int config.CoeffTension = CoeffTensionDefaut 6600 par défaut
+				*/
+				String bidon = textesms.substring(12,16);// texte apres =
+				//Serial.print(F("bidon=")),Serial.print(bidon),Serial.print(","),Serial.println(bidon.length());
+				long tension = 0;
+				if(bidon.substring(0,1) == "." && bidon.length() > 1){// debut mode cal					
+					if(bidon.substring(1,2) == "1" ){M = 1; P = PinBattSol; coef = config.CoeffTension1;}
+					if(bidon.substring(1,2) == "2" ){M = 2; P = PinBattProc; coef = config.CoeffTension2;}
+					if(bidon.substring(1,2) == "3" ){M = 3; P = PinBattUSB; coef = config.CoeffTension3;}
+					Serial.print("mode = "),Serial.print(M),Serial.println(bidon.substring(1,2));
+					FlagCalibration = true;
+					
+					coef = CoeffTensionDefaut;
+					tension = map(moyenneAnalogique(P), 0,4095,0,coef);
+					// Serial.print("TensionBatterie = "),Serial.println(TensionBatterie);
+					tensionmemo = tension;					
+				}
+				else if(FlagCalibration && bidon.substring(0,4).toInt() > 0 && bidon.substring(0,4).toInt() <=5000){
+					// si Calibration en cours et valeur entre 0 et 5000
+					Serial.println(bidon.substring(0,4));
+					/* calcul nouveau coeff */
+					coef = bidon.substring(0,4).toFloat()/float(tensionmemo)*CoeffTensionDefaut;
+					// Serial.print("Coeff Tension = "),Serial.println(config.CoeffTension);
+					tension = map(moyenneAnalogique(P), 0,4095,0,coef);
+					switch(M){
+						case 1:
+							config.CoeffTension1 = coef;							
+							break;
+						case 2:
+							config.CoeffTension2 = coef;
+							break;
+						case 3:
+							config.CoeffTension3 = coef;
+							break;
+					}
+					// Serial.print("TensionBatterie = "),Serial.println(TensionBatterie);
+					FlagCalibration = false;
+					sauvConfig();															// sauvegarde en EEPROM	
+				}
+				else{
+					message += F("message non reconnu");
+					message += fl;
+					FlagCalibration = false;
+				}
+				message += F("Mode Calib Tension ");
+				message += String(M) + fl;
+				message += F("TensionMesuree = ");
+				message += tension;
+				message += fl;
+				message += F("Coeff Tension = ");
+				message += coef;
+				if(M == 1){
+					message += fl;
+					message += F("Batterie = ");
+					message += String(Battpct(tension));
+					message += "%";
+				}
+				message += fl;
+				EnvoyerSms(number, sms);
+			}
 			else{
 				message += F("message non reconnu !");
 				message += fl;
@@ -1015,9 +1113,11 @@ void generationMessage() {
   else {
     message += F("OK, ");
   }
-	message += String(Battpct(VBatterieSol));
+	message += String(Battpct(TensionBatterie));
 	message += "%";
 	message += fl;
+	message += F("V USB =");
+	message += String(VUSB) + fl;
 	message+= F("Nbr Allumage = ");
 	message+= String(CptAllumage);
 	message += fl ;
@@ -1453,10 +1553,12 @@ void PrintEEPROM(){
 	Serial.print(F("Lancement (s) = "))						,Serial.println(config.Tlancement);
 	Serial.print(F("Tempo Pedale (ms) = "))				,Serial.println(config.tempPDL);
 	Serial.print(F("Tempo Sortie (s) = "))				,Serial.println(config.tempSortie);
-	Serial.print(F("Time Out Eclairage (s) = "))	,Serial.println(config.timeOutS);
+	Serial.print(F("Time Out Eclairage (s) = "))	,Serial.println(config.timeOutS);	
 	Serial.print(F("Time Out Wifi (s) = "))				,Serial.println(config.timeoutWifi);
+	Serial.print(F("Coeff T Batterie = "))				,Serial.println(config.CoeffTension1);
+	Serial.print(F("Coeff T Proc = "))	    			,Serial.println(config.CoeffTension2);
+	Serial.print(F("Coeff T VUSB = "))		    		,Serial.println(config.CoeffTension3);
 }
-
 //---------------------------------------------------------------------------
 void Extinction(){
 	Allumage(0);
