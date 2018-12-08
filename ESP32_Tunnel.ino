@@ -42,9 +42,10 @@ Surveillance Batterie solaire
 
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		34   // Batterie générale 12V adc
-#define PinBattUSB		36   // V USB 5V adc
+#define PinBattUSB		36   // V USB 5V adc VP
 #define PinPedale1		32   // Entrée Pedale1
 #define PinPedale2		33   // Entrée Pedale2
+#define PinPorte   		39   // Entrée Porte Coffret VN
 #define PinEclairage	21   // Sortie Commande eclairage
 #define PinSirene			0    // Sortie Commande Sirene
 #define PIN						1234 // Code PIN carte SIM
@@ -53,7 +54,7 @@ byte calendrier[13][32];
 char filecal[13]	= "/filecal.csv"; // fichier en SPIFFS contenant le calendrier de circulation
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver				= "1";
-int Magique				= 3456;
+int Magique				= 1234;
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
@@ -71,6 +72,9 @@ bool Allume = false;
 bool FlagAlarmeTension       = false;	// Alarme tension Batterie
 bool FlagLastAlarmeTension   = false;
 bool FlagAlarmeIntrusion     = false;	// Alarme Defaut Cable detectée
+bool FlagAlarmeCable1        = false; // Alamre Cable Pedale1
+bool FlagAlarmeCable2        = false; // Alamre Cable Pedale2
+bool FlagAlarmePorte         = false; // Alamre Porte Coffret
 bool FlagLastAlarmeIntrusion = false;
 bool FirstSonn = false;					// Premier appel sonnerie
 bool SonnMax   = false;					// temps de sonnerie maxi atteint
@@ -96,9 +100,9 @@ typedef struct											// declaration structure  pour les log
 } champ;
 champ record[5];
 
-byte recordn = 75;									// Num enregistrement EEPROM
+byte recordn = 100;								// Num enregistrement EEPROM
 
-struct  config_t 										// Structure configuration sauvée en EEPROM
+struct  config_t 									// Structure configuration sauvée en EEPROM
 {
   int 		magic				;						// num magique
   long  	Ala_Vie 		;						// Heure message Vie, 7h matin en seconde = 7*60*60
@@ -117,6 +121,9 @@ struct  config_t 										// Structure configuration sauvée en EEPROM
 	int     CoeffTension1;					// Coeff calibration Tension Batterie
 	int     CoeffTension2;					// Coeff calibration Tension Proc
 	int     CoeffTension3;					// Coeff calibration Tension USB
+	bool    Pedale1;                // Alarme Pedale1 Active
+	bool    Pedale2;                // Alarme Pedale2 Active
+	bool    Porte;                  // Alarme Porte Active
 	char 		Idchar[11];							// Id
 } ;
 config_t config;
@@ -166,9 +173,10 @@ void setup() {
 	Sim800l.begin();
 	
 	pinMode(PinEclairage,OUTPUT);
-  pinMode(PinPedale1,INPUT_PULLUP);
-	pinMode(PinPedale2,INPUT_PULLUP);
-	pinMode(PinSirene,OUTPUT);
+  pinMode(PinPedale1  ,INPUT_PULLUP);
+	pinMode(PinPedale2  ,INPUT_PULLUP);
+	pinMode(PinPorte    ,INPUT_PULLUP);
+	pinMode(PinSirene   ,OUTPUT);
 	digitalWrite(PinEclairage, LOW);
 	digitalWrite(PinSirene, LOW);
 	
@@ -200,10 +208,12 @@ void setup() {
 		config.CoeffTension1 = 6600;
 		config.CoeffTension2 = 6600;
 		config.CoeffTension3 = 6600;
-		String temp          =	"TPCF_Canal";// TPCF_TCnls
+		config.Pedale1       = true;
+		config.Pedale2       = true;
+		config.Porte         = true;
+		String temp          = "TPCF_Canal";// TPCF_TCnls
     temp.toCharArray(config.Idchar, 11);
 		EEPROM.put(confign,config);
-		
 		// valeur par defaut des record (log)
 		for (int i = 0; i<5 ;i++){
 			temp = "";
@@ -391,64 +401,81 @@ void Acquisition(){
   }
 
 	message = F(", Batt Solaire = ");
-	message += String(TensionBatterie / 100) + ",";	
-	if((TensionBatterie-(TensionBatterie / 100) * 100) < 10){
-		message += "0";
-	}					
-	message += TensionBatterie - ((TensionBatterie / 100) * 100);
+	message += float(TensionBatterie/100.0);
 	message += "V, ";
 	message += String(Battpct(TensionBatterie));
-	message += " %";
+	message += "%";	
+	message += F(", Batt Proc = ");
+	message +=(String(VBatterieProc) + "mV");
+	message +=(F(", V USB = "));
+	message +=(float(VUSB/1000.0));
+	message +=("V");
+	message += fl;
 	Serial.print(message);
-	Serial.print(F(", Batt Proc = "));
-	Serial.print(String(VBatterieProc) + " mV");
-	Serial.print(F(", V USB = "));
-	Serial.println(String(VUSB) + " mV");
-
 	
 	// alarme cable a terminer
 	
 	static byte nalaPIR1 = 0;
 	static byte nalaPIR2 = 0;
+	static byte nalaPorte = 0;
 	if (config.Intru) { 
 		// gestion des capteurs coupé ou en alarme permanente
 		// verif sur 3 passages consecutifs
-		if (!digitalRead(PinPedale1)){
-			nalaPIR1 ++;
+		if (digitalRead(PinPorte) == false && config.Porte){
+			nalaPorte ++;			
+			if(nalaPorte > 1){
+				// CptAlarme1 = 1;
+				// FausseAlarme1 = 1000;//V2-11
+				FlagAlarmeIntrusion = true;
+				FlagAlarmePorte = true;
+				nalaPorte = 0;
+			}
+		}
+		else{
+			if (nalaPorte > 0) nalaPorte --;			//	efface progressivement le compteur
+		}
+		if (digitalRead(PinPedale1) == false && config.Pedale1){
+			nalaPIR1 ++;			
 			if(nalaPIR1 > 3){
 				// CptAlarme1 = 1;
 				// FausseAlarme1 = 1000;//V2-11
 				FlagAlarmeIntrusion = true;
+				FlagAlarmeCable1 = true;
 				nalaPIR1 = 0;
 			}
 		}
 		else{
 			if (nalaPIR1 > 0) nalaPIR1 --;			//	efface progressivement le compteur
 		}
-		if (!digitalRead(PinPedale2)){
-			nalaPIR2 ++;
+		if (digitalRead(PinPedale2) == false && config.Pedale2){
+			nalaPIR2 ++;			
 			if(nalaPIR2 > 3){
 				// CptAlarme2 = 1;
 				// FausseAlarme2 = 1000;//V2-11
 				FlagAlarmeIntrusion = true;
+				FlagAlarmeCable2 = true;
 				nalaPIR2 = 0;
 			}
 		}
 		else{
 			if (nalaPIR2 > 0) nalaPIR2 --;			//	efface progressivement le compteur
 		}
-	}
-	else{
-		FlagAlarmeIntrusion = false;	// efface alarme pendant phase de démarrage
-		// CptAlarme1 = 0;
-		// CptAlarme2 = 0;
-	
-	
+		Serial.print("Pedale 1 enfonce"),Serial.println(nalaPIR1);
+		Serial.print("Pedale 2 enfonce"),Serial.println(nalaPIR2);
 		if(FlagAlarmeIntrusion){
 			ActivationSonnerie();			// activation Sonnerie
-			Serial.println(F("Alarme Cable"));	
+			Serial.println(F("Alarme Cable/Porte"));	
 		}
 	}
+	else{
+		FlagAlarmeIntrusion = false;	// efface alarme 
+		FlagAlarmeCable1 = false;
+		FlagAlarmeCable2 = false;
+		FlagAlarmePorte = false;
+		// CptAlarme1 = 0;
+		// CptAlarme2 = 0;
+	}		
+	
 	
 	
 	/* verification nombre SMS en attente(raté en lecture directe)
@@ -675,15 +702,14 @@ fin_i:
         EnvoyerSms(number, sms);
       }
 			else if(textesms.indexOf(F("SYS"))>-1){
-				Sim800l.getetatSIM();
-				byte n = Sim800l.getNetworkStatus();
-				String Op = Sim800l.getNetworkName();
+				Sim800l.getetatSIM();// 1s
+				byte n = Sim800l.getNetworkStatus();// 1.1s
+				String Op = Sim800l.getNetworkName();// 1.05s
 				if(n == 5){
-					message += F(("rmg, "));
+					message += F(("rmg, "));// roaming 1.0s
 				}
-				message += Op + fl;				
-				read_RSSI();
-				
+				message += Op + fl;			
+				read_RSSI();				
 				int Vbat = Sim800l.BattVoltage();
 				byte Batp = Sim800l.BattPct();
 				message += F("Batt GSM : ");
@@ -706,22 +732,13 @@ fin_i:
         message += ver;
 				message += fl;
 				message += F("V Batt Sol= ");				
-				message += String(TensionBatterie / 100) + ",";	
-				if((TensionBatterie-(TensionBatterie / 100) * 100) < 10){//correction bug decimal<10
-					message += "0";
-				}					
-				message += TensionBatterie - ((TensionBatterie / 100) * 100);
+				message += String(float(TensionBatterie/100.0)) + ",";	
 				message += F("V, ");
 				message += String(Battpct(TensionBatterie));
 				message += " %";
 				message += fl;
-				message += F("V USB= ");				
-				// message += String(VUSB / 1000) + ",";	
-				// if((VUSB-(VUSB / 1000) * 1000) < 100){ // correction bug decimal<10
-					// message += "0";
-				// }					
-				// message += VUSB - ((VUSB / 1000) * 1000);
-				message += (float(VUSB/1000),2);
+				message += F("V USB= ");
+				message += (float(VUSB/1000.0));
 				message += "V";
 				message += fl;
 				EnvoyerSms(number, sms);
@@ -789,6 +806,9 @@ fin_i:
 					// digitalWrite(Op_PIR4, LOW);
 					FirstSonn = false;
 					FlagAlarmeIntrusion = false;
+					FlagAlarmeCable1 = false;
+					FlagAlarmeCable2 = false;
+					FlagAlarmePorte = false;
 					// FlagPIR = false;
 					if(!sms){															//V2-14
 						nom = F("console");
@@ -1126,7 +1146,7 @@ void generationMessage() {
 	message += "%";
 	message += fl;
 	message += F("V USB =");
-	message += String(VUSB) + fl;
+	message += String(float(VUSB/1000.0)) + fl;
 	message+= F("Nbr Allumage = ");
 	message+= String(CptAllumage);
 	message += fl ;
@@ -1134,6 +1154,10 @@ void generationMessage() {
 	if (config.Intru && FlagAlarmeIntrusion) {
     message += F("-- Cable coupe !--") ;			// Intrusion !
 		message += fl;
+		if(FlagAlarmeCable1) message += F("Pedale 1");message += fl;
+		if(FlagAlarmeCable2) message += F("Pedale 2");message += fl;
+		if(FlagAlarmePorte) message += F("Porte");message += fl;
+		
 	}
 	if (config.Intru) {
 		message += F("Alarme Active ");// ajouter capteur actif futur V2-20
@@ -1260,6 +1284,9 @@ void ArretSonnerie() {
   Alarm.disable(TSonnMax);	// on arrete la tempo sonnerie maxi
   FirstSonn = false;
   FlagAlarmeIntrusion = false;
+	FlagAlarmeCable1 = false;
+	FlagAlarmeCable2 = false;
+	FlagAlarmePorte = false;
   // FlagPIR = false;
 }
 //---------------------------------------------------------------------------
@@ -1549,8 +1576,7 @@ void OuvrirCalendrier(){
 void FinJournee(){
 	// fin de journée retour deep sleep
 	Serial.print(F("Fin de journée retour sleep a terminer"));
-	Serial.print(F("Durée sleep = ")),Serial.println(DureeSleep());
-	
+	Serial.print(F("Durée sleep = ")),Serial.println(DureeSleep());	
 }
 //---------------------------------------------------------------------------
 void PrintEEPROM(){
@@ -1560,6 +1586,7 @@ void PrintEEPROM(){
 	Serial.print(F("Ala_Vie = "))									,Serial.println(config.Ala_Vie);
 	Serial.print(F("Fin jour = "))								,Serial.println(config.FinJour);
 	Serial.print(F("Lancement (s) = "))						,Serial.println(config.Tlancement);
+	Serial.print(F("Comptage Pedale = "))       	,Serial.println(config.Cpt_PDL);
 	Serial.print(F("Tempo Pedale (ms) = "))				,Serial.println(config.tempPDL);
 	Serial.print(F("Tempo Sortie (s) = "))				,Serial.println(config.tempSortie);
 	Serial.print(F("Time Out Eclairage (s) = "))	,Serial.println(config.timeOutS);	
@@ -1567,6 +1594,9 @@ void PrintEEPROM(){
 	Serial.print(F("Coeff T Batterie = "))				,Serial.println(config.CoeffTension1);
 	Serial.print(F("Coeff T Proc = "))	    			,Serial.println(config.CoeffTension2);
 	Serial.print(F("Coeff T VUSB = "))		    		,Serial.println(config.CoeffTension3);
+	Serial.print(F("Pedale 1 Alarme Active = ")) 	,Serial.println(config.Pedale1);
+	Serial.print(F("Pedale 2 Alarme Active = ")) 	,Serial.println(config.Pedale2);
+	Serial.print(F("Pedale 1 Porte Active = ")) 	,Serial.println(config.Porte);
 }
 //---------------------------------------------------------------------------
 void Extinction(){
@@ -1599,8 +1629,8 @@ void Allumage(byte n){
 			break;
 	}
 	
-	Serial.print("Sub Allumage avec n= "),Serial.print(n);
-	Serial.print(" Al1,Al2 = "),Serial.print(Al1),Serial.print(char(44)),Serial.println(Al2);
+	Serial.print(F("Sub Allumage avec n = ")),Serial.print(n);
+	Serial.print(F(" Al1,Al2 = ")),Serial.print(Al1),Serial.print(char(44)),Serial.println(Al2);
 	
 	if(!Allume){	// si pas Allumé
 		Serial.println(F("                   Allumage"));
