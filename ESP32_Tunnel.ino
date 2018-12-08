@@ -26,6 +26,12 @@ declenchement Alarme
 
 Surveillance Batterie solaire
 
+to do
+
+debug a faire alarme cable/porte
+
+deplacer Coeff calibration depuis EEPROM vers SPIFFS 
+
  */
  
 #include <credentials_home.h>
@@ -421,7 +427,7 @@ void Acquisition(){
 	if (config.Intru) { 
 		// gestion des capteurs coupé ou en alarme permanente
 		// verif sur 3 passages consecutifs
-		if (digitalRead(PinPorte) == false && config.Porte){
+		if (!digitalRead(PinPorte) && config.Porte){
 			nalaPorte ++;			
 			if(nalaPorte > 1){
 				// CptAlarme1 = 1;
@@ -434,7 +440,7 @@ void Acquisition(){
 		else{
 			if (nalaPorte > 0) nalaPorte --;			//	efface progressivement le compteur
 		}
-		if (digitalRead(PinPedale1) == false && config.Pedale1){
+		if (!digitalRead(PinPedale1) && config.Pedale1){
 			nalaPIR1 ++;			
 			if(nalaPIR1 > 3){
 				// CptAlarme1 = 1;
@@ -447,7 +453,7 @@ void Acquisition(){
 		else{
 			if (nalaPIR1 > 0) nalaPIR1 --;			//	efface progressivement le compteur
 		}
-		if (digitalRead(PinPedale2) == false && config.Pedale2){
+		if (!digitalRead(PinPedale2) && config.Pedale2){
 			nalaPIR2 ++;			
 			if(nalaPIR2 > 3){
 				// CptAlarme2 = 1;
@@ -475,7 +481,9 @@ void Acquisition(){
 		// CptAlarme1 = 0;
 		// CptAlarme2 = 0;
 	}		
-	
+	Serial.printf("Nala Porte = %d ,",nalaPorte);
+	Serial.printf("Nala Ped 1 = %d ,",nalaPIR1);
+	Serial.printf("Nala Ped 2 = %d\n",nalaPIR2);
 	
 	
 	/* verification nombre SMS en attente(raté en lecture directe)
@@ -1202,10 +1210,18 @@ void generationMessage() {
 	if (config.Intru && FlagAlarmeIntrusion) {
     message += F("-- Cable coupe !--") ;			// Intrusion !
 		message += fl;
-		if(FlagAlarmeCable1) message += F("Pedale 1");message += fl;
-		if(FlagAlarmeCable2) message += F("Pedale 2");message += fl;
-		if(FlagAlarmePorte) message += F("Porte");message += fl;
-		
+		if(FlagAlarmeCable1){
+			message += F("Pedale 1");
+			message += fl;
+		}
+		if(FlagAlarmeCable2){
+			message += F("Pedale 2");
+			message += fl;
+		}
+		if(FlagAlarmePorte){
+			message += F("Porte");
+			message += fl;		
+		}
 	}
 	if (config.Intru) {
 		message += F("Alarme Active ");// ajouter capteur actif futur V2-20
