@@ -413,7 +413,7 @@ void Acquisition(){
 	if (config.Intru) { 
 		// gestion des capteurs coupé ou en alarme permanente
 		// verif sur 3 passages consecutifs
-		if (digitalRead(PinPedale1)){
+		if (!digitalRead(PinPedale1)){
 			nalaPIR1 ++;
 			if(nalaPIR1 > 3){
 				// CptAlarme1 = 1;
@@ -425,7 +425,7 @@ void Acquisition(){
 		else{
 			if (nalaPIR1 > 0) nalaPIR1 --;			//	efface progressivement le compteur
 		}
-		if (digitalRead(PinPedale2)){
+		if (!digitalRead(PinPedale2)){
 			nalaPIR2 ++;
 			if(nalaPIR2 > 3){
 				// CptAlarme2 = 1;
@@ -442,8 +442,13 @@ void Acquisition(){
 		FlagAlarmeIntrusion = false;	// efface alarme pendant phase de démarrage
 		// CptAlarme1 = 0;
 		// CptAlarme2 = 0;
-	}
 	
+	
+		if(FlagAlarmeIntrusion){
+			ActivationSonnerie();			// activation Sonnerie
+			Serial.println(F("Alarme Cable"));	
+		}
+	}
 	
 	
 	/* verification nombre SMS en attente(raté en lecture directe)
@@ -716,7 +721,7 @@ fin_i:
 					// message += "0";
 				// }					
 				// message += VUSB - ((VUSB / 1000) * 1000);
-				message += (VUSB/1000,2);
+				message += (float(VUSB/1000),2);
 				message += "V";
 				message += fl;
 				EnvoyerSms(number, sms);
