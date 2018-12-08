@@ -42,7 +42,7 @@ Surveillance Batterie solaire
 
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		34   // Batterie générale 12V adc
-#define PinBattUSB		2    // V USB 5V adc
+#define PinBattUSB		36   // V USB 5V adc
 #define PinPedale1		32   // Entrée Pedale1
 #define PinPedale2		33   // Entrée Pedale2
 #define PinEclairage	21   // Sortie Commande eclairage
@@ -70,12 +70,13 @@ byte confign = 0;						// Num enregistrement EEPROM
 bool Allume = false;
 bool FlagAlarmeTension       = false;	// Alarme tension Batterie
 bool FlagLastAlarmeTension   = false;
-bool FlagPIR                 = false;	// detection PIR ???verifier si necessaire???
 bool FlagAlarmeIntrusion     = false;	// Alarme Defaut Cable detectée
 bool FlagLastAlarmeIntrusion = false;
 bool FirstSonn = false;					// Premier appel sonnerie
 bool SonnMax   = false;					// temps de sonnerie maxi atteint
 bool FlagReset = false;
+// byte CptAlarme1 = 0;
+// byte CptAlarme2 = 0;
 
 int  CoeffTensionDefaut = 7000;	// Coefficient par defaut
 RTC_DATA_ATTR int CptAllumage = 0;			// Nombre Allumage par jour en memoire RTC
@@ -293,8 +294,7 @@ void loop() {
 	if(rebond2 > millis()) rebond2 = millis();
 	
   char* bufPtr = SIM800InBuffer;		//buffer pointer
-  if (Serial2.available()) {      	//any data available from the FONA?
-    
+  if (Serial2.available()) {      	//any data available from the FONA?    
     int charCount = 0;
     /* Read the notification into SIM800InBuffer */
     do  {
@@ -371,7 +371,7 @@ void Acquisition(){
 	static byte nRetourTension = 0;	
 	TensionBatterie  = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, config.CoeffTension1);
 	VBatterieProc = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, config.CoeffTension2);
-	VUSB  = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, config.CoeffTension3);
+	VUSB  = map(moyenneAnalogique(PinBattUSB), 0, 4095, 0, config.CoeffTension3);
 	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 5500){
 		nalaTension ++;
     if (nalaTension == 4) {
@@ -407,30 +407,30 @@ void Acquisition(){
 
 	
 	// alarme cable a terminer
-/* 	
+	
 	static byte nalaPIR1 = 0;
 	static byte nalaPIR2 = 0;
 	if (config.Intru) { 
 		// gestion des capteurs coupé ou en alarme permanente
 		// verif sur 3 passages consecutifs
-		if (config.PirActif[0] && digitalRead(Ip_PIR1)){
+		if (digitalRead(PinPedale1)){
 			nalaPIR1 ++;
 			if(nalaPIR1 > 3){
-				CptAlarme1 = 1;
-				FausseAlarme1 = 1000;//V2-11
-				FlagPIR = true;
+				// CptAlarme1 = 1;
+				// FausseAlarme1 = 1000;//V2-11
+				FlagAlarmeIntrusion = true;
 				nalaPIR1 = 0;
 			}
 		}
 		else{
 			if (nalaPIR1 > 0) nalaPIR1 --;			//	efface progressivement le compteur
 		}
-		if (config.PirActif[1] && digitalRead(Ip_PIR2)){
+		if (digitalRead(PinPedale2)){
 			nalaPIR2 ++;
 			if(nalaPIR2 > 3){
-				CptAlarme2 = 1;
-				FausseAlarme2 = 1000;//V2-11
-				FlagPIR = true;
+				// CptAlarme2 = 1;
+				// FausseAlarme2 = 1000;//V2-11
+				FlagAlarmeIntrusion = true;
 				nalaPIR2 = 0;
 			}
 		}
@@ -439,11 +439,11 @@ void Acquisition(){
 		}
 	}
 	else{
-		FlagPIR = false;	// efface alarme pendant phase de démarrage
-		CptAlarme1 = 0;
-		CptAlarme2 = 0;
+		FlagAlarmeIntrusion = false;	// efface alarme pendant phase de démarrage
+		// CptAlarme1 = 0;
+		// CptAlarme2 = 0;
 	}
-	 */
+	
 	
 	
 	/* verification nombre SMS en attente(raté en lecture directe)
@@ -711,11 +711,12 @@ fin_i:
 				message += " %";
 				message += fl;
 				message += F("V USB= ");				
-				message += String(VUSB / 100) + ",";	
-				if((VUSB-(VUSB / 100) * 100) < 10){ // correction bug decimal<10
-					message += "0";
-				}					
-				message += VUSB - ((VUSB / 100) * 100);
+				// message += String(VUSB / 1000) + ",";	
+				// if((VUSB-(VUSB / 1000) * 1000) < 100){ // correction bug decimal<10
+					// message += "0";
+				// }					
+				// message += VUSB - ((VUSB / 1000) * 1000);
+				message += (VUSB/1000,2);
 				message += "V";
 				message += fl;
 				EnvoyerSms(number, sms);
@@ -783,7 +784,7 @@ fin_i:
 					// digitalWrite(Op_PIR4, LOW);
 					FirstSonn = false;
 					FlagAlarmeIntrusion = false;
-					FlagPIR = false;
+					// FlagPIR = false;
 					if(!sms){															//V2-14
 						nom = F("console");
 						// bidon.toCharArray(nom,8);	//	si commande locale
@@ -988,7 +989,7 @@ fin_i:
 					// Serial.print("TensionBatterie = "),Serial.println(TensionBatterie);
 					tensionmemo = tension;					
 				}
-				else if(FlagCalibration && bidon.substring(0,4).toInt() > 0 && bidon.substring(0,4).toInt() <=5000){
+				else if(FlagCalibration && bidon.substring(0,4).toInt() > 0 && bidon.substring(0,4).toInt() <=8000){
 					// si Calibration en cours et valeur entre 0 et 5000
 					Serial.println(bidon.substring(0,4));
 					/* calcul nouveau coeff */
@@ -1102,14 +1103,12 @@ void envoieGroupeSMS(byte grp) {
 //---------------------------------------------------------------------------
 void generationMessage() {
 	message = Id;
-	message += "a terminer" + fl;
 	if(FlagAlarmeTension || FlagLastAlarmeTension || FlagAlarmeIntrusion){
 		message += F("--KO--------KO--");
 	}
 	else {
     message += F("-------OK-------");
   }
-	
 	message+= fl;
 	message += F("Batterie : ");				//"Alarme Batterie : "
   if (FlagAlarmeTension) {
@@ -1128,7 +1127,7 @@ void generationMessage() {
 	message += fl ;
 	
 	if (config.Intru && FlagAlarmeIntrusion) {
-    message += F("-- Intrusion !--") ;			// Intrusion !
+    message += F("-- Cable coupe !--") ;			// Intrusion !
 		message += fl;
 	}
 	if (config.Intru) {
