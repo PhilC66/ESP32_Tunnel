@@ -50,10 +50,10 @@ Surveillance Batterie solaire
 #define PIN						1234 // Code PIN carte SIM
 
 byte calendrier[13][32];
-char filecal[13] = "/filecal.csv"; // fichier en SPIFFS contenant le calendrier de circulation
-const String soft = "ESP32_Tunnel.ino.d32"; // nom du soft
-String  ver = "1";
-int Magique = 3456;
+char filecal[13]	= "/filecal.csv"; // fichier en SPIFFS contenant le calendrier de circulation
+const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
+String	ver				= "1";
+int Magique				= 3456;
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
