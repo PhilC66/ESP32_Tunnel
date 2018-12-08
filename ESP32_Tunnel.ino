@@ -823,13 +823,7 @@ fin_i:
 				if (textesms.indexOf(F("ON")) == 7) { //ON
 					if (!config.Silence) {
 						config.Silence = !config.Silence;
-						// V2-17
-						/*	Arret Sonnerie au cas ou? sans envoyer SMS */
 						digitalWrite(PinSirene, LOW);	// Arret Sonnerie
-						// ne pas arreter les tempos risque bug blocagE Alarme
-						// Alarm.disable(TSonn);			// on arrete la tempo sonnerie
-						// Alarm.disable(TSonnMax);	// on arrete la tempo sonnerie maxi
-						// V2-17
 						sauvConfig();															// sauvegarde en EEPROM
 					}
 				}
@@ -837,17 +831,71 @@ fin_i:
 					if (config.Silence) {
 						config.Silence = !config.Silence;
 						sauvConfig();															// sauvegarde en EEPROM
-						// V2-17
-						/*	Arret Sonnerie au cas ou? sans envoyer SMS */
-						// digitalWrite(S_Son, LOW);	// Arret Sonnerie
-						// Alarm.disable(TSonn);			// on arrete la tempo sonnerie
-						// Alarm.disable(TSonnMax);	// on arrete la tempo sonnerie maxi
-						// V2-17
 					}
 				}
 				generationMessage();
 				EnvoyerSms(number, sms);					
       }
+			else if(textesms.indexOf(F("CAPTEUR")) == 0){	// Capteurs actif CAPTEUR=1,0,1 (Pedale1,Pedale2,Porte)
+				bool flag = true; // validation du format
+				if (textesms.indexOf(char(61))== 7) { //char(61) "="	liste capteur actif
+					byte Num[3];
+					String bidon=textesms.substring(8,13);
+					Serial.print("bidon="),Serial.print(bidon),Serial.println(bidon.length());
+					if (bidon.length() == 5){
+						int j=0;
+						for (int i = 0;i < 5; i +=2){
+							if(bidon.substring(i,i+1) == "0" || bidon.substring(i,i+1) == "1"){
+								// Serial.print(",="),Serial.println(bidon.substring(i+1,i+2));
+								// Serial.print("X="),Serial.println(bidon.substring(i,i+1));
+								Num[j] = bidon.substring(i,i+1).toInt();
+								// Serial.print(i),Serial.print(","),Serial.print(j),Serial.print(","),Serial.println(Num[j]);
+								j++;
+							}
+							else{									
+								Serial.println(F("Format non reconnu"));
+								flag = false;	// format pas bon		
+							}						
+						}
+						if(flag){ // sauv configuration
+							config.Pedale1 = Num[0];
+							config.Pedale2 = Num[1];
+							config.Porte   = Num[2];
+						}
+					}					
+				}
+				if(flag){
+					message += F("Pedale1 = ");
+					if(config.Pedale1){
+						message += 1;
+					}
+					else{
+						message += 0;
+					}
+					message += fl;
+					message += F("Pedale2 = ");
+					if(config.Pedale2){
+						message += 1;
+					}
+					else{
+						message += 0;
+					}
+					message += fl;
+					message += F("Porte = ");
+					if(config.Porte){
+						message += 1;
+					}
+					else{
+						message += 0;
+					}
+					message += fl;
+				}
+				else{
+					message += F("Format non reconnu");
+				}
+				
+				EnvoyerSms(number, sms);
+			}
 			else if (textesms.indexOf(F("VIE")) == 0) {			//	Heure Message Vie
 				if ((textesms.indexOf(char(61))) == 3) {
 					long i = atol(textesms.substring(4).c_str()); //	Heure message Vie
