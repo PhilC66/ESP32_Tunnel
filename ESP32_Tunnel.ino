@@ -31,6 +31,7 @@ to do
 debug a faire alarme cable/porte
 
 deplacer Coeff calibration depuis EEPROM vers SPIFFS 
+armer interrupt apres lancement
 
  */
  

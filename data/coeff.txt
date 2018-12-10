@@ -1,0 +1,7 @@
+// Coefficent Calibration Pont diviseur mesure tension
+// CoeffTension1;					// Coeff calibration Tension Batterie
+// CoeffTension2;					// Coeff calibration Tension Proc
+// CoeffTension3;					// Coeff calibration Tension USB
+6600
+6601
+6602
