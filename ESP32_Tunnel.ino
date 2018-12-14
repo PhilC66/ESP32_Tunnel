@@ -37,12 +37,12 @@ armer interrupt apres lancement
  
 #include <credentials_home.h>
 
-#include <Sim800l.h>							//my SIM800 modifié
+#include <Sim800l.h>              //my SIM800 modifié
 #include <Time.h>
 #include <TimeAlarms.h>	
 #include <sys/time.h>
 #include <WiFi.h>
-#include <EEPROM.h>								// variable en EEPROM
+#include <EEPROM.h>               // variable en EEPROM
 #include "SPIFFS.h"
 #include <ArduinoOTA.h>
 // #include "coeff.h"							// coefficient mesure tension
@@ -905,12 +905,12 @@ fin_i:
 				
 				EnvoyerSms(number, sms);
 			}
-			else if (textesms.indexOf(F("VIE")) == 0) {			//	Heure Message Vie
+			else if (textesms.indexOf(F("VIE")) == 0) {       //	Heure Message Vie
 				if ((textesms.indexOf(char(61))) == 3) {
 					long i = atol(textesms.substring(4).c_str()); //	Heure message Vie
-					if (i > 0 && i <= 86340) {										//	ok si entre 0 et 86340(23h59)
+					if (i > 0 && i <= 86340) {                    //	ok si entre 0 et 86340(23h59)
 						config.Ala_Vie = i;
-						sauvConfig();																// sauvegarde en EEPROM
+						sauvConfig();                               // sauvegarde en EEPROM
 						Svie = Alarm.alarmRepeat(config.Ala_Vie, SignalVie);	// init tempo
 					}
 				}
@@ -1325,8 +1325,12 @@ void MajHeure(){
 	}
 	displayTime(0);
 	
+	
 	message = Id;
 	message += ecart;
+	message += fl;
+	message += displayTime(0);
+	message += fl;
 }
 //---------------------------------------------------------------------------
 void ActivationSonnerie() {
