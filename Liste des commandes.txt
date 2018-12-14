@@ -1,0 +1,40 @@
+Liste des commandes
+ID
+ID=abcdefghij  10 car max
+timeoutwifi														durée du timeout wifi avant retour fonctionnement normale
+timeoutwifi=300												durée en secondes(0-3600)
+wifi=ssid,password										connexion wifi case sensitive
+lst?																	Liste le Phone Book
+tel=+331234567890,Nom									crestion nouveau numero dans le Phone Book
+telX=efface														supprime l'entrée X du Phone Book impossible sur X=1
+telX=+331234567890,Nom								modification d'une entree du Phone Book
+etat																	demande l'etat de l'installation
+sys                                   demande l'etat du systeme
+log                                   log des commandes
+INTRUON																Armement de l'alarme
+INTRUOFF															Desarmement de l'alarme
+SILENCE																Demande etat Alarme Silencieuse
+SILENCEON															Alarme Silencieuse activé
+SILENCEOFF														Alarme Silencieuse desactivé
+SIRENE																Active la Sirene pour durée sirene
+CAPTEUR																Capteur activé pour l'alarme
+CAPTEUR=1,1,0													Pedale1, Pedale2, Porte
+VIE																		Heure du signal de vie
+VIE=25200															Heure en seconde = 7H00
+SONN																	Demende parametre Sirene 60:90:120(s)durée,tmax,latence
+TIME																	Demande Heure Systeme
+MAJHEURE															Force une remise à l'heure réseau GSM
+IEMEI																	Demande le IEMEI de la carte GSM
+FIN																		Demande l'heure de fin de service
+FIN=72000															Heure en seconde = 20H00
+MOIS=mm?															Demande le calendrier de circulation pour le mois mm
+MOIS=mm,31 fois 0/1										Etabli un mois mm de circulation, tous les mois ont obligatoirement 31 jours
+RST																		Reset du systeme
+CALIBRATION														Calibration des mesures de tension cde locale uniquement
+CALIBRATION=.X												X entrée 1 2 3
+
+
+a creer
+
+TIMEOUTS															Timeout coupure eclairage en cas de probleme 3600s
+tempSortie                            Timeout coupure eclairage à la sortie s
