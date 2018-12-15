@@ -58,9 +58,10 @@ armer interrupt apres lancement
 #define PIN						1234 // Code PIN carte SIM
 
 byte calendrier[13][32];
-char filecal[13]  = "/filecal.csv"; // fichier en SPIFFS contenant le calendrier de circulation
+char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
+char filecalibration[12] = "/coeff.txt";    // fichier en SPIFFS contenant le calendrier de calibration
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "1";
+int	ver           = 1;
 int Magique       = 1234;
 String message;
 String bufferrcpt;
@@ -88,9 +89,12 @@ bool SonnMax   = false;				// temps de sonnerie maxi atteint
 bool FlagReset = false;
 // byte CptAlarme1 = 0;
 // byte CptAlarme2 = 0;
+int     CoeffTension1;				// Coeff calibration Tension Batterie
+int     CoeffTension2;				// Coeff calibration Tension Proc
+int     CoeffTension3;				// Coeff calibration Tension USB
 
 int  CoeffTensionDefaut = 7000;// Coefficient par defaut
-RTC_DATA_ATTR int CptAllumage = 0;		// Nombre Allumage par jour en memoire RTC
+RTC_DATA_ATTR int CptAllumage = 0; // Nombre Allumage par jour en memoire RTC
 byte slot = 0;            			//this will be the slot number of the SMS
 char 		receivedChar;
 bool newData = false;
@@ -114,7 +118,7 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
   int 		magic				;					// num magique
   long  	Ala_Vie 		;					// Heure message Vie, 7h matin en seconde = 7*60*60
 	long  	FinJour 		;					// Heure fin jour, 20h matin en seconde = 20*60*60
-	int     Tlancement  ;           // Temps lancement, prise decision circulé/noncirculé
+	int     Tlancement  ;         // Temps lancement, prise decision circulé/noncirculé
   int			tempSortie 	;					// tempo eclairage apres sorties(s)
   int			timeOutS	 	;					// tempo time out eclairage (s)
 	int 		tempPDL 		;					// tempo entre n coups pedale(ms)
@@ -128,9 +132,9 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
 	int     CoeffTension1;				// Coeff calibration Tension Batterie
 	int     CoeffTension2;				// Coeff calibration Tension Proc
 	int     CoeffTension3;				// Coeff calibration Tension USB
-	bool    Pedale1;                // Alarme Pedale1 Active
-	bool    Pedale2;                // Alarme Pedale2 Active
-	bool    Porte;                  // Alarme Porte Active
+	bool    Pedale1;              // Alarme Pedale1 Active
+	bool    Pedale2;              // Alarme Pedale2 Active
+	bool    Porte;                // Alarme Porte Active
 	char 		Idchar[11];						// Id
 } ;
 config_t config;
@@ -262,7 +266,8 @@ void setup() {
 			else if (error == OTA_END_ERROR) 			Serial.println("End Failed");
 		});
 	
-	OuvrirCalendrier(); // ouvre calendrier circulation en SPIFFS
+	OuvrirCalendrier();					// ouvre calendrier circulation en SPIFFS
+	OuvrirFichierCalibration(); // ouvre fichier calibration en SPIFFS
 	Sim800l.reset(PIN);// lancer SIM800	
 	Sim800l.getRSSI();
 	Alarm.delay(1000);
@@ -1594,7 +1599,7 @@ void deleteFile(fs::FS &fs, const char * path){
 //---------------------------------------------------------------------------
 void EnregistreCalendrier(){ // remplace le nouveau calendrier
 	bool result = SPIFFS.begin();
-	deleteFile(SPIFFS,filecal);
+	deleteFile(SPIFFS,filecalendrier);
 	String bidon="";
 	char bid[63];
 	for(int m = 1; m < 13;m++){
@@ -1604,7 +1609,7 @@ void EnregistreCalendrier(){ // remplace le nouveau calendrier
 		Serial.println(bidon);
 		bidon += fl;
 		bidon.toCharArray(bid,63);
-		appendFile(SPIFFS, filecal, bid);
+		appendFile(SPIFFS, filecalendrier, bid);
 		bidon = "";
 	}
 	SPIFFS.end();
@@ -1617,13 +1622,13 @@ void OuvrirCalendrier(){
 
 	// this opens the file "f.txt" in read-mode
 	listDir(SPIFFS, "/", 0);
-	// deleteFile(SPIFFS,filecal);
+	// deleteFile(SPIFFS,filecalendrier);
 
-	bool f = SPIFFS.exists(filecal);
+	bool f = SPIFFS.exists(filecalendrier);
 	Serial.println(f);
 
 	if (!f) {
-		Serial.println(F("File doesn't exist yet. Creating it"));
+		Serial.println(F("File doesn't exist yet. Creating it")); // creation calendrier defaut
 		char bid[63];
 		String bidon="";
 		for(int m = 1; m < 13;m++){
@@ -1638,10 +1643,10 @@ void OuvrirCalendrier(){
 			Serial.println(bidon);
 			bidon += fl;
 			bidon.toCharArray(bid,63);
-			appendFile(SPIFFS, filecal, bid);
+			appendFile(SPIFFS, filecalendrier, bid);
 			bidon = "";
 		}
-		f = SPIFFS.exists(filecal);
+		f = SPIFFS.exists(filecalendrier);
 		if (!f) {
 			// Serial.println("file creation failed");
 		// }else{Serial.println("file creation OK");}
@@ -1650,7 +1655,7 @@ void OuvrirCalendrier(){
 		// we could open the file
 		}
 	}
-	readFile(SPIFFS, filecal);
+	readFile(SPIFFS, filecalendrier);
 	for(int m = 1; m < 13;m++){
 		for(int j = 1; j < 32; j++){
 			Serial.print(calendrier[m][j]),Serial.print(char(44));
@@ -1680,9 +1685,6 @@ void PrintEEPROM(){
 	Serial.print(F("Tempo Sortie (s) = "))				,Serial.println(config.tempSortie);
 	Serial.print(F("Time Out Eclairage (s) = "))	,Serial.println(config.timeOutS);
 	Serial.print(F("Time Out Wifi (s) = "))				,Serial.println(config.timeoutWifi);
-	Serial.print(F("Coeff T Batterie = "))				,Serial.println(config.CoeffTension1);
-	Serial.print(F("Coeff T Proc = "))	    			,Serial.println(config.CoeffTension2);
-	Serial.print(F("Coeff T VUSB = "))		    		,Serial.println(config.CoeffTension3);
 	Serial.print(F("Pedale 1 Alarme Active = ")) 	,Serial.println(config.Pedale1);
 	Serial.print(F("Pedale 2 Alarme Active = ")) 	,Serial.println(config.Pedale2);
 	Serial.print(F("Pedale 1 Porte Active = ")) 	,Serial.println(config.Porte);
@@ -1905,7 +1907,44 @@ int Battpct(long vbat){
 	}
 	return EtatBat;
 }
-
+//---------------------------------------------------------------------------
+void OuvrirFichierCalibration(){ // Lecture fichier calibration
+	bool result = SPIFFS.begin();
+	if(SPIFFS.exists(filecalibration)){
+		File f = SPIFFS.open(filecalibration, "r");
+		for(int i = 0;i < 3;i++){ //Read
+			String s = f.readStringUntil('\n');
+			Serial.print(i),Serial.print(" "),Serial.println(s);
+			if(i==0)CoeffTension1 = s.toFloat();
+			if(i==1)CoeffTension2 = s.toFloat();
+			if(i==2)CoeffTension3 = s.toFloat();
+		}
+		f.close();
+	}
+	else{
+		Serial.println(F("Creating Data File:"));// valeur par defaut
+		CoeffTension1 = 6600;
+		CoeffTension2 = 6600;
+		CoeffTension3 = 6600;
+		Recordcalib();
+	}
+	Serial.print(F("Coeff T Batterie = ")),Serial.println(CoeffTension1);
+	Serial.print(F("Coeff T Proc = "))	  ,Serial.println(CoeffTension2);
+	Serial.print(F("Coeff T VUSB = "))		,Serial.println(CoeffTension3);
+	SPIFFS.end();
+}
+//---------------------------------------------------------------------------
+void Recordcalib(){ // enregistrer fichier calibration en SPIFFS
+	bool result = SPIFFS.begin();
+	if(SPIFFS.exists(filecalibration)){
+		File f = SPIFFS.open(filecalibration,"w");
+		f.println(CoeffTension1);
+		f.println(CoeffTension2);
+		f.println(CoeffTension2);
+		f.close();
+	}	
+	SPIFFS.end();
+}
 /* --------------------  test local serial seulement ----------------------*/
 void recvOneChar() {
   if (Serial.available() > 0) {
