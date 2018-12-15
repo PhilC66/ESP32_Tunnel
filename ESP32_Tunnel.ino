@@ -30,7 +30,6 @@ to do
 
 debug a faire alarme cable/porte
 
-deplacer Coeff calibration depuis EEPROM vers SPIFFS 
 armer interrupt apres lancement
 
  */
@@ -1616,8 +1615,6 @@ void OuvrirCalendrier(){
 
 	// this opens the file "f.txt" in read-mode
 	listDir(SPIFFS, "/", 0);
-	// deleteFile(SPIFFS,filecalendrier);
-
 	bool f = SPIFFS.exists(filecalendrier);
 	Serial.println(f);
 
@@ -1908,7 +1905,7 @@ void OuvrirFichierCalibration(){ // Lecture fichier calibration
 		File f = SPIFFS.open(filecalibration, "r");
 		for(int i = 0;i < 3;i++){ //Read
 			String s = f.readStringUntil('\n');
-			Serial.print(i),Serial.print(" "),Serial.println(s);
+			// Serial.print(i),Serial.print(" "),Serial.println(s);
 			if(i==0)CoeffTension1 = s.toFloat();
 			if(i==1)CoeffTension2 = s.toFloat();
 			if(i==2)CoeffTension3 = s.toFloat();
@@ -1916,7 +1913,7 @@ void OuvrirFichierCalibration(){ // Lecture fichier calibration
 		f.close();
 	}
 	else{
-		Serial.println(F("Creating Data File:"));// valeur par defaut
+		Serial.print(F("Creating Data File:")),Serial.println(filecalibration);// valeur par defaut
 		CoeffTension1 = 6600;
 		CoeffTension2 = 6600;
 		CoeffTension3 = 6600;
@@ -1930,13 +1927,14 @@ void OuvrirFichierCalibration(){ // Lecture fichier calibration
 //---------------------------------------------------------------------------
 void Recordcalib(){ // enregistrer fichier calibration en SPIFFS
 	bool result = SPIFFS.begin();
-	if(SPIFFS.exists(filecalibration)){
-		File f = SPIFFS.open(filecalibration,"w");
-		f.println(CoeffTension1);
-		f.println(CoeffTension2);
-		f.println(CoeffTension3);
-		f.close();
-	}	
+	// Serial.print(F("Coeff T Batterie = ")),Serial.println(CoeffTension1);
+	// Serial.print(F("Coeff T Proc = "))	  ,Serial.println(CoeffTension2);
+	// Serial.print(F("Coeff T VUSB = "))		,Serial.println(CoeffTension3);
+	File f = SPIFFS.open(filecalibration,"w");
+	f.println(CoeffTension1);
+	f.println(CoeffTension2);
+	f.println(CoeffTension3);
+	f.close();
 	SPIFFS.end();
 }
 /* --------------------  test local serial seulement ----------------------*/
