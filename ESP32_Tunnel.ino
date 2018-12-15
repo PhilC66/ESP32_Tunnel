@@ -26,6 +26,9 @@ declenchement Alarme
 
 Surveillance Batterie solaire
 
+	Librairie TimeAlarms.h modifiée
+	#define dtNBR_ALARMS 10 (ne fonctionne pas avec 9)   6 à l'origine nombre d'alarmes RAM*11 max is 255
+	
 to do
 
 debug a faire alarme cable/porte
@@ -126,8 +129,8 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
 	int 		Dsonn 	;							// Durée Sonnerie
   int 		DsonnMax;							// Durée Max Sonnerie
   int 		Dsonnrepos;						// Durée repos Sonnerie
-  boolean Intru   ;							// Alarme Intrusion active
-  boolean Silence ;							// Mode Silencieux = true false par defaut
+  bool    Intru   ;							// Alarme Intrusion active
+  bool    Silence ;							// Mode Silencieux = true false par defaut
 	bool    Pedale1;              // Alarme Pedale1 Active
 	bool    Pedale2;              // Alarme Pedale2 Active
 	bool    Porte;                // Alarme Porte Active
@@ -135,16 +138,16 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
 } ;
 config_t config;
 
-
-AlarmId loopPrincipale; // boucle principlae
-AlarmId Svie;					// tempo Signal de Vie et MajHeure
-AlarmId FirstMessage;	// Premier message analyse jour circulé O/N
-AlarmId TempoSortie;	// Temporisation eclairage a la sortie
-AlarmId TimeOut;			// TimeOut Allumage
-AlarmId FinJour;  			// Fin de journée retour deep sleep
-AlarmId TSonn;				// 4 tempo durée de la sonnerie
-AlarmId TSonnMax;			// 5 tempo maximum de sonnerie
-AlarmId TSonnRepos;		// 6 tempo repos apres maxi
+AlarmId OneH;
+AlarmId loopPrincipale;	// boucle principlae
+AlarmId Svie;						// tempo Signal de Vie et MajHeure
+AlarmId FirstMessage;		// Premier message analyse jour circulé O/N
+AlarmId TempoSortie;		// Temporisation eclairage a la sortie
+AlarmId TimeOut;				// TimeOut Allumage
+AlarmId FinJour;				// Fin de journée retour deep sleep
+AlarmId TSonn;					// 4 tempo durée de la sonnerie
+AlarmId TSonnMax;				// 5 tempo maximum de sonnerie
+AlarmId TSonnRepos;			// 6 tempo repos apres maxi
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -210,7 +213,7 @@ void setup() {
 		config.tempSortie    = 10;
 		config.timeOutS      = 60;// 3600
 		config.tempPDL       = 3000;
-		config.Cpt_PDL       = 2;
+		config.Cpt_PDL       = 1;
 		config.timeoutWifi   = 10*60;
 		config.Pedale1       = true;
 		config.Pedale2       = true;
@@ -267,7 +270,9 @@ void setup() {
 	
 	MajHeure();
 	
-  loopPrincipale = Alarm.timerRepeat(10, Acquisition); // boucle principale 15s
+  OneH = Alarm.timerRepeat(1800,test);
+	
+	loopPrincipale = Alarm.timerRepeat(10, Acquisition); // boucle principale 15s
   Alarm.enable(loopPrincipale);
 
 	FirstMessage = Alarm.timerOnce(config.Tlancement, OnceOnly); // appeler une fois apres 5min type=0
@@ -335,7 +340,7 @@ void loop() {
     } 
   }
 	
-		if(IRQ_Cpt_PDL1 > 0 || IRQ_Cpt_PDL2 > 0){ 
+	if(IRQ_Cpt_PDL1 > 0 || IRQ_Cpt_PDL2 > 0){ 
 		Serial.print(F("Interruption : "));
 		Serial.print(IRQ_Cpt_PDL1);
 		Serial.print(" ");
@@ -345,7 +350,7 @@ void loop() {
 			T01 = millis();
 			Serial.print(F("pedale1=")),Serial.println(Cpt_PDL1);
 			Cpt_PDL1 ++;
-			if(Cpt_PDL1 > config.Cpt_PDL){
+			if(Cpt_PDL1 > config.Cpt_PDL - 1){
 				Cpt_PDL1 = 0;
 				Allumage(1);
 			}
@@ -354,7 +359,7 @@ void loop() {
 			T02 = millis();
 			Serial.print(F("pedale2=")),Serial.println(Cpt_PDL2);
 			Cpt_PDL2 ++;
-			if(Cpt_PDL2 > config.Cpt_PDL){
+			if(Cpt_PDL2 > config.Cpt_PDL - 1){
 				Cpt_PDL2 = 0;
 				Allumage(2);
 			}
@@ -508,18 +513,21 @@ void Acquisition(){
 	Alarm.delay(50);
 	digitalWrite(LED_PIN,1);
 	
-
-	// pour test seulement	
-	static int cpt = 0;
-	cpt ++;
-	if(cpt > 360){ // toute les heures
-		MajHeure();
-		cpt = 0;
-		EnvoyerSms(myTel, true);
-	}
-	// Serial.println(cpt);
 }
-
+//---------------------------------------------------------------------------
+void test(){
+	// pour test seulement	
+	// static int cpt = 0;
+	// cpt ++;
+	// if(cpt == 3)Sim800l.dateNet();
+	// if(cpt > 360){ // toute les heures
+		// Sim800l.ModeText();
+		// Sim800l.dateNet();
+		MajHeure();
+		// cpt = 0;
+		EnvoyerSms(myTel, true);
+	// }
+}
 //---------------------------------------------------------------------------
 void traite_sms(byte slot){
 	// Alarm.disable(loopPrincipale);
@@ -539,7 +547,7 @@ void traite_sms(byte slot){
 	
 	byte i;
   byte j;
-	boolean sms = true;
+	bool sms = true;
 	
 	/* Variables pour mode calibration */
 	static int tensionmemo = 0;//	memorisation tension batterie lors de la calibration
@@ -621,7 +629,7 @@ void traite_sms(byte slot){
 			else if (textesms.indexOf(F("TEL")) == 0
             || textesms.indexOf(F("Tel")) == 0
             || textesms.indexOf(F("tel")) == 0) { // entrer nouveau num
-        boolean FlagOK = true;
+        bool FlagOK = true;
         byte j = 0;
         String Send	= "AT+CPBW=";// message ecriture dans le phone book
         if (textesms.indexOf(char(61)) == 4) { // TELn= reserver correction/suppression
@@ -903,8 +911,36 @@ fin_i:
 				
 				EnvoyerSms(number, sms);
 			}
+			else if(textesms.indexOf(F("TIMEOUTECL")) == 0){// Timeout extinction secours
+				if (textesms.indexOf(char(61)) == 10){ // =
+					int i = textesms.substring(11).toInt();
+					// Serial.print("Cpt pedale = "),Serial.println(i);
+					if(i > 599 && i < 7201){
+						config.timeOutS = i;
+						sauvConfig();                               // sauvegarde en EEPROM
+					}
+				}
+				message += F("Time Out Eclairage (s) = ");
+				message += config.timeOutS;
+				message += fl;
+				EnvoyerSms(number, sms);				
+			}
+			else if(textesms.indexOf(F("CPTPEDALE")) == 0){// compteur pedale avant armement
+				if (textesms.indexOf(char(61)) == 9){ // =
+					int i = textesms.substring(10).toInt();
+					// Serial.print("Cpt pedale = "),Serial.println(i);
+					if(i > 0 && i < 10){
+						config.Cpt_PDL = i;
+						sauvConfig();                               // sauvegarde en EEPROM
+					}
+				}
+				message += F("Compteur Pedale = ");
+				message += config.Cpt_PDL;
+				message += fl;
+				EnvoyerSms(number, sms);				
+			}
 			else if (textesms.indexOf(F("VIE")) == 0) {       //	Heure Message Vie
-				if ((textesms.indexOf(char(61))) == 3) {
+				if (textesms.indexOf(char(61)) == 3) {
 					long i = atol(textesms.substring(4).c_str()); //	Heure message Vie
 					if (i > 0 && i <= 86340) {                    //	ok si entre 0 et 86340(23h59)
 						config.Ala_Vie = i;
@@ -1151,7 +1187,7 @@ fin_i:
 //---------------------------------------------------------------------------
 void envoie_alarme() {
   /* determine si un SMS appartition/disparition Alarme doit etre envoyé */
-  boolean SendEtat = false;
+  bool SendEtat = false;
 	
   if (FlagAlarmeTension != FlagLastAlarmeTension) {
     SendEtat = true;
@@ -1262,7 +1298,7 @@ void generationMessage() {
 	Serial.println(message);
 }
 //---------------------------------------------------------------------------
-void EnvoyerSms(char *num, boolean sms){
+void EnvoyerSms(char *num, bool sms){
 	
 	if(sms){ // envoie sms
 		message.toCharArray(replybuffer,message.length()+1);
@@ -1293,7 +1329,7 @@ void read_RSSI() {	// lire valeur RSSI et remplir message
 //---------------------------------------------------------------------------
 void MajHeure(){
 	
-	static boolean First = true;
+	static bool First = true;
 	int ecart;
 	Serial.print(F("Mise a l'heure reguliere !, "));
 	// setTime(10,10,0,1,1,18);
@@ -1343,12 +1379,18 @@ void MajHeure(){
 	}
 	displayTime(0);
 	
-	
+	/* test */
+	char dateheure[20];
+	sprintf(dateheure,"%02d/%02d/%d %02d:%02d:%02d",Nday,Nmonth,Nyear,Nhour,Nminute,Nsecond);
 	message = Id;
 	message += ecart;
 	message += fl;
+	message += String(dateheure);
+	message += fl;
 	message += displayTime(0);
 	message += fl;
+	Serial.println(message);
+	
 }
 //---------------------------------------------------------------------------
 void ActivationSonnerie() {
@@ -1678,7 +1720,7 @@ void PrintEEPROM(){
 	Serial.print(F("Time Out Wifi (s) = "))				,Serial.println(config.timeoutWifi);
 	Serial.print(F("Pedale 1 Alarme Active = ")) 	,Serial.println(config.Pedale1);
 	Serial.print(F("Pedale 2 Alarme Active = ")) 	,Serial.println(config.Pedale2);
-	Serial.print(F("Pedale 1 Porte Active = ")) 	,Serial.println(config.Porte);
+	Serial.print(F("Porte Alarme Active = ")) 	  ,Serial.println(config.Porte);
 }
 //---------------------------------------------------------------------------
 void Extinction(){

@@ -32,9 +32,13 @@ MOIS=mm,31 fois 0/1										Etabli un mois mm de circulation, tous les mois ont
 RST																		Reset du systeme
 CALIBRATION														Calibration des mesures de tension cde locale uniquement
 CALIBRATION=.X												X entrée 1 2 3
+CPTPEDALE															coup de pedale prise en compte allumage
+CPTPEDALE=n														1-10
+TIMEOUTECL														Time out extinction eclairage secours (s) defaut  1H
+TIMEOUTECL=n													600-7200
 
 
 a creer
 
-TIMEOUTS															Timeout coupure eclairage en cas de probleme 3600s
-tempSortie                            Timeout coupure eclairage à la sortie s
+
+tempoSortie                            Timeout coupure eclairage à la sortie s
