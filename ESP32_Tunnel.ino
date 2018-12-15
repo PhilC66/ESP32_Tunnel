@@ -62,7 +62,7 @@ char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le ca
 char filecalibration[12] = "/coeff.txt";    // fichier en SPIFFS contenant le calendrier de calibration
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 int	ver           = 1;
-int Magique       = 1234;
+int Magique       = 2345;
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
@@ -92,8 +92,8 @@ bool FlagReset = false;
 int     CoeffTension1;				// Coeff calibration Tension Batterie
 int     CoeffTension2;				// Coeff calibration Tension Proc
 int     CoeffTension3;				// Coeff calibration Tension USB
-
 int  CoeffTensionDefaut = 7000;// Coefficient par defaut
+
 RTC_DATA_ATTR int CptAllumage = 0; // Nombre Allumage par jour en memoire RTC
 byte slot = 0;            			//this will be the slot number of the SMS
 char 		receivedChar;
@@ -129,9 +129,6 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
   int 		Dsonnrepos;						// Durée repos Sonnerie
   boolean Intru   ;							// Alarme Intrusion active
   boolean Silence ;							// Mode Silencieux = true false par defaut
-	int     CoeffTension1;				// Coeff calibration Tension Batterie
-	int     CoeffTension2;				// Coeff calibration Tension Proc
-	int     CoeffTension3;				// Coeff calibration Tension USB
 	bool    Pedale1;              // Alarme Pedale1 Active
 	bool    Pedale2;              // Alarme Pedale2 Active
 	bool    Porte;                // Alarme Porte Active
@@ -216,9 +213,6 @@ void setup() {
 		config.tempPDL       = 3000;
 		config.Cpt_PDL       = 2;
 		config.timeoutWifi   = 10*60;
-		config.CoeffTension1 = 6600;
-		config.CoeffTension2 = 6600;
-		config.CoeffTension3 = 6600;
 		config.Pedale1       = true;
 		config.Pedale2       = true;
 		config.Porte         = true;
@@ -391,9 +385,9 @@ void Acquisition(){
 
 	static byte nalaTension = 0;
 	static byte nRetourTension = 0;
-	TensionBatterie  = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, config.CoeffTension1);
-	VBatterieProc = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, config.CoeffTension2);
-	VUSB  = map(moyenneAnalogique(PinBattUSB), 0, 4095, 0, config.CoeffTension3);
+	TensionBatterie  = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, CoeffTension1);
+	VBatterieProc = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension2);
+	VUSB  = map(moyenneAnalogique(PinBattUSB), 0, 4095, 0, CoeffTension3);
 	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 5500){
 		nalaTension ++;
     if (nalaTension == 4) {
@@ -1079,15 +1073,15 @@ fin_i:
 						FlagCalibration true cal en cours, false par defaut
 						Static P pin d'entrée
 						static int tensionmemo memorisation de la premiere tension mesurée en calibration
-						int config.CoeffTension = CoeffTensionDefaut 6600 par défaut
+						int CoeffTension = CoeffTensionDefaut 6600 par défaut
 				*/
 				String bidon = textesms.substring(12,16);// texte apres =
 				//Serial.print(F("bidon=")),Serial.print(bidon),Serial.print(char(44)),Serial.println(bidon.length());
 				long tension = 0;
 				if(bidon.substring(0,1) == "." && bidon.length() > 1){// debut mode cal					
-					if(bidon.substring(1,2) == "1" ){M = 1; P = PinBattSol; coef = config.CoeffTension1;}
-					if(bidon.substring(1,2) == "2" ){M = 2; P = PinBattProc; coef = config.CoeffTension2;}
-					if(bidon.substring(1,2) == "3" ){M = 3; P = PinBattUSB; coef = config.CoeffTension3;}
+					if(bidon.substring(1,2) == "1" ){M = 1; P = PinBattSol; coef = CoeffTension1;}
+					if(bidon.substring(1,2) == "2" ){M = 2; P = PinBattProc; coef = CoeffTension2;}
+					if(bidon.substring(1,2) == "3" ){M = 3; P = PinBattUSB; coef = CoeffTension3;}
 					Serial.print("mode = "),Serial.print(M),Serial.println(bidon.substring(1,2));
 					FlagCalibration = true;
 					
@@ -1101,22 +1095,22 @@ fin_i:
 					Serial.println(bidon.substring(0,4));
 					/* calcul nouveau coeff */
 					coef = bidon.substring(0,4).toFloat()/float(tensionmemo)*CoeffTensionDefaut;
-					// Serial.print("Coeff Tension = "),Serial.println(config.CoeffTension);
+					// Serial.print("Coeff Tension = "),Serial.println(CoeffTension);
 					tension = map(moyenneAnalogique(P), 0,4095,0,coef);
 					switch(M){
 						case 1:
-							config.CoeffTension1 = coef;
+							CoeffTension1 = coef;
 							break;
 						case 2:
-							config.CoeffTension2 = coef;
+							CoeffTension2 = coef;
 							break;
 						case 3:
-							config.CoeffTension3 = coef;
+							CoeffTension3 = coef;
 							break;
 					}
 					// Serial.print("TensionBatterie = "),Serial.println(TensionBatterie);
 					FlagCalibration = false;
-					sauvConfig();														// sauvegarde en EEPROM	
+					Recordcalib();														// sauvegarde en SPIFFS	
 				}
 				else{
 					message += F("message non reconnu");
@@ -1940,7 +1934,7 @@ void Recordcalib(){ // enregistrer fichier calibration en SPIFFS
 		File f = SPIFFS.open(filecalibration,"w");
 		f.println(CoeffTension1);
 		f.println(CoeffTension2);
-		f.println(CoeffTension2);
+		f.println(CoeffTension3);
 		f.close();
 	}	
 	SPIFFS.end();
