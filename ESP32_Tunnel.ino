@@ -389,8 +389,8 @@ void Acquisition(){
 
 	static byte nalaTension = 0;
 	static byte nRetourTension = 0;
-	TensionBatterie  = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, CoeffTension1);
-	VBatterieProc = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension2);
+	TensionBatterie = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, CoeffTension1);
+	VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension2);
 	VUSB  = map(moyenneAnalogique(PinBattUSB), 0, 4095, 0, CoeffTension3);
 	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 6000){
 		nalaTension ++;
@@ -1811,7 +1811,7 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	}
 	Serial.println();
 	Serial.println(F("WiFi connected"));
-	Serial.println(F("IP address: "));
+	Serial.print(F("IP address: "));
 	ip = WiFi.localIP().toString();
 	Serial.println(ip);
 	ArduinoOTA.begin();
@@ -1837,8 +1837,14 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	if(sms){ // suppression du SMS
 		/* Obligatoire ici si non bouclage au redemarrage apres timeoutwifi
 		ou OTA sms demande Wifi toujours present */
+		bool err = Sim800l.delSms(slot);
 		Serial.print(F("resultat del Sms "));
-		Serial.println(Sim800l.delSms(slot));
+		Serial.println(err);
+		if(!err){ // 2eme essai si echec
+			err = Sim800l.delAllSms();
+			Serial.print(F("resultat del Sms "));
+			Serial.println(err);
+		}
 	}
 	
 	if(!error){
