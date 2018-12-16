@@ -121,7 +121,7 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
   long  	Ala_Vie 		;					// Heure message Vie, 7h matin en seconde = 7*60*60
 	long  	FinJour 		;					// Heure fin jour, 20h matin en seconde = 20*60*60
 	int     Tlancement  ;         // Temps lancement, prise decision circulé/noncirculé
-  int			tempSortie 	;					// tempo eclairage apres sorties(s)
+  int			tempoSortie ;					// tempo eclairage apres sorties(s)
   int			timeOutS	 	;					// tempo time out eclairage (s)
 	int 		tempPDL 		;					// tempo entre n coups pedale(ms)
 	int			Cpt_PDL			;					// Nombre de coup de pedale pour declencher 1 à n
@@ -210,7 +210,7 @@ void setup() {
 		config.Dsonn         = 60;
 		config.DsonnMax      = 90;
 		config.Dsonnrepos    = 120;
-		config.tempSortie    = 10;
+		config.tempoSortie   = 10;
 		config.timeOutS      = 60;// 3600
 		config.tempPDL       = 3000;
 		config.Cpt_PDL       = 1;
@@ -270,7 +270,7 @@ void setup() {
 	
 	MajHeure();
 	
-  OneH = Alarm.timerRepeat(1800,test);
+  OneH = Alarm.timerRepeat(3600,test);
 	
 	loopPrincipale = Alarm.timerRepeat(10, Acquisition); // boucle principale 15s
   Alarm.enable(loopPrincipale);
@@ -278,7 +278,7 @@ void setup() {
 	FirstMessage = Alarm.timerOnce(config.Tlancement, OnceOnly); // appeler une fois apres 5min type=0
 	Alarm.enable(FirstMessage);
 	
-	TempoSortie = Alarm.timerRepeat(config.tempSortie, Extinction); // tempo extinction a la sortie
+	TempoSortie = Alarm.timerRepeat(config.tempoSortie, Extinction); // tempo extinction a la sortie
 	Alarm.disable(TempoSortie);
 	
 	TimeOut = Alarm.timerRepeat(config.timeOutS, Extinction); // tempo time out extinction
@@ -911,11 +911,25 @@ fin_i:
 				
 				EnvoyerSms(number, sms);
 			}
+			else if(textesms.indexOf(F("TEMPOSORTIE")) == 0){// Tempo Eclairage Sortie
+				if (textesms.indexOf(char(61)) == 11){ // =
+					int i = textesms.substring(11).toInt();
+					// Serial.print("Cpt pedale = "),Serial.println(i);
+					if(i > 0 && i < 121){
+						config.tempoSortie = i;
+						sauvConfig();                               // sauvegarde en EEPROM
+					}
+				}
+				message += F("Tempo Sortie Eclairage (s) = ");
+				message += config.tempoSortie;
+				message += fl;
+				EnvoyerSms(number, sms);				
+			}
 			else if(textesms.indexOf(F("TIMEOUTECL")) == 0){// Timeout extinction secours
 				if (textesms.indexOf(char(61)) == 10){ // =
 					int i = textesms.substring(11).toInt();
 					// Serial.print("Cpt pedale = "),Serial.println(i);
-					if(i > 599 && i < 7201){
+					if(i > 59 && i < 7201){
 						config.timeOutS = i;
 						sauvConfig();                               // sauvegarde en EEPROM
 					}
@@ -1715,7 +1729,7 @@ void PrintEEPROM(){
 	Serial.print(F("Lancement (s) = "))						,Serial.println(config.Tlancement);
 	Serial.print(F("Comptage Pedale = "))       	,Serial.println(config.Cpt_PDL);
 	Serial.print(F("Tempo Pedale (ms) = "))				,Serial.println(config.tempPDL);
-	Serial.print(F("Tempo Sortie (s) = "))				,Serial.println(config.tempSortie);
+	Serial.print(F("Tempo Sortie (s) = "))				,Serial.println(config.tempoSortie);
 	Serial.print(F("Time Out Eclairage (s) = "))	,Serial.println(config.timeOutS);
 	Serial.print(F("Time Out Wifi (s) = "))				,Serial.println(config.timeoutWifi);
 	Serial.print(F("Pedale 1 Alarme Active = ")) 	,Serial.println(config.Pedale1);
@@ -1771,7 +1785,7 @@ void Allumage(byte n){
 			Allume = false;					
 		}
 		else if(Al1 == Cd2 || Al2 == Cd1){			
-			Serial.print(F("                   Extinction dans (s) ")),Serial.println(config.tempSortie);
+			Serial.print(F("                   Extinction dans (s) ")),Serial.println(config.tempoSortie);
 			Alarm.enable(TempoSortie);
 			Serial.println(CptAllumage);
 		}
