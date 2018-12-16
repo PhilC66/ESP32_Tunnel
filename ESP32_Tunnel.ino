@@ -245,7 +245,8 @@ void setup() {
 				type = "filesystem";
 
 			// NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-			Serial.println("Start updating " + type);
+			Serial.print(F("Start updating "));
+			Serial.println(type);
 		})
 		.onEnd([]() {
 			Serial.println(F("End"));
@@ -255,11 +256,11 @@ void setup() {
 		})
 		.onError([](ota_error_t error) {
 			Serial.printf("Error[%u]: ", error);
-			if 			(error == OTA_AUTH_ERROR) 		Serial.println("Auth Failed");
-			else if (error == OTA_BEGIN_ERROR) 		Serial.println("Begin Failed");
-			else if (error == OTA_CONNECT_ERROR) 	Serial.println("Connect Failed");
-			else if (error == OTA_RECEIVE_ERROR) 	Serial.println("Receive Failed");
-			else if (error == OTA_END_ERROR) 			Serial.println("End Failed");
+			if 			(error == OTA_AUTH_ERROR) 		Serial.println(F("Auth Failed"));
+			else if (error == OTA_BEGIN_ERROR) 		Serial.println(F("Begin Failed"));
+			else if (error == OTA_CONNECT_ERROR) 	Serial.println(F("Connect Failed"));
+			else if (error == OTA_RECEIVE_ERROR) 	Serial.println(F("Receive Failed"));
+			else if (error == OTA_END_ERROR) 			Serial.println(F("End Failed"));
 		});
 	
 	OuvrirCalendrier();					// ouvre calendrier circulation en SPIFFS
@@ -389,7 +390,7 @@ void Acquisition(){
 
 	static byte nalaTension = 0;
 	static byte nRetourTension = 0;
-	TensionBatterie = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, CoeffTension1);
+	TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension1);
 	VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension2);
 	VUSB  = map(moyenneAnalogique(PinBattUSB), 0, 4095, 0, CoeffTension3);
 	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 6000){
@@ -470,8 +471,8 @@ void Acquisition(){
 		else{
 			if (nalaPIR2 > 0) nalaPIR2 --;		//	efface progressivement le compteur
 		}
-		Serial.print("Pedale 1 enfonce"),Serial.println(nalaPIR1);
-		Serial.print("Pedale 2 enfonce"),Serial.println(nalaPIR2);
+		Serial.print(F("Pedale 1 enfonce")),Serial.println(nalaPIR1);
+		Serial.print(F("Pedale 2 enfonce")),Serial.println(nalaPIR2);
 		if(FlagAlarmeIntrusion){
 			ActivationSonnerie();		// activation Sonnerie
 			Serial.println(F("Alarme Cable/Porte"));
@@ -586,7 +587,7 @@ void traite_sms(byte slot){
 			// textesms.trim();
     }
 		textesms.replace(" ", "");// supp tous les espaces
-		Serial.print("textesms  = "),Serial.println(textesms);
+		Serial.print(F("textesms  = ")),Serial.println(textesms);
 		
 		if((sms && nom.length() > 0) || !sms){          // si nom appelant existant dans phone book
 			numero.toCharArray(number,numero.length()+1); // on recupere le numéro
@@ -604,13 +605,11 @@ void traite_sms(byte slot){
 				message += fl;
 			}
 			if(textesms.indexOf(F("WIFIOFF"))>-1){ // Arret Wifi
-				Serial.println("Wifi off");
+				Serial.println(F("Wifi off"));
 				WiFi.disconnect(true);
 				WiFi.mode(WIFI_OFF);
 				btStop();
 				Alarm.delay(100);
-				// WiFi.forceSleepBegin();
-				// esp_wifi_stop();
 				message += F("Wifi off");
 				message += fl;
 				EnvoyerSms(number, true);
@@ -856,7 +855,7 @@ fin_i:
 				if (textesms.indexOf(char(61))== 7) { //char(61) "="	liste capteur actif
 					byte Num[3];
 					String bidon=textesms.substring(8,13);
-					Serial.print("bidon="),Serial.print(bidon),Serial.println(bidon.length());
+					// Serial.print("bidon="),Serial.print(bidon),Serial.println(bidon.length());
 					if (bidon.length() == 5){
 						int j=0;
 						for (int i = 0;i < 5; i +=2){
@@ -1131,7 +1130,7 @@ fin_i:
 					if(bidon.substring(1,2) == "1" ){M = 1; P = PinBattSol; coef = CoeffTension1;}
 					if(bidon.substring(1,2) == "2" ){M = 2; P = PinBattProc; coef = CoeffTension2;}
 					if(bidon.substring(1,2) == "3" ){M = 3; P = PinBattUSB; coef = CoeffTension3;}
-					Serial.print("mode = "),Serial.print(M),Serial.println(bidon.substring(1,2));
+					// Serial.print("mode = "),Serial.print(M),Serial.println(bidon.substring(1,2));
 					FlagCalibration = true;
 					
 					coef = CoeffTensionDefaut;
@@ -1317,7 +1316,7 @@ void EnvoyerSms(char *num, bool sms){
 	if(sms){ // envoie sms
 		message.toCharArray(replybuffer,message.length()+1);
 		bool error = Sim800l.sendSms(num,replybuffer);
-		Serial.print("resultat sms "),Serial.println(error);
+		Serial.print(F("resultat sms ")),Serial.println(error);
 	}
 	Serial.print (F("Message (long) = ")), Serial.println(message.length());
 	Serial.println(message);
@@ -1667,7 +1666,8 @@ void EnregistreCalendrier(){ // remplace le nouveau calendrier
 void OuvrirCalendrier(){
 	// always use this to "mount" the filesystem
 	bool result = SPIFFS.begin();
-	Serial.println("SPIFFS opened: " + result);
+	Serial.print(F("SPIFFS opened: "));
+	Serial.println(result);
 
 	// this opens the file "f.txt" in read-mode
 	listDir(SPIFFS, "/", 0);
@@ -1854,7 +1854,7 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 			Alarm.delay(1);
 			ArduinoOTA.handle();
 		}
-		Serial.println("Wifi off");
+		Serial.println(F("Wifi off"));
 		WiFi.disconnect(true);
 		WiFi.mode(WIFI_OFF);
 		btStop();
