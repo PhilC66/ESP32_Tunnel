@@ -47,7 +47,7 @@ armer interrupt apres lancement
 #include <EEPROM.h>               // variable en EEPROM
 #include "SPIFFS.h"
 #include <ArduinoOTA.h>
-// #include "coeff.h"							// coefficient mesure tension
+#include <WiFiClient.h>
 
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		34   // Batterie générale 12V adc
@@ -1797,9 +1797,10 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	Serial.print(F("connexion Wifi:")),Serial.print(ssid),Serial.print(char(44)),Serial.println(pwd);
 	String ip;
 	WiFi.begin(ssid, pwd);
-	WiFi.mode(WIFI_STA);
+	// WiFi.mode(WIFI_STA);
 	byte timeout = 0;
 	bool error = false;
+	WiFiServer server(80);
 	while (WiFi.status() != WL_CONNECTED) {
 		Alarm.delay(1000);
 		Serial.print(".");
@@ -1850,7 +1851,27 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	if(!error){
 		/* boucle permettant de faire une mise à jour OTA, avec un timeout en cas de blocage */
 		unsigned long debut = millis();
+		server.begin();
 		while(millis() - debut < config.timeoutWifi*1000){
+			WiFiClient client = server.available();
+			if(client){
+				Serial.println("New client");
+				String req = client.readStringUntil('\r');
+				client.flush();
+				String s;
+				Serial.println(req);
+				if(req.indexOf("/?") > -1){
+					Serial.print("index "),Serial.println(req.indexOf("/?"));
+					s  = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>Hello from ESP32\r\n ";
+					// s += Id;
+					// s += displayTime(1);
+					s += "</html>\r\n\r\n";
+				}else{
+					s = "HTTP/1.1 404 Not Found\r\n\r\n";
+				}
+				client.println(s);
+				Serial.print(s);
+			}
 			Alarm.delay(1);
 			ArduinoOTA.handle();
 		}
