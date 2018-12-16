@@ -63,7 +63,7 @@ byte calendrier[13][32];
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
 char filecalibration[12] = "/coeff.txt";    // fichier en SPIFFS contenant le calendrier de calibration
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-int	ver           = 1;
+String	ver       = "V1-1";
 int Magique       = 2345;
 String message;
 String bufferrcpt;
@@ -392,7 +392,7 @@ void Acquisition(){
 	TensionBatterie  = map(moyenneAnalogique(PinBattSol), 0, 4095, 0, CoeffTension1);
 	VBatterieProc = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension2);
 	VUSB  = map(moyenneAnalogique(PinBattUSB), 0, 4095, 0, CoeffTension3);
-	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 5500){
+	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 6000){
 		nalaTension ++;
     if (nalaTension == 4) {
       FlagAlarmeTension = true;
@@ -1801,10 +1801,10 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	byte timeout = 0;
 	bool error = false;
 	while (WiFi.status() != WL_CONNECTED) {
-		Alarm.delay(500);
+		Alarm.delay(1000);
 		Serial.print(".");
 		timeout ++;
-		if(timeout > 19){
+		if(timeout > 60){
 			error = true;
 			break;
 		}
@@ -1834,8 +1834,15 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	}
 	EnvoyerSms(number, sms);
 	
+	if(sms){ // suppression du SMS
+		/* Obligatoire ici si non bouclage au redemarrage apres timeoutwifi
+		ou OTA sms demande Wifi toujours present */
+		Serial.print(F("resultat del Sms "));
+		Serial.println(Sim800l.delSms(slot));
+	}
+	
 	if(!error){
-		// boucle permettent de faire une mise à jour OTA, avec un timeout en cas de blocage
+		/* boucle permettant de faire une mise à jour OTA, avec un timeout en cas de blocage */
 		unsigned long debut = millis();
 		while(millis() - debut < config.timeoutWifi*1000){
 			Alarm.delay(1);
