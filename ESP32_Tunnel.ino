@@ -54,7 +54,7 @@ armer interrupt apres lancement
 
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		34   // Batterie générale 12V adc
-#define PinBattUSB		36   // V USB 5V adc VP
+#define PinBattUSB		25   // V USB 5V adc VP 36
 #define PinPedale1		32   // Entrée Pedale1
 #define PinPedale2		33   // Entrée Pedale2
 #define PinPorte   		39   // Entrée Porte Coffret VN
@@ -98,9 +98,10 @@ bool SonnMax   = false;				// temps de sonnerie maxi atteint
 bool FlagReset = false;
 // byte CptAlarme1 = 0;
 // byte CptAlarme2 = 0;
-int     CoeffTension1;				// Coeff calibration Tension Batterie
-int     CoeffTension2;				// Coeff calibration Tension Proc
-int     CoeffTension3;				// Coeff calibration Tension USB
+// int     CoeffTension1;				// Coeff calibration Tension Batterie
+// int     CoeffTension2;				// Coeff calibration Tension Proc
+// int     CoeffTension3;				// Coeff calibration Tension USB
+int CoeffTension[3];
 int  CoeffTensionDefaut = 7000;// Coefficient par defaut
 
 RTC_DATA_ATTR int CptAllumage = 0; // Nombre Allumage par jour en memoire RTC
@@ -395,14 +396,18 @@ void loop() {
 void Acquisition(){	
 	static byte CptAlarmeCable = 0;
 	
+	OuvrirFichierCalibration(); // patch relecture des coeff perdu
 	if(!Sim800l.getetatSIM())Sim800l.reset(PIN);// verification SIM
 	Serial.print(displayTime(0));
-
+	Serial.print(F(" Freemem = ")),Serial.println(ESP.getFreeHeap());
 	static byte nalaTension = 0;
 	static byte nRetourTension = 0;
-	TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension1);
-	VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension2);
-	VUSB  = map(moyenneAnalogique(PinBattUSB), 0, 4095, 0, CoeffTension3);
+	TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension[0]);
+	VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension[1]);
+	VUSB            = map(moyenneAnalogique(PinBattUSB), 0, 4095, 0, CoeffTension[2]);
+	// Serial.print("Coeff 1 = "),Serial.print(CoeffTension[0]);
+	// Serial.print(" Coeff 2 = "),Serial.print(CoeffTension[1]);
+	// Serial.print(" Coeff 3 = "),Serial.println(CoeffTension[2]);
 	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 6000){
 		nalaTension ++;
     if (nalaTension == 4) {
@@ -421,7 +426,7 @@ void Acquisition(){
     if (nalaTension > 0)nalaTension--;		//	efface progressivement le compteur
   }
 
-	message = F(", Batt Solaire = ");
+	message = F("Batt Solaire = ");
 	message += float(TensionBatterie/100.0);
 	message += "V, ";
 	message += String(Battpct(TensionBatterie));
@@ -756,7 +761,7 @@ fin_i:
         message += ver;
 				message += fl;
 				message += F("V Batt Sol= ");			
-				message += String(float(TensionBatterie/100.0)) + ",";
+				message += String(float(TensionBatterie/100.0));
 				message += F("V, ");
 				message += String(Battpct(TensionBatterie));
 				message += " %";
@@ -1137,9 +1142,9 @@ fin_i:
 				//Serial.print(F("bidon=")),Serial.print(bidon),Serial.print(char(44)),Serial.println(bidon.length());
 				long tension = 0;
 				if(bidon.substring(0,1) == "." && bidon.length() > 1){// debut mode cal					
-					if(bidon.substring(1,2) == "1" ){M = 1; P = PinBattSol; coef = CoeffTension1;}
-					if(bidon.substring(1,2) == "2" ){M = 2; P = PinBattProc; coef = CoeffTension2;}
-					if(bidon.substring(1,2) == "3" ){M = 3; P = PinBattUSB; coef = CoeffTension3;}
+					if(bidon.substring(1,2) == "1" ){M = 1; P = PinBattSol; coef = CoeffTension[0];}
+					if(bidon.substring(1,2) == "2" ){M = 2; P = PinBattProc; coef = CoeffTension[1];}
+					if(bidon.substring(1,2) == "3" ){M = 3; P = PinBattUSB; coef = CoeffTension[2];}
 					// Serial.print("mode = "),Serial.print(M),Serial.println(bidon.substring(1,2));
 					FlagCalibration = true;
 					
@@ -1155,17 +1160,19 @@ fin_i:
 					coef = bidon.substring(0,4).toFloat()/float(tensionmemo)*CoeffTensionDefaut;
 					// Serial.print("Coeff Tension = "),Serial.println(CoeffTension);
 					tension = map(moyenneAnalogique(P), 0,4095,0,coef);
-					switch(M){
-						case 1:
-							CoeffTension1 = coef;
-							break;
-						case 2:
-							CoeffTension2 = coef;
-							break;
-						case 3:
-							CoeffTension3 = coef;
-							break;
-					}
+					CoeffTension[M-1] = coef;
+					// switch(M){
+						// case 1:
+							// CoeffTension[0] = coef;
+							// break;
+						// case 2:
+							// CoeffTension[1] = coef;
+							// break;
+						// case 3:
+							// CoeffTension[2] = coef;
+							// Serial.print("CoeffTension3 = "),Serial.print(CoeffTension[2]);//tracer changement valeur
+							// break;
+					// }
 					// Serial.print("TensionBatterie = "),Serial.println(TensionBatterie);
 					FlagCalibration = false;
 					Recordcalib();														// sauvegarde en SPIFFS	
@@ -2005,23 +2012,27 @@ void OuvrirFichierCalibration(){ // Lecture fichier calibration
 		File f = SPIFFS.open(filecalibration, "r");
 		for(int i = 0;i < 3;i++){ //Read
 			String s = f.readStringUntil('\n');
+			CoeffTension[i] = s.toFloat();
 			// Serial.print(i),Serial.print(" "),Serial.println(s);
-			if(i==0)CoeffTension1 = s.toFloat();
-			if(i==1)CoeffTension2 = s.toFloat();
-			if(i==2)CoeffTension3 = s.toFloat();
+			// if(i==0)CoeffTension[0] = s.toFloat();
+			// if(i==1)CoeffTension[1] = s.toFloat();
+			// if(i==2){
+				// CoeffTension[2] = s.toFloat();
+				// Serial.print("CoeffTension3 = "),Serial.print(CoeffTension[2]);//tracer changement valeur
+			// }
 		}
 		f.close();
 	}
 	else{
 		Serial.print(F("Creating Data File:")),Serial.println(filecalibration);// valeur par defaut
-		CoeffTension1 = 6600;
-		CoeffTension2 = 6600;
-		CoeffTension3 = 6600;
+		CoeffTension[0] = 6600;
+		CoeffTension[1] = 6600;
+		CoeffTension[2] = 6600;
 		Recordcalib();
 	}
-	Serial.print(F("Coeff T Batterie = ")),Serial.println(CoeffTension1);
-	Serial.print(F("Coeff T Proc = "))	  ,Serial.println(CoeffTension2);
-	Serial.print(F("Coeff T VUSB = "))		,Serial.println(CoeffTension3);
+	Serial.print(F("Coeff T Batterie = ")),Serial.print(CoeffTension[0]);
+	Serial.print(F(" Coeff T Proc = "))	  ,Serial.print(CoeffTension[1]);
+	Serial.print(F(" Coeff T VUSB = "))		,Serial.println(CoeffTension[2]);
 	SPIFFS.end();
 }
 //---------------------------------------------------------------------------
@@ -2031,9 +2042,9 @@ void Recordcalib(){ // enregistrer fichier calibration en SPIFFS
 	// Serial.print(F("Coeff T Proc = "))	  ,Serial.println(CoeffTension2);
 	// Serial.print(F("Coeff T VUSB = "))		,Serial.println(CoeffTension3);
 	File f = SPIFFS.open(filecalibration,"w");
-	f.println(CoeffTension1);
-	f.println(CoeffTension2);
-	f.println(CoeffTension3);
+	f.println(CoeffTension[0]);
+	f.println(CoeffTension[1]);
+	f.println(CoeffTension[2]);
 	f.close();
 	SPIFFS.end();
 }
