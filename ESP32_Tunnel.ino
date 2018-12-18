@@ -31,7 +31,10 @@ Surveillance Batterie solaire
 	
 to do
 
-debug a faire alarme cable/porte
+debug a faire 
+temps mini pedale enfoncée
+alarme cable/porte
+page web
 
 armer interrupt apres lancement
 
@@ -189,6 +192,9 @@ void setup() {
 	pinMode(PinSirene   ,OUTPUT);
 	digitalWrite(PinEclairage, LOW);
 	digitalWrite(PinSirene, LOW);
+	adcAttachPin(PinBattProc);
+	adcAttachPin(PinBattSol);
+	adcAttachPin(PinBattUSB);
 	
 		/* Lecture configuration en EEPROM	 */
   EEPROM.begin(512);
@@ -1863,8 +1869,8 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 				if(req.indexOf("/?") > -1){
 					Serial.print("index "),Serial.println(req.indexOf("/?"));
 					s  = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>Hello from ESP32\r\n ";
-					// s += Id;
-					// s += displayTime(1);
+					s += Id;
+					s += displayTime(1);
 					s += "</html>\r\n\r\n";
 				}else{
 					s = "HTTP/1.1 404 Not Found\r\n\r\n";
