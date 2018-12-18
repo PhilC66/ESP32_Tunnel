@@ -396,7 +396,13 @@ void loop() {
 void Acquisition(){	
 	static byte CptAlarmeCable = 0;
 	
-	OuvrirFichierCalibration(); // patch relecture des coeff perdu
+	// Serial.print("Coeff 1 = "),Serial.print(CoeffTension[0]);
+	// Serial.print(" Coeff 2 = "),Serial.print(CoeffTension[1]);
+	// Serial.print(" Coeff 3 = "),Serial.println(CoeffTension[2]);
+	
+	if(CoeffTension[0] == 0 || CoeffTension[1] == 0 || CoeffTension[2] == 0){
+		OuvrirFichierCalibration(); // patch relecture des coeff perdu
+	}
 	if(!Sim800l.getetatSIM())Sim800l.reset(PIN);// verification SIM
 	Serial.print(displayTime(0));
 	Serial.print(F(" Freemem = ")),Serial.println(ESP.getFreeHeap());
@@ -405,9 +411,7 @@ void Acquisition(){
 	TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension[0]);
 	VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension[1]);
 	VUSB            = map(moyenneAnalogique(PinBattUSB), 0, 4095, 0, CoeffTension[2]);
-	// Serial.print("Coeff 1 = "),Serial.print(CoeffTension[0]);
-	// Serial.print(" Coeff 2 = "),Serial.print(CoeffTension[1]);
-	// Serial.print(" Coeff 3 = "),Serial.println(CoeffTension[2]);
+	
 	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 6000){
 		nalaTension ++;
     if (nalaTension == 4) {
@@ -1091,7 +1095,7 @@ fin_i:
 							// Serial.print(textesms.substring(p2+i,p2+i+1));
 						}
 						EnregistreCalendrier(); // Sauvegarde en SPIFFS						
-						message += F("Mise à jour calendrier OK");
+						message += F("Mise a jour calendrier OK");
 					}
 				}
 				else if(flag){ // ? demande calendrier pour un mois donné
