@@ -61,6 +61,10 @@ armer interrupt apres lancement
 #define PinEclairage	21   // Sortie Commande eclairage
 #define PinSirene			0    // Sortie Commande Sirene
 #define PIN						1234 // Code PIN carte SIM
+#define RX_PIN				16   // TX Sim800
+#define TX_PIN				17   // RX Sim800
+
+
 
 byte calendrier[13][32];
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
