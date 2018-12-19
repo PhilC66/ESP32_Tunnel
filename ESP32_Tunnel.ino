@@ -35,6 +35,7 @@ debug a faire
 temps mini pedale enfoncée
 alarme cable/porte
 page web
+message ST a remanier
 
 armer interrupt apres lancement
 
@@ -101,8 +102,8 @@ bool FlagReset = false;
 // int     CoeffTension1;				// Coeff calibration Tension Batterie
 // int     CoeffTension2;				// Coeff calibration Tension Proc
 // int     CoeffTension3;				// Coeff calibration Tension USB
-int CoeffTension[3];
-int  CoeffTensionDefaut = 7000;// Coefficient par defaut
+int CoeffTension[3];          // Coeff calibration Tension
+int CoeffTensionDefaut = 7000;// Coefficient par defaut
 
 RTC_DATA_ATTR int CptAllumage = 0; // Nombre Allumage par jour en memoire RTC
 byte slot = 0;            			//this will be the slot number of the SMS
@@ -1515,9 +1516,9 @@ long DureeSleep(){
 void SignalVie(){
 	Serial.println(F("Signal vie"));
 	MajHeure();
-	CptAllumage = 0;
 	envoieGroupeSMS(0);
 	Sim800l.delAllSms();// au cas ou, efface tous les SMS envoyé/reçu
+	CptAllumage = 0;
 }
 //---------------------------------------------------------------------------
 void sauvConfig() { // sauve configuration en EEPROM
