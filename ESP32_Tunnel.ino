@@ -1672,7 +1672,7 @@ void EnregistreCalendrier(){ // remplace le nouveau calendrier
 	bool result = SPIFFS.begin();
 	deleteFile(SPIFFS,filecalendrier);
 	String bidon="";
-	char bid[64];
+	char bid[63];
 	for(int m = 1; m < 13; m++){
 		for(int j = 1; j < 32; j++){
 			bidon += calendrier[m][j];
@@ -1680,7 +1680,7 @@ void EnregistreCalendrier(){ // remplace le nouveau calendrier
 		}
 		Serial.println(bidon);
 		bidon += fl;
-		bidon.toCharArray(bid,64);
+		bidon.toCharArray(bid,63);
 		appendFile(SPIFFS, filecalendrier, bid);
 		bidon = "";
 	}
