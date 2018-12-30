@@ -69,7 +69,8 @@ armer interrupt apres lancement
 
 byte calendrier[13][32];
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
-char filecalibration[12] = "/coeff.txt";    // fichier en SPIFFS contenant le calendrier de calibration
+char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le calendrier de calibration
+char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
 int Magique       = 2345;
@@ -1672,9 +1673,10 @@ void EnregistreCalendrier(){ // remplace le nouveau calendrier
 	deleteFile(SPIFFS,filecalendrier);
 	String bidon="";
 	char bid[63];
-	for(int m = 1; m < 13;m++){
+	for(int m = 1; m < 13; m++){
 		for(int j = 1; j < 32; j++){
 			bidon += calendrier[m][j];
+			if(j < 31)bidon += char(59); // ;
 		}
 		Serial.println(bidon);
 		bidon += fl;
