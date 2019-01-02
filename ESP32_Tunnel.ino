@@ -52,6 +52,10 @@ armer interrupt apres lancement
 #include "SPIFFS.h"
 #include <ArduinoOTA.h>
 #include <WiFiClient.h>
+#include <ESP32WebServer.h>    // https://github.com/Pedroalbuquerque/ESP32WebServer download and place in your Libraries folder
+#include <ESPmDNS.h>
+#include "Sys_Variables.h"
+#include "CSS.h"               // pageweb
 
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		34   // Batterie générale 12V adc
@@ -65,7 +69,9 @@ armer interrupt apres lancement
 #define RX_PIN				16   // TX Sim800
 #define TX_PIN				17   // RX Sim800
 
+#define ServerVersion "1.0"
 
+ESP32WebServer server(80);
 
 byte calendrier[13][32];
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
@@ -114,6 +120,8 @@ String 	demande;
 long TensionBatterie  = 0; // Tension Batterie solaire
 long VBatterieProc    = 0; // Tension Batterie Processeur
 long VUSB             = 0; // Tension USB
+String catalog[2][10]; // liste des fichiers en SPIFFS nom/taille 10 lignes max
+File UploadFile;
 
 typedef struct											// declaration structure  pour les log
 {
@@ -1659,18 +1667,19 @@ void appendFile(fs::FS &fs, const char * path, const char * message){
 	}
 }
 //---------------------------------------------------------------------------
-void deleteFile(fs::FS &fs, const char * path){
+/* void deleteFile(fs::FS &fs, const char * path){
 	// Serial.printf("Deleting file: %s\r\n", path);
 	if(fs.remove(path)){
 		// Serial.println("- file deleted");
 	} else {
 		// Serial.println("- delete failed");
 	}
-}
+} */
 //---------------------------------------------------------------------------
 void EnregistreCalendrier(){ // remplace le nouveau calendrier
 	bool result = SPIFFS.begin();
-	deleteFile(SPIFFS,filecalendrier);
+	SPIFFS.remove(filecalendrier);
+	// deleteFile(SPIFFS,filecalendrier);
 	String bidon="";
 	char bid[63];
 	for(int m = 1; m < 13; m++){
@@ -1697,8 +1706,9 @@ void OuvrirCalendrier(){
 	listDir(SPIFFS, "/", 0);
 	bool f = SPIFFS.exists(filecalendrier);
 	Serial.println(f);
+	File f0 = SPIFFS.open(filecalendrier, "r");
 
-	if (!f) {
+	if (!f || f0.size() == 0){
 		Serial.println(F("File doesn't exist yet. Creating it")); // creation calendrier defaut
 		char bid[63];
 		String bidon="";
@@ -1717,16 +1727,17 @@ void OuvrirCalendrier(){
 			appendFile(SPIFFS, filecalendrier, bid);
 			bidon = "";
 		}
-		f = SPIFFS.exists(filecalendrier);
+		/* f = SPIFFS.exists(filecalendrier);
 		if (!f) {
 			// Serial.println("file creation failed");
 		// }else{Serial.println("file creation OK");}
 		} else {
 		Serial.println(F("Read file"));
 		// we could open the file
-		}
+		} */
 	}
 	readFile(SPIFFS, filecalendrier);
+	
 	for(int m = 1; m < 13;m++){
 		for(int j = 1; j < 32; j++){
 			Serial.print(calendrier[m][j]),Serial.print(char(44));
@@ -1824,7 +1835,7 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	// WiFi.mode(WIFI_STA);
 	byte timeout = 0;
 	bool error = false;
-	WiFiServer server(80);
+	
 	while (WiFi.status() != WL_CONNECTED) {
 		Alarm.delay(1000);
 		Serial.print(".");
@@ -1840,6 +1851,15 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	ip = WiFi.localIP().toString();
 	Serial.println(ip);
 	ArduinoOTA.begin();
+	
+	server.on("/",         HomePage);
+  server.on("/download", File_Download);
+  server.on("/upload",   File_Upload);
+  server.on("/fupload",  HTTP_POST,[](){ server.send(200);}, handleFileUpload);
+	server.on("/timeremaining", handleTime); // renvoie temps restant sur demande
+  ///////////////////////////// End of Request commands
+  server.begin();
+  Serial.println("HTTP server started");
 	
 	message = Id;
 	if(!error){
@@ -1875,29 +1895,11 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	if(!error){
 		/* boucle permettant de faire une mise à jour OTA, avec un timeout en cas de blocage */
 		unsigned long debut = millis();
-		server.begin();
 		while(millis() - debut < config.timeoutWifi*1000){
-			WiFiClient client = server.available();
-			if(client){
-				Serial.println("New client");
-				String req = client.readStringUntil('\r');
-				client.flush();
-				String s;
-				Serial.println(req);
-				if(req.indexOf("/?") > -1){
-					Serial.print("index "),Serial.println(req.indexOf("/?"));
-					s  = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>Hello from ESP32\r\n ";
-					s += Id;
-					s += displayTime(1);
-					s += "</html>\r\n\r\n";
-				}else{
-					s = "HTTP/1.1 404 Not Found\r\n\r\n";
-				}
-				client.println(s);
-				Serial.print(s);
-			}
+			
 			Alarm.delay(1);
 			ArduinoOTA.handle();
+			server.handleClient(); // Listen for client connections
 		}
 		Serial.println(F("Wifi off"));
 		WiFi.disconnect(true);
@@ -2054,6 +2056,220 @@ void Recordcalib(){ // enregistrer fichier calibration en SPIFFS
 	f.println(CoeffTension[2]);
 	f.close();
 	SPIFFS.end();
+}
+//---------------------------------------------------------------------------
+void CreateTableau(){ // creation tableau liste fichiers
+	webpage += F("<table><caption>Liste des fichiers en SPIFFS</caption>");
+	webpage += F("<tr><th>Fichier</th>");
+	webpage += F("<th>Taille</th></tr>");
+	for(byte i = 0;i < 10;i++){
+		if(catalog[0][i].length()>0){
+			webpage += F("<tr><td>");
+			webpage += catalog[0][i];
+			webpage += F("</td><td>");
+			webpage += catalog[1][i];
+			webpage += F("</td></tr>");
+		}
+	}
+	webpage += F("</table><br>");
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void HomePage(){	
+	bool result = SPIFFS.begin();
+	Serial.print(F("SPIFFS opened: "));
+	Serial.println(result);	
+	listDir(SPIFFS, "/", 0);
+	SPIFFS.end();
+	
+  SendHTML_Header();
+
+	CreateTableau(); // creation tableau fichiers
+  webpage += F("<a href='/download'><button>Download</button></a>");
+  webpage += F("<a href='/upload'><button>Upload</button></a>");
+  append_page_footer();
+  SendHTML_Content();
+  SendHTML_Stop(); // Stop is needed because no content length was sent
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void File_Download(){ // This gets called twice, the first pass selects the input, the second pass then processes the command line arguments
+  if (server.args() > 0 ) { // Arguments were received
+    if (server.hasArg("download")) SD_file_download(server.arg(0));
+  }
+  else SelectInput("Enter filename to download","download","download");
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void SD_file_download(String filename){
+	bool result = SPIFFS.begin();
+	Serial.print(F("SPIFFS opened: "));
+	Serial.println(result);
+
+	if(result){
+		bool f = SPIFFS.exists("/"+filename);		
+		File download = SPIFFS.open("/"+filename);
+    if (f){
+			Serial.print(F("Download fichier : ")),Serial.println("/"+filename);
+      server.sendHeader("Content-Type", "text/text");
+      server.sendHeader("Content-Disposition", "attachment; filename="+filename);
+      server.sendHeader("Connection", "close");
+      server.streamFile(download, "application/octet-stream");
+      download.close();
+    } else ReportFileNotPresent(filename);
+	} else ReportSDNotPresent();
+	SPIFFS.end();
+	
+	/* version carte SD */
+  // if (SD_present) { 
+    // File download = SD.open("/"+filename);
+    // if (download) {
+      // server.sendHeader("Content-Type", "text/text");
+      // server.sendHeader("Content-Disposition", "attachment; filename="+filename);
+      // server.sendHeader("Connection", "close");
+      // server.streamFile(download, "application/octet-stream");
+      // download.close();
+    // } else ReportFileNotPresent("download");
+  // } else ReportSDNotPresent();
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void File_Upload(){
+  append_page_header();
+  webpage += F("<h3>Select File to Upload</h3>"); 
+  webpage += F("<FORM action='/fupload' method='post' enctype='multipart/form-data'>");
+  webpage += F("<input class='buttons' style='width:40%' type='file' name='fupload' id = 'fupload' value=''><br>");
+  webpage += F("<br><button class='buttons' style='width:10%' type='submit'>Upload File</button><br>");
+  webpage += F("<a href='/'>[Back]</a><br><br>");
+  append_page_footer();
+  server.send(200, "text/html",webpage);
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+void handleFileUpload(){ // upload a new file to the Filing system
+  HTTPUpload& uploadfile = server.upload(); // See https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WebServer/srcv
+                                            // For further information on 'status' structure, there are other reasons such as a failed transfer that could be used
+  if(uploadfile.status == UPLOAD_FILE_START){
+    String filename = uploadfile.filename;
+    if(!filename.startsWith("/")) filename = "/"+filename;
+    Serial.print("Upload File Name: "); Serial.println(filename);
+    bool result = SPIFFS.begin();
+		if(result)Serial.println(F("SPIFFS Lancé"));
+		SPIFFS.remove(filename);
+		// SD.remove(filename);                         // Remove a previous version, otherwise data is appended the file again
+    // UploadFile = SD.open(filename, FILE_WRITE);  // Open the file for writing in SPIFFS (create it, if doesn't exist)
+    UploadFile = SPIFFS.open(filename, FILE_APPEND); // FILE_APPEND "w"
+		filename = String();
+  }
+  else if (uploadfile.status == UPLOAD_FILE_WRITE){
+		Serial.println(F("upload file writing"));
+    if(UploadFile) UploadFile.write(uploadfile.buf, uploadfile.currentSize); // Write the received bytes to the file
+  } 
+  else if (uploadfile.status == UPLOAD_FILE_END){
+    if(UploadFile){          // If the file was successfully created
+			UploadFile.close();    // Close the file again		
+      Serial.print("Upload Size: "); Serial.println(uploadfile.totalSize);
+      Serial.print("file Size: "); Serial.println(UploadFile.size());
+			
+      webpage = "";
+      append_page_header();
+      webpage += F("<h3>File was successfully uploaded</h3>"); 
+      webpage += F("<h2>Uploaded File Name: "); webpage += uploadfile.filename;	webpage += F("</h2>");
+      webpage += F("<h2>File Size: "); webpage += file_size(uploadfile.totalSize);webpage += F("</h2><br>"); 
+      append_page_footer();
+      server.send(200,"text/html",webpage);
+    } 
+    else{
+      ReportCouldNotCreateFile("upload");
+    }
+  }
+	SPIFFS.end();
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void SendHTML_Header(){
+  server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate"); 
+  server.sendHeader("Pragma", "no-cache"); 
+  server.sendHeader("Expires", "-1"); 
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN); 
+  server.send(200, "text/html", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves. 
+  append_page_header();
+  server.sendContent(webpage);
+  webpage = "";
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void SendHTML_Content(){
+  server.sendContent(webpage);
+  webpage = "";
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void SendHTML_Stop(){
+  server.sendContent("");
+  server.client().stop(); // Stop is needed because no content length was sent
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void SelectInput(String heading1, String command, String arg_calling_name){
+  SendHTML_Header();
+  webpage += F("<h3>");	webpage += heading1 + "</h3>"; 
+  webpage += F("<FORM action='/"); webpage += command + "' method='post'>"; // Must match the calling argument e.g. '/chart' calls '/chart' after selection but with arguments!
+  webpage += F("<input type='text' name='"); webpage += arg_calling_name;	webpage += F("' value=''><br>");
+  webpage += F("<type='submit' name='"); webpage += arg_calling_name;	webpage += F("' value=''><br>");
+  webpage += F("<a href='/'>[Back]</a>");
+  append_page_footer();
+  SendHTML_Content();
+  SendHTML_Stop();
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void ReportSDNotPresent(){
+  SendHTML_Header();
+  // webpage += F("<h3>No SD Card present</h3>"); 
+	webpage += F("<h3>Erreur ouverture SPIFFS</h3>"); 
+  webpage += F("<a href='/'>[Back]</a><br><br>");
+  append_page_footer();
+  SendHTML_Content();
+  SendHTML_Stop();
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void ReportFileNotPresent(String target){
+  SendHTML_Header();
+  webpage += F("<h3>Fichier n'existe pas : \\");
+	webpage += target;
+	webpage += F("</h3>"); 
+  webpage += F("<a href='/");
+	webpage += target;
+	webpage += F("'>[Back]</a><br><br>");
+  append_page_footer();
+  SendHTML_Content();
+  SendHTML_Stop();
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void ReportCouldNotCreateFile(String target){
+  SendHTML_Header();
+  webpage += F("<h3>Could Not Create Uploaded File (write-protected?)</h3>"); 
+  webpage += F("<a href='/");
+	webpage += target;
+	webpage += F("'>[Back]</a><br><br>");
+  append_page_footer();
+  SendHTML_Content();
+  SendHTML_Stop();
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+String file_size(int bytes){
+  String fsize = "";
+  if (bytes < 1024)                 fsize = String(bytes)+" B";
+  else if(bytes < (1024*1024))      fsize = String(bytes/1024.0,3)+" KB";
+  else if(bytes < (1024*1024*1024)) fsize = String(bytes/1024.0/1024.0,3)+" MB";
+  else                              fsize = String(bytes/1024.0/1024.0/1024.0,3)+" GB";
+  return fsize;
+}
+//---------------------------------------------------------------------------
+void handleTime(){
+	char time_str[15];
+	const uint32_t millis_in_day = 1000 * 60 * 60 * 24;
+	const uint32_t millis_in_hour = 1000 * 60 * 60;
+	const uint32_t millis_in_minute = 1000 * 60;
+	uint8_t days = millis() / (millis_in_day);
+	uint8_t hours = (millis() - (days * millis_in_day)) / millis_in_hour;
+	uint8_t minutes = (millis() - (days * millis_in_day) - (hours * millis_in_hour)) / millis_in_minute;
+	uint8_t secondes = (millis() - (days * millis_in_day) - ((hours * millis_in_hour)) / millis_in_minute)/1000 %60;
+	sprintf(time_str, "%02d:%02d:%02d:%02d", days, hours, minutes, secondes);
+	// Serial.println(time_str); 
+ server.send(200, "text/plane", String(time_str)); //Send Time value only to client ajax request
 }
 /* --------------------  test local serial seulement ----------------------*/
 void recvOneChar() {
