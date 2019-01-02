@@ -830,6 +830,7 @@ fin_i:
 						// bidon.toCharArray(nom,8);//	si commande locale
 					}
 					logRecord(nom,"A"); // V2-14 renseigne le log
+					MajLog(nom,"A");
 				}
 				generationMessage();
 				EnvoyerSms(number, sms);
@@ -863,6 +864,7 @@ fin_i:
 						// bidon.toCharArray(nom,8);//	si commande locale
 					}
 					logRecord(nom,"D");				// V2-14 renseigne le log
+					MajLog(nom, "D");
 				}
 				generationMessage();
 				EnvoyerSms(number, sms);
@@ -1672,8 +1674,18 @@ void appendFile(fs::FS &fs, const char * path, const char * message){
 	}
 }
 //---------------------------------------------------------------------------
-void MajLog(){ // mise à jour fichier log en SPIFFS
-	
+void MajLog(String nom,String raison){ // mise à jour fichier log en SPIFFS
+	/* verification de la taille du fichier */
+	File f = SPIFFS.open(filelog, "r");
+	if(f.size() > 10000){
+		/* si trop grand on efface */
+		SPIFFS.remove(filelog);
+	}
+	f.close();
+	/* preparation de la ligne */
+	char bidon[46]; //19 + 2 + 14 + 10 + 1
+	sprintf(bidon,"%4d-%02d-%02d %02d:%02d:%02d;%s;%s\n",year(),month(),day(),hour(),minute(),second(),nom,raison);
+	appendFile(SPIFFS, filelog, bidon);
 }
 //---------------------------------------------------------------------------
 void EnregistreCalendrier(){ // remplace le nouveau calendrier
@@ -1807,6 +1819,7 @@ void Allumage(byte n){
 		if(n==1)Al1=1;
 		if(n==2)Al2=1;
 		Alarm.enable(TimeOut);
+		MajLog(F("Auto"),F("Allumage"));
 	}
 	else{	// si Allumé
 		if(n == 0){
@@ -1817,6 +1830,7 @@ void Allumage(byte n){
 			Serial.print(F("                   Extinction dans (s) ")),Serial.println(config.tempoSortie);
 			Alarm.enable(TempoSortie);
 			Serial.println(CptAllumage);
+			MajLog(F("Auto"),F("Extinction"));
 		}
 	}
 }
@@ -2119,8 +2133,11 @@ void File_Upload(){
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  
 void handleFileUpload(){ // upload a new file to the Filing system
-  HTTPUpload& uploadfile = server.upload(); // See https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WebServer/srcv
-                                            // For further information on 'status' structure, there are other reasons such as a failed transfer that could be used
+  HTTPUpload& uploadfile = server.upload();
+	/* See https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WebServer/srcv
+     For further information on 'status' structure, 
+		 there are other reasons such as a failed transfer that could be used 
+	*/
   if(uploadfile.status == UPLOAD_FILE_START){
     String filename = uploadfile.filename;
     if(!filename.startsWith("/")) filename = "/"+filename;
