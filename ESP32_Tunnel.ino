@@ -283,6 +283,11 @@ void setup() {
 			else if (error == OTA_RECEIVE_ERROR) 	Serial.println(F("Receive Failed"));
 			else if (error == OTA_END_ERROR) 			Serial.println(F("End Failed"));
 		});
+		
+	// always use this to "mount" the filesystem
+	bool result = SPIFFS.begin();
+	Serial.print(F("SPIFFS opened: "));
+	Serial.println(result);
 	
 	OuvrirCalendrier();					// ouvre calendrier circulation en SPIFFS
 	OuvrirFichierCalibration(); // ouvre fichier calibration en SPIFFS
@@ -1667,19 +1672,13 @@ void appendFile(fs::FS &fs, const char * path, const char * message){
 	}
 }
 //---------------------------------------------------------------------------
-/* void deleteFile(fs::FS &fs, const char * path){
-	// Serial.printf("Deleting file: %s\r\n", path);
-	if(fs.remove(path)){
-		// Serial.println("- file deleted");
-	} else {
-		// Serial.println("- delete failed");
-	}
-} */
+void MajLog(){ // mise à jour fichier log en SPIFFS
+	
+}
 //---------------------------------------------------------------------------
 void EnregistreCalendrier(){ // remplace le nouveau calendrier
-	bool result = SPIFFS.begin();
+	
 	SPIFFS.remove(filecalendrier);
-	// deleteFile(SPIFFS,filecalendrier);
 	String bidon="";
 	char bid[63];
 	for(int m = 1; m < 13; m++){
@@ -1693,15 +1692,11 @@ void EnregistreCalendrier(){ // remplace le nouveau calendrier
 		appendFile(SPIFFS, filecalendrier, bid);
 		bidon = "";
 	}
-	SPIFFS.end();
+	
 }
 //---------------------------------------------------------------------------
 void OuvrirCalendrier(){
-	// always use this to "mount" the filesystem
-	bool result = SPIFFS.begin();
-	Serial.print(F("SPIFFS opened: "));
-	Serial.println(result);
-
+	
 	// this opens the file "f.txt" in read-mode
 	listDir(SPIFFS, "/", 0);
 	bool f = SPIFFS.exists(filecalendrier);
@@ -1745,8 +1740,7 @@ void OuvrirCalendrier(){
 		Serial.println();
 	}
 	listDir(SPIFFS, "/", 0);
-	
-	SPIFFS.end();
+
 }
 //---------------------------------------------------------------------------
 void FinJournee(){
@@ -2016,7 +2010,7 @@ int Battpct(long vbat){
 }
 //---------------------------------------------------------------------------
 void OuvrirFichierCalibration(){ // Lecture fichier calibration
-	bool result = SPIFFS.begin();
+	
 	if(SPIFFS.exists(filecalibration)){
 		File f = SPIFFS.open(filecalibration, "r");
 		for(int i = 0;i < 3;i++){ //Read
@@ -2042,11 +2036,11 @@ void OuvrirFichierCalibration(){ // Lecture fichier calibration
 	Serial.print(F("Coeff T Batterie = ")),Serial.print(CoeffTension[0]);
 	Serial.print(F(" Coeff T Proc = "))	  ,Serial.print(CoeffTension[1]);
 	Serial.print(F(" Coeff T VUSB = "))		,Serial.println(CoeffTension[2]);
-	SPIFFS.end();
+	
 }
 //---------------------------------------------------------------------------
 void Recordcalib(){ // enregistrer fichier calibration en SPIFFS
-	bool result = SPIFFS.begin();
+	
 	// Serial.print(F("Coeff T Batterie = ")),Serial.println(CoeffTension1);
 	// Serial.print(F("Coeff T Proc = "))	  ,Serial.println(CoeffTension2);
 	// Serial.print(F("Coeff T VUSB = "))		,Serial.println(CoeffTension3);
@@ -2055,7 +2049,7 @@ void Recordcalib(){ // enregistrer fichier calibration en SPIFFS
 	f.println(CoeffTension[1]);
 	f.println(CoeffTension[2]);
 	f.close();
-	SPIFFS.end();
+	
 }
 //---------------------------------------------------------------------------
 void CreateTableau(){ // creation tableau liste fichiers
@@ -2075,11 +2069,8 @@ void CreateTableau(){ // creation tableau liste fichiers
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void HomePage(){	
-	bool result = SPIFFS.begin();
-	Serial.print(F("SPIFFS opened: "));
-	Serial.println(result);	
+	
 	listDir(SPIFFS, "/", 0);
-	SPIFFS.end();
 	
   SendHTML_Header();
 
@@ -2093,17 +2084,14 @@ void HomePage(){
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void File_Download(){ // This gets called twice, the first pass selects the input, the second pass then processes the command line arguments
   if (server.args() > 0 ) { // Arguments were received
-    if (server.hasArg("download")) SD_file_download(server.arg(0));
+    if (server.hasArg("download")) File_download(server.arg(0));
   }
   else SelectInput("Enter filename to download","download","download");
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-void SD_file_download(String filename){
-	bool result = SPIFFS.begin();
-	Serial.print(F("SPIFFS opened: "));
-	Serial.println(result);
-
-	if(result){
+void File_download(String filename){
+	
+	// if(result){
 		bool f = SPIFFS.exists("/"+filename);		
 		File download = SPIFFS.open("/"+filename);
     if (f){
@@ -2114,20 +2102,8 @@ void SD_file_download(String filename){
       server.streamFile(download, "application/octet-stream");
       download.close();
     } else ReportFileNotPresent(filename);
-	} else ReportSDNotPresent();
-	SPIFFS.end();
+	// } else ReportSDNotPresent();
 	
-	/* version carte SD */
-  // if (SD_present) { 
-    // File download = SD.open("/"+filename);
-    // if (download) {
-      // server.sendHeader("Content-Type", "text/text");
-      // server.sendHeader("Content-Disposition", "attachment; filename="+filename);
-      // server.sendHeader("Connection", "close");
-      // server.streamFile(download, "application/octet-stream");
-      // download.close();
-    // } else ReportFileNotPresent("download");
-  // } else ReportSDNotPresent();
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void File_Upload(){
@@ -2149,8 +2125,7 @@ void handleFileUpload(){ // upload a new file to the Filing system
     String filename = uploadfile.filename;
     if(!filename.startsWith("/")) filename = "/"+filename;
     Serial.print("Upload File Name: "); Serial.println(filename);
-    bool result = SPIFFS.begin();
-		if(result)Serial.println(F("SPIFFS Lancé"));
+    
 		SPIFFS.remove(filename);
 		// SD.remove(filename);                         // Remove a previous version, otherwise data is appended the file again
     // UploadFile = SD.open(filename, FILE_WRITE);  // Open the file for writing in SPIFFS (create it, if doesn't exist)
@@ -2179,7 +2154,6 @@ void handleFileUpload(){ // upload a new file to the Filing system
       ReportCouldNotCreateFile("upload");
     }
   }
-	SPIFFS.end();
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void SendHTML_Header(){
@@ -2215,7 +2189,7 @@ void SelectInput(String heading1, String command, String arg_calling_name){
   SendHTML_Stop();
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-void ReportSDNotPresent(){
+/* void ReportSDNotPresent(){
   SendHTML_Header();
   // webpage += F("<h3>No SD Card present</h3>"); 
 	webpage += F("<h3>Erreur ouverture SPIFFS</h3>"); 
@@ -2223,7 +2197,7 @@ void ReportSDNotPresent(){
   append_page_footer();
   SendHTML_Content();
   SendHTML_Stop();
-}
+} */
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void ReportFileNotPresent(String target){
   SendHTML_Header();
