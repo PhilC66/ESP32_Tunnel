@@ -79,8 +79,8 @@ bool    SPIFFS_present = false;
 
 WebServer server(80);
 
-unsigned long debut = millis();
-byte calendrier[13][32];
+unsigned long debut = millis(); // pour decompteur temps wifi
+byte calendrier[13][32]; // tableau calendrier ligne 0 et jour 0 non utilisé, 12*31
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
 char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le calendrier de calibration
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
@@ -160,7 +160,7 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
 } ;
 config_t config;
 
-AlarmId OneH;
+// AlarmId OneH;
 AlarmId loopPrincipale;	// boucle principlae
 AlarmId Svie;						// tempo Signal de Vie et MajHeure
 AlarmId FirstMessage;		// Premier message analyse jour circulé O/N
@@ -305,7 +305,7 @@ void setup() {
 	
 	MajHeure();
 	
-  OneH = Alarm.timerRepeat(3600,test);
+  // OneH = Alarm.timerRepeat(3600,test);
 	
 	loopPrincipale = Alarm.timerRepeat(10, Acquisition); // boucle principale 15s
   Alarm.enable(loopPrincipale);
@@ -647,17 +647,13 @@ void traite_sms(byte slot){
 				message += fl;
 			}
 			if(textesms.indexOf(F("WIFIOFF"))>-1){ // Arret Wifi
-				Serial.println(F("Wifi off"));
-				WiFi.disconnect(true);
-				WiFi.mode(WIFI_OFF);
-				btStop();
-				Alarm.delay(100);
+				WifiOff();
 				message += F("Wifi off");
 				message += fl;
 				EnvoyerSms(number, true);
 			}
 			else if(textesms.indexOf(F("Wifi"))== 0){ // demande connexion Wifi
-				byte pos1 = textesms.indexOf(char(44));
+				byte pos1 = textesms.indexOf(char(44));//","
 				byte pos2 = textesms.indexOf(char(44), pos1 + 1);
 				String ssids = textesms.substring(pos1 + 1,pos2);
 				String pwds  = textesms.substring(pos2 + 1,textesms.length());
@@ -665,7 +661,7 @@ void traite_sms(byte slot){
 				char pwd[20];
 				ssids.toCharArray(ssid,ssids.length()+1);
 				pwds.toCharArray(pwd,pwds.length()+1);
-				ConnexionWifi(ssid,pwd,number,sms);// message généré par routine				
+				ConnexionWifi(ssid,pwd,number,sms);// message généré par routine
 			}
 			else if (textesms.indexOf(F("TEL")) == 0
             || textesms.indexOf(F("Tel")) == 0
@@ -1682,11 +1678,11 @@ void appendFile(fs::FS &fs, const char * path, const char * message){
 	}
 }
 //---------------------------------------------------------------------------
-void MajLog(String nom,String raison){ // mise à jour fichier log en SPIFFS
+void MajLog(String Id,String Raison){ // mise à jour fichier log en SPIFFS
 	/* verification de la taille du fichier */
 	File f = SPIFFS.open(filelog, "r");
 	Serial.print(F("Taille fichier log = ")),Serial.println(f.size());
-	Serial.print(nom),Serial.print(","),Serial.println(raison);
+	// Serial.print(Id),Serial.print(","),Serial.println(Raison);
 	if(f.size() > 10000){
 		/* si trop grand on efface */
 		SPIFFS.remove(filelog);
@@ -1694,7 +1690,12 @@ void MajLog(String nom,String raison){ // mise à jour fichier log en SPIFFS
 	f.close();
 	/* preparation de la ligne */
 	char bidon[46]; //19 + 2 + 14 + 10 + 1
-	sprintf(bidon,"%02d/%02d/%4d %02d:%02d:%02d;%s;%s\n",day(),month(),year(),hour(),minute(),second(),nom,raison);
+	sprintf(bidon,"%02d/%02d/%4d %02d:%02d:%02d",day(),month(),year(),hour(),minute(),second());	
+	Id = ";" + Id + ";";
+	Raison += "\n";
+	strcat(bidon,Id.c_str());
+	strcat(bidon,Raison.c_str());
+	Serial.print(bidon);
 	appendFile(SPIFFS, filelog, bidon);
 }
 //---------------------------------------------------------------------------
@@ -1792,6 +1793,7 @@ void Extinction(){
 	Allumage(0);
 	Alarm.disable(TempoSortie);
 	Alarm.disable(TimeOut);
+	MajLog(F("Auto"),F("Extinction"));
 }
 //---------------------------------------------------------------------------
 void Allumage(byte n){	
@@ -1840,7 +1842,6 @@ void Allumage(byte n){
 			Serial.print(F("                   Extinction dans (s) ")),Serial.println(config.tempoSortie);
 			Alarm.enable(TempoSortie);
 			Serial.println(CptAllumage);
-			MajLog(F("Auto"),F("Extinction"));
 		}
 	}
 }
@@ -1855,7 +1856,7 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	bool error = false;
 	
 	while (WiFi.status() != WL_CONNECTED) {
-		Alarm.delay(1000);
+		delay(1000);
 		Serial.print(".");
 		timeout ++;
 		if(timeout > 60){
@@ -1867,6 +1868,7 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	Serial.println(F("WiFi connected"));
 	Serial.print(F("IP address: "));
 	ip = WiFi.localIP().toString();
+	debut = millis();
 	Serial.println(ip);
 	ArduinoOTA.begin();
 	
@@ -1877,6 +1879,7 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	server.on("/delete",   File_Delete);
   server.on("/dir",      SPIFFS_dir);
 	server.on("/timeremaining", handleTime); // renvoie temps restant sur demande
+	server.on("/wifioff",  WifiOff);
   ///////////////////////////// End of Request commands
   server.begin();
   Serial.println("HTTP server started");
@@ -1913,20 +1916,24 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	}
 	
 	if(!error){
-		/* boucle permettant de faire une mise à jour OTA, avec un timeout en cas de blocage */
-		unsigned long debut = millis();
-		while(millis() - debut < config.timeoutWifi*1000){
+		/* boucle permettant de faire une mise à jour OTA et serveur, avec un timeout en cas de blocage */
+		unsigned long timeout = millis();
+		while(millis() - timeout < config.timeoutWifi*1000){
 			
-			Alarm.delay(1);
+			delay(1);
 			ArduinoOTA.handle();
 			server.handleClient(); // Listen for client connections
 		}
-		Serial.println(F("Wifi off"));
-		WiFi.disconnect(true);
-		WiFi.mode(WIFI_OFF);
-		btStop();
-		Alarm.delay(100);
+		WifiOff();
 	}
+}
+//---------------------------------------------------------------------------
+void WifiOff(){
+	Serial.println(F("Wifi off"));
+	WiFi.disconnect(true);
+	WiFi.mode(WIFI_OFF);
+	btStop();
+	Alarm.delay(100);
 }
 //---------------------------------------------------------------------------
 String ExtraireSms(String msgbrut){ //Extraction du contenu du SMS
@@ -2085,6 +2092,7 @@ void HomePage(){
   // webpage += F("<a href='/stream'><button>Stream</button></a>");
   webpage += F("<a href='/delete'><button>Delete</button></a>");
   webpage += F("<a href='/dir'><button>Directory</button></a>");
+	webpage += F("<a href='/wifioff'><button>Wifi Off</button></a>");
   append_page_footer();
   SendHTML_Content();
   SendHTML_Stop(); // Stop is needed because no content length was sent
@@ -2322,9 +2330,9 @@ void handleTime(){
 	const uint32_t millis_in_minute = 1000 * 60;
 	
 	static unsigned long t0 = 0;
-	if(millis() - debut > config.timeoutWifi*1000) debut = millis();
+	if(millis() - debut > config.timeoutWifi*1000) debut = millis();// securité evite t<0
 	t0= debut + (config.timeoutWifi*1000) - millis();
-	Serial.print(debut),Serial.print("|"),Serial.println(t0);
+	// Serial.print(debut),Serial.print("|"),Serial.println(t0);
 	
 	uint8_t days     = t0 / (millis_in_day);
 	uint8_t hours    = (t0 - (days * millis_in_day)) / millis_in_hour;
