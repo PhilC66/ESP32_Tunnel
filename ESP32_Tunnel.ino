@@ -1919,10 +1919,10 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 		/* boucle permettant de faire une mise à jour OTA et serveur, avec un timeout en cas de blocage */
 		unsigned long timeout = millis();
 		while(millis() - timeout < config.timeoutWifi*1000){
-			
-			delay(1);
+			// if(WiFi.status() != WL_CONNECTED) break; // wifi a été coupé on sort			
 			ArduinoOTA.handle();
 			server.handleClient(); // Listen for client connections
+			delay(1);
 		}
 		WifiOff();
 	}
@@ -1934,6 +1934,7 @@ void WifiOff(){
 	WiFi.mode(WIFI_OFF);
 	btStop();
 	Alarm.delay(100);
+	ESP.restart();
 }
 //---------------------------------------------------------------------------
 String ExtraireSms(String msgbrut){ //Extraction du contenu du SMS
