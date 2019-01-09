@@ -2088,9 +2088,10 @@ void Recordcalib(){ // enregistrer fichier calibration en SPIFFS
 //---------------------------------------------------------------------------
 void HomePage(){
   SendHTML_Header();
+	webpage += F("<h3 class='rcorners_m'>Parametres</h3><br>");
+	webpage += F("<h3> Hvie :  </h3>");
   webpage += F("<a href='/download'><button>Download</button></a>");
   webpage += F("<a href='/upload'><button>Upload</button></a>");
-  // webpage += F("<a href='/stream'><button>Stream</button></a>");
   webpage += F("<a href='/delete'><button>Delete</button></a>");
   webpage += F("<a href='/dir'><button>Directory</button></a>");
 	webpage += F("<a href='/wifioff'><button>Wifi Off</button></a>");
