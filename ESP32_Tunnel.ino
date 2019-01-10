@@ -434,7 +434,7 @@ void Acquisition(){
 	TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension[0]);
 	VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension[1]);
 	VUSB            = map(moyenneAnalogique(PinBattUSB) , 0, 4095, 0, CoeffTension[2]);
-	Serial.print(F("Tension VUSB brut : ")),Serial.println(moyenneAnalogique(PinBattUSB));
+	
 	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 6000){
 		nalaTension ++;
     if (nalaTension == 4) {
@@ -1002,9 +1002,7 @@ fin_i:
 					}
 				}
 				message += F("Heure Vie = ");
-				message += int(config.Ala_Vie / 3600);
-				message += ":";
-				message += int((config.Ala_Vie % 3600) / 60);
+				message += Hdectohhmm(config.Ala_Vie);
 				message += F("(hh:mm)");
 				message += fl;
 				EnvoyerSms(number, sms);
@@ -1075,9 +1073,7 @@ fin_i:
 					}
 				}
 				message += F("Fin Journee = ");
-				message += int(config.FinJour / 3600);
-				message += ":";
-				message += int((config.FinJour % 3600) / 60);
+				message += Hdectohhmm(config.FinJour);
 				message += F("(hh:mm)");
 				message += fl;
 				EnvoyerSms(number, sms);
@@ -1784,9 +1780,9 @@ void PrintEEPROM(){
 	Serial.print(F("Tempo Sortie (s) = "))				,Serial.println(config.tempoSortie);
 	Serial.print(F("Time Out Eclairage (s) = "))	,Serial.println(config.timeOutS);
 	Serial.print(F("Time Out Wifi (s) = "))				,Serial.println(config.timeoutWifi);
-	Serial.print(F("Pedale 1 Alarme Active = ")) 	,Serial.println(config.Pedale1);
-	Serial.print(F("Pedale 2 Alarme Active = ")) 	,Serial.println(config.Pedale2);
-	Serial.print(F("Porte Alarme Active = ")) 	  ,Serial.println(config.Porte);
+	Serial.print(F("Alarme sur Pedale 1 = ")) 	,Serial.println(config.Pedale1);
+	Serial.print(F("Alarme sur Pedale 2 = ")) 	,Serial.println(config.Pedale2);
+	Serial.print(F("Alarme sur Porte = ")) 	  ,Serial.println(config.Porte);
 }
 //---------------------------------------------------------------------------
 void Extinction(){
@@ -2085,10 +2081,68 @@ void Recordcalib(){ // enregistrer fichier calibration en SPIFFS
 	
 }
 //---------------------------------------------------------------------------
+String Hdectohhmm(long Hdec){
+	String hhmm;
+	if(int(Hdec / 3600) < 10) hhmm = "0";
+	hhmm += int(Hdec / 3600);
+	hhmm += ":";
+	if(int((Hdec % 3600) / 60) < 10) hhmm += "0";
+	hhmm += int((Hdec % 3600) / 60);
+	return hhmm;
+}
+//---------------------------------------------------------------------------
 void HomePage(){
   SendHTML_Header();
 	webpage += F("<h3 class='rcorners_m'>Parametres</h3><br>");
-	webpage += F("<h3> Hvie :  </h3>");
+	webpage += F("<table align='center'>");
+	webpage += F("<tr>");
+	webpage += F("<td>Version</td>");
+	webpage += F("<td>");	webpage += ver;	webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Id</td>");
+	webpage += F("<td>");	webpage += String(config.Idchar);	webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Debut Jour</td>");
+	webpage += F("<td>");	webpage += Hdectohhmm(config.Ala_Vie);	webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Fin Jour</td>");
+	webpage += F("<td>");	webpage += Hdectohhmm(config.FinJour);	webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Tempo Sortie (s)</td>");
+	webpage += F("<td>");	webpage += String(config.tempoSortie);	webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>TimeOut Eclairage (s)</td>");
+	webpage += F("<td>");	webpage += String(config.timeOutS);	webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>TimeOut Wifi (s)</td>");
+	webpage += F("<td>");	webpage += String(config.timeoutWifi);	webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Alarme sur Pedale 1</td>");
+	webpage += F("<td>");	
+	if(config.Pedale1){webpage += F("Active");} else {webpage += F("Inactive");} webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Alarme sur Pedale 2</td>");
+	webpage += F("<td>");	
+	if(config.Pedale2){webpage += F("Active");} else {webpage += F("Inactive");} webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Alarme sur Porte</td>");
+	webpage += F("<td>");	
+	if(config.Porte){webpage += F("Active");} else {webpage += F("Inactive");} webpage += F("</td>");
+	webpage += F("</tr>");
+	
+	
+	webpage += F("</table><br>");
+	
   webpage += F("<a href='/download'><button>Download</button></a>");
   webpage += F("<a href='/upload'><button>Upload</button></a>");
   webpage += F("<a href='/delete'><button>Delete</button></a>");
