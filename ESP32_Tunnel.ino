@@ -289,7 +289,7 @@ void setup() {
 		});
 		
   if (!SPIFFS.begin(true)) {
-    Serial.println("SPIFFS initialisation failed...");
+    Serial.println(F("SPIFFS initialisation failed..."));
     SPIFFS_present = false; 
   }
   else{
@@ -418,13 +418,7 @@ void loop() {
 //---------------------------------------------------------------------------
 void Acquisition(){	
 	static byte CptAlarmeCable = 0;
-	
-	/* test */
-	
-	MajLog("remplissage", "remplissage");
-	
-	/* test */
-	
+
 	// Serial.print("Coeff 1 = "),Serial.print(CoeffTension[0]);
 	// Serial.print(" Coeff 2 = "),Serial.print(CoeffTension[1]);
 	// Serial.print(" Coeff 3 = "),Serial.println(CoeffTension[2]);
@@ -1686,12 +1680,23 @@ void MajLog(String Id,String Raison){ // mise à jour fichier log en SPIFFS
 	Serial.print(F("Taille fichier log = ")),Serial.println(f.size());
 	// Serial.print(Id),Serial.print(","),Serial.println(Raison);
 	static bool once = false;
-	if(f.size() > 10000 && !once){
+	if(f.size() > 150000 && !once){
 		/* si trop grand on efface */
 		once = true;
-		message += "Fichier log plein";
+		message = Id;
+		message += F("Fichier log presque plein\n");
+		message += String(f.size());
+		message += F("\nFichier sera efface à 300000");
 		EnvoyerSms(myTel, true);
-		// SPIFFS.remove(filelog);
+	}
+	else if(f.size() > 300000 && once){ // 292Ko 75000 lignes
+		message = Id;
+		message += F("Fichier log plein\n");
+		message += String(f.size());
+		message += F("\nFichier efface");
+		EnvoyerSms(myTel, true);
+		SPIFFS.remove(filelog);
+		once = false;
 	}
 	f.close();
 	/* preparation de la ligne */
@@ -1887,7 +1892,7 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	server.on("/wifioff",  WifiOff);
   ///////////////////////////// End of Request commands
   server.begin();
-  Serial.println("HTTP server started");
+  Serial.println(F("HTTP server started"));
 	
 	message = Id;
 	if(!error){
@@ -1918,6 +1923,17 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 			Serial.print(F("resultat del Sms "));
 			Serial.println(err);
 		}
+		bool err;
+		byte n = 0;
+		do {
+			err = Sim800l.delSms(slot);
+			n ++;
+			if(n > 10){ // on efface tous si echec
+				Sim800l.delAllSms();
+				break;
+			}
+		} While(!err);
+		
 	}
 	debut = millis();
 	if(!error){
@@ -2211,7 +2227,7 @@ void handleFileUpload(){ // upload a new file to the Filing system
   {
     String filename = uploadfile.filename;
     if(!filename.startsWith("/")) filename = "/"+filename;
-    Serial.print("Upload File Name: "); Serial.println(filename);
+    Serial.print(F("Upload File Name: ")); Serial.println(filename);
     SPIFFS.remove(filename);                  // Remove a previous version, otherwise data is appended the file again
     UploadFile = SPIFFS.open(filename, "w");  // Open the file for writing in SPIFFS (create it, if doesn't exist)
   }
@@ -2224,7 +2240,7 @@ void handleFileUpload(){ // upload a new file to the Filing system
     if(UploadFile)          // If the file was successfully created
     {                                    
       UploadFile.close();   // Close the file again
-      Serial.print("Upload Size: "); Serial.println(uploadfile.totalSize);
+      Serial.print(F("Upload Size: ")); Serial.println(uploadfile.totalSize);
       webpage = "";
       append_page_header();
       webpage += F("<h3>File was successfully uploaded</h3>"); 
