@@ -67,7 +67,7 @@ bool    SPIFFS_present = false;
 
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		34   // Batterie générale 12V adc
-#define PinBattUSB		25   // V USB 5V adc VP 36
+#define PinBattUSB		36   // V USB 5V adc VP 36, 25 ADC2 pas utilisable avec Wifi 
 #define PinPedale1		32   // Entrée Pedale1
 #define PinPedale2		33   // Entrée Pedale2
 #define PinPorte   		39   // Entrée Porte Coffret VN
@@ -433,8 +433,8 @@ void Acquisition(){
 	static byte nRetourTension = 0;
 	TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension[0]);
 	VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension[1]);
-	VUSB            = map(moyenneAnalogique(PinBattUSB), 0, 4095, 0, CoeffTension[2]);
-	
+	VUSB            = map(moyenneAnalogique(PinBattUSB) , 0, 4095, 0, CoeffTension[2]);
+	Serial.print(F("Tension VUSB brut : ")),Serial.println(moyenneAnalogique(PinBattUSB));
 	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 6000){
 		nalaTension ++;
     if (nalaTension == 4) {
@@ -1868,7 +1868,6 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	Serial.println(F("WiFi connected"));
 	Serial.print(F("IP address: "));
 	ip = WiFi.localIP().toString();
-	debut = millis();
 	Serial.println(ip);
 	ArduinoOTA.begin();
 	
@@ -1914,7 +1913,7 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 			Serial.println(err);
 		}
 	}
-	
+	debut = millis();
 	if(!error){
 		/* boucle permettant de faire une mise à jour OTA et serveur, avec un timeout en cas de blocage */
 		unsigned long timeout = millis();

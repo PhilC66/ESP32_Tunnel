@@ -8,9 +8,9 @@ lst?																	Liste le Phone Book
 tel=+331234567890,Nom									crestion nouveau numero dans le Phone Book
 telX=efface														supprime l'entrée X du Phone Book impossible sur X=1
 telX=+331234567890,Nom								modification d'une entree du Phone Book
-etat																	demande l'etat de l'installation
-sys                                   demande l'etat du systeme
-log                                   log des commandes
+ETAT ou  ST														demande l'etat de l'installation
+SYS                                   demande l'etat du systeme
+LOG                                   log des commandes
 INTRUON																Armement de l'alarme
 INTRUOFF															Desarmement de l'alarme
 SILENCE																Demande etat Alarme Silencieuse
