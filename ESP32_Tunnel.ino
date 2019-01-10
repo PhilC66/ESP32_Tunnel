@@ -41,7 +41,7 @@ armer interrupt apres lancement
 
 
 Compilation LOLIN D32
-900990 68%, 53248 16%
+903794 68%, 53272 16%
 
  */
  
@@ -418,6 +418,12 @@ void loop() {
 //---------------------------------------------------------------------------
 void Acquisition(){	
 	static byte CptAlarmeCable = 0;
+	
+	/* test */
+	
+	MajLog("remplissage", "remplissage");
+	
+	/* test */
 	
 	// Serial.print("Coeff 1 = "),Serial.print(CoeffTension[0]);
 	// Serial.print(" Coeff 2 = "),Serial.print(CoeffTension[1]);
@@ -1679,9 +1685,13 @@ void MajLog(String Id,String Raison){ // mise à jour fichier log en SPIFFS
 	File f = SPIFFS.open(filelog, "r");
 	Serial.print(F("Taille fichier log = ")),Serial.println(f.size());
 	// Serial.print(Id),Serial.print(","),Serial.println(Raison);
-	if(f.size() > 10000){
+	static bool once = false;
+	if(f.size() > 10000 && !once){
 		/* si trop grand on efface */
-		SPIFFS.remove(filelog);
+		once = true;
+		message += "Fichier log plein";
+		EnvoyerSms(myTel, true);
+		// SPIFFS.remove(filelog);
 	}
 	f.close();
 	/* preparation de la ligne */
@@ -2123,6 +2133,16 @@ void HomePage(){
 	webpage += F("<tr>");
 	webpage += F("<td>TimeOut Wifi (s)</td>");
 	webpage += F("<td>");	webpage += String(config.timeoutWifi);	webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Alarme</td>");
+	webpage += F("<td>");	
+	if(config.Intru){webpage += F("Active");} else {webpage += F("Inactive");} webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Silence</td>");
+	webpage += F("<td>");	
+	if(config.Silence){webpage += F("ON");} else {webpage += F("OFF");} webpage += F("</td>");
 	webpage += F("</tr>");
 	webpage += F("<tr>");
 	webpage += F("<td>Alarme sur Pedale 1</td>");
