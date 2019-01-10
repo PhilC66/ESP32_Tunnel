@@ -1242,13 +1242,15 @@ void envoie_alarme() {
 	
   if (FlagAlarmeTension != FlagLastAlarmeTension) {
     SendEtat = true;
+		MajLog(F("Auto"), F("AlarmeTension"));
     FlagLastAlarmeTension = FlagAlarmeTension;
   }
   if (FlagAlarmeIntrusion != FlagLastAlarmeIntrusion) {
     SendEtat = true;
+		MajLog(F("Auto"), F("AlarmeIntrusion"));
     FlagLastAlarmeIntrusion = FlagAlarmeIntrusion;
   }
-  if (SendEtat) { 							// si envoie Etat demandé
+  if (SendEtat) { 						// si envoie Etat demandé
     envoieGroupeSMS(0);				// envoie groupé
     SendEtat = false;					// efface demande
   }
@@ -1915,24 +1917,25 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	if(sms){ // suppression du SMS
 		/* Obligatoire ici si non bouclage au redemarrage apres timeoutwifi
 		ou OTA sms demande Wifi toujours present */
-		bool err = Sim800l.delSms(slot);
-		Serial.print(F("resultat del Sms "));
-		Serial.println(err);
-		if(!err){ // 2eme essai si echec
-			err = Sim800l.delAllSms();
-			Serial.print(F("resultat del Sms "));
-			Serial.println(err);
-		}
+		// bool err = Sim800l.delSms(slot);
+		// Serial.print(F("resultat del Sms "));
+		// Serial.println(err);
+		// if(!err){ // 2eme essai si echec
+			// err = Sim800l.delAllSms();
+			// Serial.print(F("resultat del Sms "));
+			// Serial.println(err);
+		// }
 		bool err;
 		byte n = 0;
 		do {
 			err = Sim800l.delSms(slot);
 			n ++;
+			Serial.print(F("resultat del Sms "));	Serial.println(err);
 			if(n > 10){ // on efface tous si echec
 				Sim800l.delAllSms();
 				break;
 			}
-		} While(!err);
+		} while(!err);
 		
 	}
 	debut = millis();
