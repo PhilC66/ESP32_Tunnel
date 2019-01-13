@@ -86,24 +86,25 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le ca
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
-int Magique       = 2345;
+int Magique       = 1234;
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
 String Id ;                         // 	Id du materiel sera lu dans EEPROM
 char    SIM800InBuffer[64];         //	for notifications from the SIM800
 char replybuffer[255];              // 	Buffer de reponse SIM800
-volatile int IRQ_Cpt_PDL1 = 0;
-volatile int IRQ_Cpt_PDL2 = 0;
+volatile int IRQ_Cpt_PDL1  = 0;
+volatile int IRQ_Cpt_PDL2  = 0;
+volatile int IRQ_Cpt_Porte = 0;
 int Cpt_PDL1 = 0;
 int Cpt_PDL2 = 0;
 volatile unsigned long rebond1 = 0;		//	antirebond IRQ	
 volatile unsigned long rebond2 = 0;
 byte confign = 0;					// Num enregistrement EEPROM
 bool Allume = false;
-bool FlagAlarmeTension       = false;// Alarme tension Batterie
+bool FlagAlarmeTension       = false; // Alarme tension Batterie
 bool FlagLastAlarmeTension   = false;
-bool FlagAlarmeIntrusion     = false;// Alarme Defaut Cable detectée
+bool FlagAlarmeIntrusion     = false; // Alarme Defaut Cable detectée
 bool FlagAlarmeCable1        = false; // Alamre Cable Pedale1
 bool FlagAlarmeCable2        = false; // Alamre Cable Pedale2
 bool FlagAlarmePorte         = false; // Alamre Porte Coffret
@@ -111,6 +112,7 @@ bool FlagLastAlarmeIntrusion = false;
 bool FirstSonn = false;				// Premier appel sonnerie
 bool SonnMax   = false;				// temps de sonnerie maxi atteint
 bool FlagReset = false;
+int  Nmax      = 0;						// comptage alarme cable avant alarme different Jour/Nuit
 // byte CptAlarme1 = 0;
 // byte CptAlarme2 = 0;
 int CoeffTension[3];          // Coeff calibration Tension
@@ -156,6 +158,8 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
 	bool    Pedale1;              // Alarme Pedale1 Active
 	bool    Pedale2;              // Alarme Pedale2 Active
 	bool    Porte;                // Alarme Porte Active
+	byte    Jour_Nmax;            // Comptage Alarme Jour
+	byte    Nuit_Nmax;            // Comptage Alarme Nuit
 	char 		Idchar[11];						// Id
 } ;
 config_t config;
@@ -196,7 +200,7 @@ Sim800l Sim800l;  											// to declare the library
 	void IRAM_ATTR handleInterruptPo() { // Porte ------------a finir--------------
 		// if (millis() - rebond2 > 100){
 			portENTER_CRITICAL_ISR(&mux);
-			IRQ_Cpt_PDL2++;
+			IRQ_Cpt_Porte++;
 			portEXIT_CRITICAL_ISR(&mux);
 			// rebond2 = millis();
 		// }
@@ -251,6 +255,8 @@ void setup() {
 		config.Pedale1       = true;
 		config.Pedale2       = true;
 		config.Porte         = true;
+		config.Jour_Nmax     = 3*60*1000/10; // 3mn /10 temps de boucle Acquisition
+		config.Nuit_Nmax     = 30*1000/10;   // 30s /10 temps de boucle Acquisition
 		String temp          = "TPCF_Canal";// TPCF_TCnls
     temp.toCharArray(config.Idchar, 11);
 		EEPROM.put(confign,config);
@@ -342,9 +348,7 @@ void setup() {
   TSonnRepos = Alarm.timerRepeat(config.Dsonnrepos, ResetSonnerie); // tempo repos apres maxi
   Alarm.disable(TSonnRepos);
 	
-	attachInterrupt(digitalPinToInterrupt(PinPedale1), handleInterruptP1, RISING);
-	attachInterrupt(digitalPinToInterrupt(PinPedale2), handleInterruptP2, RISING);
-	attachInterrupt(digitalPinToInterrupt(PinPorte)  , handleInterruptPo, RISING);
+	ActiveInterrupt();
 	
 }
 //---------------------------------------------------------------------------
@@ -384,6 +388,13 @@ void loop() {
     } 
   }
 	
+	if(IRQ_Cpt_Porte > 0){ // Alarme porte
+		if(config.Intru && config.Porte){
+			// FlagAlarmePorte = true;
+			Acquisition();
+		}
+	}
+	
 	if(IRQ_Cpt_PDL1 > 0 || IRQ_Cpt_PDL2 > 0){ 
 		Serial.print(F("Interruption : "));
 		Serial.print(IRQ_Cpt_PDL1);
@@ -415,7 +426,11 @@ void loop() {
 	
 		portENTER_CRITICAL(&mux);
 		if(IRQ_Cpt_PDL2 > 0)IRQ_Cpt_PDL2 = 0;
-		portEXIT_CRITICAL(&mux);	
+		portEXIT_CRITICAL(&mux);
+		
+		portENTER_CRITICAL(&mux);
+		if(IRQ_Cpt_Porte > 0)IRQ_Cpt_Porte = 0;
+		portEXIT_CRITICAL(&mux);
 	}
 	if(Cpt_PDL1 >0 && (millis() - T01 > config.tempPDL)) Cpt_PDL1 = 0;//timeout pedale
 	if(Cpt_PDL2 >0 && (millis() - T02 > config.tempPDL)) Cpt_PDL2 = 0;//timeout pedale
@@ -482,8 +497,8 @@ void Acquisition(){
 	static byte nalaPorte = 0;
 	if (config.Intru) { 
 		// gestion des capteurs coupé ou en alarme permanente
-		// verif sur 3 passages consecutifs
-		if (!digitalRead(PinPorte) && config.Porte){
+		// verif sur plusieurs passages consecutifs
+		if (digitalRead(PinPorte) && config.Porte){
 			nalaPorte ++;		
 			if(nalaPorte > 1){
 				// CptAlarme1 = 1;
@@ -496,9 +511,10 @@ void Acquisition(){
 		else{
 			if (nalaPorte > 0) nalaPorte --;		//	efface progressivement le compteur
 		}
-		if (!digitalRead(PinPedale1) && config.Pedale1){
+		
+		if (digitalRead(PinPedale1) && config.Pedale1){
 			nalaPIR1 ++;		
-			if(nalaPIR1 > 3){
+			if(nalaPIR1 > Nmax){
 				// CptAlarme1 = 1;
 				// FausseAlarme1 = 1000;//V2-11
 				FlagAlarmeIntrusion = true;
@@ -509,9 +525,10 @@ void Acquisition(){
 		else{
 			if (nalaPIR1 > 0) nalaPIR1 --;		//	efface progressivement le compteur
 		}
-		if (!digitalRead(PinPedale2) && config.Pedale2){
+		
+		if (digitalRead(PinPedale2) && config.Pedale2){
 			nalaPIR2 ++;		
-			if(nalaPIR2 > 3){
+			if(nalaPIR2 > Nmax){
 				// CptAlarme2 = 1;
 				// FausseAlarme2 = 1000;//V2-11
 				FlagAlarmeIntrusion = true;
@@ -522,11 +539,19 @@ void Acquisition(){
 		else{
 			if (nalaPIR2 > 0) nalaPIR2 --;		//	efface progressivement le compteur
 		}
-		Serial.print(F("Pedale 1 enfonce")),Serial.println(nalaPIR1);
-		Serial.print(F("Pedale 2 enfonce")),Serial.println(nalaPIR2);
+		
+		Serial.print(F("Pedale 1 enfonce ")),Serial.println(nalaPIR1);
+		Serial.print(F("Pedale 2 enfonce ")),Serial.println(nalaPIR2);
+		Serial.print(F("Flag Porte ")),Serial.println(FlagAlarmePorte);
+		
 		if(FlagAlarmeIntrusion){
 			ActivationSonnerie();		// activation Sonnerie
-			Serial.println(F("Alarme Cable/Porte"));
+			if(FlagAlarmePorte){
+				Serial.println(F("Alarme Porte"));
+			}
+			else if(FlagAlarmeCable1 || FlagAlarmeCable2){
+				Serial.println(F("Alarme Cable"));
+			}
 		}
 	}
 	else{
@@ -832,12 +857,7 @@ fin_i:
 				if (!config.Intru) {
 					config.Intru = !config.Intru;
 					sauvConfig();											// sauvegarde en EEPROM
-					// AllumeCapteur();									// allumage des capteurs selon parametres
-					// V1-12 on attache les interruptions
-					// if (config.PirActif[0]) attachInterrupt(digitalPinToInterrupt(Ip_PIR1), IRQ_PIR1, RISING);
-					// if (config.PirActif[1]) attachInterrupt(digitalPinToInterrupt(Ip_PIR2), IRQ_PIR2, RISING);
-					// if (config.PirActif[2]) attachInterrupt(digitalPinToInterrupt(Ip_PIR3), IRQ_PIR3, RISING);
-					// if (config.PirActif[3]) attachInterrupt(digitalPinToInterrupt(Ip_PIR4), IRQ_PIR4, RISING);
+					ActiveInterrupt();
 					if(!sms){															//V2-14
 						nom = F("console");
 						// bidon.toCharArray(nom,8);//	si commande locale
@@ -853,19 +873,11 @@ fin_i:
 				if(config.Intru) {
 					config.Intru = !config.Intru;
 					sauvConfig();														// sauvegarde en EEPROM
+					DesActiveInterrupt();
 					/*	Arret Sonnerie au cas ou? sans envoyer SMS */
 					digitalWrite(PinSirene, LOW);	// Arret Sonnerie
 					Alarm.disable(TSonn);			// on arrete la tempo sonnerie
 					Alarm.disable(TSonnMax);	// on arrete la tempo sonnerie maxi
-					// V1-12 on detache les interruptions
-					// if (config.PirActif[0]) detachInterrupt(digitalPinToInterrupt(Ip_PIR1));
-					// if (config.PirActif[1]) detachInterrupt(digitalPinToInterrupt(Ip_PIR2));
-					// if (config.PirActif[2]) detachInterrupt(digitalPinToInterrupt(Ip_PIR3));
-					// if (config.PirActif[3]) detachInterrupt(digitalPinToInterrupt(Ip_PIR4));
-					// digitalWrite(Op_PIR1, LOW); // on etteint les capteurs PIR TX et RX
-					// digitalWrite(Op_PIR2, LOW);
-					// digitalWrite(Op_PIR3, LOW);
-					// digitalWrite(Op_PIR4, LOW);
 					FirstSonn = false;
 					FlagAlarmeIntrusion = false;
 					FlagAlarmeCable1 = false;
@@ -921,9 +933,12 @@ fin_i:
 							}						
 						}
 						if(flag){ // sauv configuration
+							DesActiveInterrupt();
 							config.Pedale1 = Num[0];
 							config.Pedale2 = Num[1];
 							config.Porte   = Num[2];
+							sauvConfig();											// sauvegarde en EEPROM
+							ActiveInterrupt();
 						}
 					}					
 				}
@@ -1440,6 +1455,7 @@ void MajHeure(){
 		}		
 	}
 	displayTime(0);
+	AIntru_HeureActuelle();
 	
 	/* test */
 	char dateheure[20];
@@ -1798,6 +1814,7 @@ void PrintEEPROM(){
 	Serial.print(F("Version = "))									,Serial.println(ver);
 	Serial.print(F("ID = "))											,Serial.println(config.Idchar);
 	Serial.print(F("magic = "))										,Serial.println(config.magic);
+	Serial.print(F("Alarme = "))									,Serial.println(config.Intru);
 	Serial.print(F("Ala_Vie = "))									,Serial.println(config.Ala_Vie);
 	Serial.print(F("Fin jour = "))								,Serial.println(config.FinJour);
 	Serial.print(F("Lancement (s) = "))						,Serial.println(config.Tlancement);
@@ -1806,9 +1823,9 @@ void PrintEEPROM(){
 	Serial.print(F("Tempo Sortie (s) = "))				,Serial.println(config.tempoSortie);
 	Serial.print(F("Time Out Eclairage (s) = "))	,Serial.println(config.timeOutS);
 	Serial.print(F("Time Out Wifi (s) = "))				,Serial.println(config.timeoutWifi);
-	Serial.print(F("Alarme sur Pedale 1 = ")) 	,Serial.println(config.Pedale1);
-	Serial.print(F("Alarme sur Pedale 2 = ")) 	,Serial.println(config.Pedale2);
-	Serial.print(F("Alarme sur Porte = ")) 	  ,Serial.println(config.Porte);
+	Serial.print(F("Alarme sur Pedale 1 = ")) 	  ,Serial.println(config.Pedale1);
+	Serial.print(F("Alarme sur Pedale 2 = ")) 	  ,Serial.println(config.Pedale2);
+	Serial.print(F("Alarme sur Porte = ")) 	      ,Serial.println(config.Porte);
 }
 //---------------------------------------------------------------------------
 void Extinction(){
@@ -2127,6 +2144,77 @@ String Hdectohhmm(long Hdec){
 	if(int((Hdec % 3600) / 60) < 10) hhmm += "0";
 	hhmm += int((Hdec % 3600) / 60);
 	return hhmm;
+}
+//---------------------------------------------------------------------------
+void DesActiveInterrupt(){
+	
+	if(config.Pedale1){
+		detachInterrupt(digitalPinToInterrupt(PinPedale1));
+	}
+	if(config.Pedale2){
+		detachInterrupt(digitalPinToInterrupt(PinPedale2));
+	}
+	if(config.Porte){
+		detachInterrupt(digitalPinToInterrupt(PinPorte));
+	}
+}
+//---------------------------------------------------------------------------
+void ActiveInterrupt(){
+	
+	if(config.Pedale1){
+		attachInterrupt(digitalPinToInterrupt(PinPedale1), handleInterruptP1, RISING);
+	}
+	if(config.Pedale2){
+		attachInterrupt(digitalPinToInterrupt(PinPedale2), handleInterruptP2, RISING);
+	}
+	if(config.Porte){
+		attachInterrupt(digitalPinToInterrupt(PinPorte)  , handleInterruptPo, RISING);
+	}
+}
+//---------------------------------------------------------------------------
+void AIntru_HeureActuelle(){
+	
+	// chagement parametre intru en fonction de l'heure actuelle
+	long Heureactuelle = hour()*60;// calcul en 4 lignes sinon bug!
+	Heureactuelle += minute();
+	Heureactuelle  = Heureactuelle*60;
+	Heureactuelle += second(); // en secondes
+	
+		if(config.FinJour > config.Ala_Vie){
+			if((Heureactuelle > config.FinJour && Heureactuelle > config.Ala_Vie)
+			 ||(Heureactuelle < config.FinJour && Heureactuelle < config.Ala_Vie)){
+				// Nuit
+				IntruD();
+			}
+			else{	// Jour
+				IntruF();
+			}
+		}
+		else{
+			if(Heureactuelle > config.FinJour && Heureactuelle < config.Ala_Vie){
+			 // Nuit
+				IntruD();
+			}
+			else{	// Jour
+				IntruF();
+			}
+		}
+	// Serial.print(F("Hintru = ")),Serial.print(Heureactuelle),Serial.print(",");
+	// Serial.print(config.Ala_Vie),Serial.print(","),Serial.print(config.FinJour);
+	// Serial.print(","),Serial.println(config.Intru);
+	
+}	
+//---------------------------------------------------------------------------
+void IntruF(){// Charge parametre Alarme Intrusion Jour
+	Nmax 			= config.Jour_Nmax;
+	// TmCptMax  = config.Jour_TmCptMax;
+	Serial.println(F("Jour"));
+}
+//---------------------------------------------------------------------------
+void IntruD(){// Charge parametre Alarme Intrusion Nuit
+	Nmax 			= config.Nuit_Nmax;
+	// TmCptMax  = config.Nuit_TmCptMax;
+	Serial.println(F("Nuit"));
 }
 //---------------------------------------------------------------------------
 void HomePage(){
