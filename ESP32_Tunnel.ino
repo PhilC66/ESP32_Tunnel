@@ -5,7 +5,7 @@ Alimentation sur panneaux solaires
 mode deep sleep 
 reveille tout les matin 06h55
 reception des SMS en attente
-apres 5 min de fonctionnement
+apres 5 min de fonctionnement (ex: 2mn pour reception/suppression 8 SMS)
 envoie sms signal vie 
 analyse calendrier sauvegardé en SPIFFS
 si jour circulé 
@@ -174,24 +174,32 @@ AlarmId TSonnRepos;			// 6 tempo repos apres maxi
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 HardwareSerial *SIM800Serial = &Serial2;// liaison serie FONA SIM800
-Sim800l Sim800l;  											//to declare the library
+Sim800l Sim800l;  											// to declare the library
 
 //---------------------------------------------------------------------------
-	void IRAM_ATTR handleInterruptP1() {
-		if (millis() - rebond1 > 100){
+	void IRAM_ATTR handleInterruptP1() { // Pedale 1
+		// if (millis() - rebond1 > 100){
 			portENTER_CRITICAL_ISR(&mux);
 			IRQ_Cpt_PDL1++;
 			portEXIT_CRITICAL_ISR(&mux);
-			rebond1 = millis();
-		}
+			// rebond1 = millis();
+		// }
 	}
-	void IRAM_ATTR handleInterruptP2() {
-		if (millis() - rebond2 > 100){
+	void IRAM_ATTR handleInterruptP2() { // Pedale 2
+		// if (millis() - rebond2 > 100){
 			portENTER_CRITICAL_ISR(&mux);
 			IRQ_Cpt_PDL2++;
 			portEXIT_CRITICAL_ISR(&mux);
-			rebond2 = millis();
-		}
+			// rebond2 = millis();
+		// }
+	}
+	void IRAM_ATTR handleInterruptPo() { // Porte ------------a finir--------------
+		// if (millis() - rebond2 > 100){
+			portENTER_CRITICAL_ISR(&mux);
+			IRQ_Cpt_PDL2++;
+			portEXIT_CRITICAL_ISR(&mux);
+			// rebond2 = millis();
+		// }
 	}
 //---------------------------------------------------------------------------
 
@@ -336,6 +344,7 @@ void setup() {
 	
 	attachInterrupt(digitalPinToInterrupt(PinPedale1), handleInterruptP1, RISING);
 	attachInterrupt(digitalPinToInterrupt(PinPedale2), handleInterruptP2, RISING);
+	attachInterrupt(digitalPinToInterrupt(PinPorte)  , handleInterruptPo, RISING);
 	
 }
 //---------------------------------------------------------------------------
@@ -442,7 +451,7 @@ void Acquisition(){
       nalaTension = 0;
     }
 	}
-	else if (TensionBatterie > 75 && VUSB > 4800 && VUSB < 5400) {	//hysteresis et tempo sur Alarme Batterie
+	else if (Battpct(TensionBatterie) > 80 && VUSB > 4800 && VUSB < 5400) {	//hysteresis et tempo sur Alarme Batterie
     nRetourTension ++;
 		if(nRetourTension == 4){
 			FlagAlarmeTension = false;			
