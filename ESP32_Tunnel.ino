@@ -66,16 +66,20 @@ bool    SPIFFS_present = false;
 #include "CSS.h"               // pageweb
 
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
-#define PinBattSol		34   // Batterie générale 12V adc
+#define PinBattSol		39   // Batterie générale 12V adc VN
 #define PinBattUSB		36   // V USB 5V adc VP 36, 25 ADC2 pas utilisable avec Wifi 
 #define PinPedale1		32   // Entrée Pedale1
 #define PinPedale2		33   // Entrée Pedale2
-#define PinPorte   		39   // Entrée Porte Coffret VN
+#define PinPorte   		34   // Entrée Porte Coffret 
 #define PinEclairage	21   // Sortie Commande eclairage
 #define PinSirene			0    // Sortie Commande Sirene
 #define PIN						1234 // Code PIN carte SIM
 #define RX_PIN				16   // TX Sim800
 #define TX_PIN				17   // RX Sim800
+
+#define BUTTON_PIN_BITMASK 0x700000000 // 32,33,34 Interruption Wake up
+#define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP  15       /* Time ESP32 will go to sleep (in seconds) */
 
 WebServer server(80);
 
@@ -86,7 +90,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le ca
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
-int Magique       = 1234;
+int Magique       = 2341;
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
@@ -142,8 +146,8 @@ byte recordn = 100;							// Num enregistrement EEPROM
 struct  config_t 									// Structure configuration sauvée en EEPROM
 {
   int 		magic				;					// num magique
-  long  	Ala_Vie 		;					// Heure message Vie, 7h matin en seconde = 7*60*60
-	long  	FinJour 		;					// Heure fin jour, 20h matin en seconde = 20*60*60
+  int     Ala_Vie 		;					// Heure message Vie, 7h matin en seconde = 7*60*60
+	int     FinJour 		;					// Heure fin jour, 20h matin en seconde = 20*60*60
 	int     Tlancement  ;         // Temps lancement, prise decision circulé/noncirculé
   int			tempoSortie ;					// tempo eclairage apres sorties(s)
   int			timeOutS	 	;					// tempo time out eclairage (s)
@@ -158,8 +162,8 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
 	bool    Pedale1;              // Alarme Pedale1 Active
 	bool    Pedale2;              // Alarme Pedale2 Active
 	bool    Porte;                // Alarme Porte Active
-	byte    Jour_Nmax;            // Comptage Alarme Jour
-	byte    Nuit_Nmax;            // Comptage Alarme Nuit
+	int     Jour_Nmax;            // Comptage Alarme Jour
+	int     Nuit_Nmax;            // Comptage Alarme Nuit
 	char 		Idchar[11];						// Id
 } ;
 config_t config;
@@ -215,6 +219,8 @@ void setup() {
 	Serial.println(F("lancement SIM800"));
   SIM800Serial->begin(9600); // 4800
 	Sim800l.begin();
+	
+	Serial.print(F("Raison wake up : ")),Serial.println(print_wakeup_reason());
 	
 	pinMode(PinEclairage,OUTPUT);
   pinMode(PinPedale1  ,INPUT_PULLUP);
@@ -391,6 +397,10 @@ void loop() {
 	if(IRQ_Cpt_Porte > 0){ // Alarme porte
 		if(config.Intru && config.Porte){
 			// FlagAlarmePorte = true;
+			portENTER_CRITICAL(&mux);
+			if(IRQ_Cpt_Porte > 0)IRQ_Cpt_Porte = 0;
+			portEXIT_CRITICAL(&mux);
+			
 			Acquisition();
 		}
 	}
@@ -428,9 +438,6 @@ void loop() {
 		if(IRQ_Cpt_PDL2 > 0)IRQ_Cpt_PDL2 = 0;
 		portEXIT_CRITICAL(&mux);
 		
-		portENTER_CRITICAL(&mux);
-		if(IRQ_Cpt_Porte > 0)IRQ_Cpt_Porte = 0;
-		portEXIT_CRITICAL(&mux);
 	}
 	if(Cpt_PDL1 >0 && (millis() - T01 > config.tempPDL)) Cpt_PDL1 = 0;//timeout pedale
 	if(Cpt_PDL2 >0 && (millis() - T02 > config.tempPDL)) Cpt_PDL2 = 0;//timeout pedale
@@ -1880,7 +1887,7 @@ void Allumage(byte n){
 		else if(Al1 == Cd2 || Al2 == Cd1){			
 			Serial.print(F("                   Extinction dans (s) ")),Serial.println(config.tempoSortie);
 			Alarm.enable(TempoSortie);
-			Serial.println(CptAllumage);
+			Serial.print(F("Nombre Allumage = ")),Serial.println(CptAllumage);
 		}
 	}
 }
@@ -2216,6 +2223,54 @@ void IntruD(){// Charge parametre Alarme Intrusion Nuit
 	// TmCptMax  = config.Nuit_TmCptMax;
 	Serial.println(F("Nuit"));
 }
+//---------------------------------------------------------------------------
+void DebutSleep(){
+	 //If you were to use ext1, you would use it like
+  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK,ESP_EXT1_WAKEUP_ANY_HIGH);
+	
+	esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  Serial.println(F("Setup ESP32 to sleep for "));
+	Serial.println(String(TIME_TO_SLEEP));
+	Serial.println(F("Seconds"));
+	Serial.flush();
+  //Go to sleep now
+  Serial.println(F("Going to sleep now"));
+	Serial.flush();
+  esp_deep_sleep_start();
+  Serial.println(F("This will never be printed"));
+	Serial.flush();
+	
+}
+//---------------------------------------------------------------------------
+int print_wakeup_reason(){
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch(wakeup_reason)
+  {
+    case 1  : return 1; // Serial.println("Wakeup caused by external signal using RTC_IO"); break;
+    // case 2  : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
+		case 2: {
+				uint64_t wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
+				if (wakeup_pin_mask != 0) {
+					int pin = __builtin_ffsll(wakeup_pin_mask)-1;
+					Serial.println("Wake up from GPIO " + String(pin));
+					return pin;
+				} else {
+					Serial.println(" Wake up from GPIO ?");
+					return 99;
+				}
+				break;
+		}
+    case 3  : return 3; // Serial.println("Wakeup caused by timer"); break;
+    case 4  : return 4; // Serial.println("Wakeup caused by touchpad"); break;
+    case 5  : return 5; // Serial.println("Wakeup caused by ULP program"); break;
+    default : return 0; // Serial.println("Wakeup was not caused by deep sleep"); break;// demarrage normal
+  }
+	Serial.flush();
+}
+
 //---------------------------------------------------------------------------
 void HomePage(){
   SendHTML_Header();
