@@ -41,7 +41,7 @@ armer interrupt apres lancement
 
 
 Compilation LOLIN D32
-903794 68%, 53272 16%
+905718 69%, 53288 16%
 
  */
  
@@ -68,10 +68,10 @@ bool    SPIFFS_present = false;
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		39   // Batterie générale 12V adc VN
 #define PinBattUSB		36   // V USB 5V adc VP 36, 25 ADC2 pas utilisable avec Wifi 
-#define PinPedale1		32   // Entrée Pedale1
-#define PinPedale2		33   // Entrée Pedale2
-#define PinPorte   		34   // Entrée Porte Coffret 
-#define PinEclairage	21   // Sortie Commande eclairage
+#define PinPedale1		32   // Entrée Pedale1 Wake up EXT1
+#define PinPedale2		33   // Entrée Pedale2 Wake up EXT1
+#define PinPorte   		34   // Entrée Porte Coffret Wake up EXT1 
+#define PinEclairage 	21   // Sortie Commande eclairage
 #define PinSirene			0    // Sortie Commande Sirene
 #define PIN						1234 // Code PIN carte SIM
 #define RX_PIN				16   // TX Sim800
@@ -90,7 +90,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le ca
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
-int Magique       = 2341;
+int Magique       = 3421;
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
@@ -123,14 +123,15 @@ int CoeffTension[3];          // Coeff calibration Tension
 int CoeffTensionDefaut = 7000;// Coefficient par defaut
 
 RTC_DATA_ATTR int CptAllumage = 0; // Nombre Allumage par jour en memoire RTC
-byte slot = 0;            			//this will be the slot number of the SMS
-char 		receivedChar;
-bool newData = false;
-String 	demande;
-long TensionBatterie  = 0; // Tension Batterie solaire
-long VBatterieProc    = 0; // Tension Batterie Processeur
-long VUSB             = 0; // Tension USB
+byte   slot = 0;            			 //this will be the slot number of the SMS
+char   receivedChar;
+bool   newData = false;
+String demande;
+long   TensionBatterie  = 0; // Tension Batterie solaire
+long   VBatterieProc    = 0; // Tension Batterie Processeur
+long   VUSB             = 0; // Tension USB
 String catalog[2][10]; // liste des fichiers en SPIFFS nom/taille 10 lignes max
+
 File UploadFile;
 
 typedef struct											// declaration structure  pour les log
@@ -146,8 +147,8 @@ byte recordn = 100;							// Num enregistrement EEPROM
 struct  config_t 									// Structure configuration sauvée en EEPROM
 {
   int 		magic				;					// num magique
-  int     Ala_Vie 		;					// Heure message Vie, 7h matin en seconde = 7*60*60
-	int     FinJour 		;					// Heure fin jour, 20h matin en seconde = 20*60*60
+  long    Ala_Vie 		;					// Heure message Vie, 7h matin en seconde = 7*60*60
+	long    FinJour 		;					// Heure fin jour, 20h matin en seconde = 20*60*60
 	int     Tlancement  ;         // Temps lancement, prise decision circulé/noncirculé
   int			tempoSortie ;					// tempo eclairage apres sorties(s)
   int			timeOutS	 	;					// tempo time out eclairage (s)
@@ -162,8 +163,8 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
 	bool    Pedale1;              // Alarme Pedale1 Active
 	bool    Pedale2;              // Alarme Pedale2 Active
 	bool    Porte;                // Alarme Porte Active
-	int     Jour_Nmax;            // Comptage Alarme Jour
-	int     Nuit_Nmax;            // Comptage Alarme Nuit
+	long    Jour_Nmax;            // Comptage Alarme Jour
+	long    Nuit_Nmax;            // Comptage Alarme Nuit
 	char 		Idchar[11];						// Id
 } ;
 config_t config;
@@ -1527,8 +1528,8 @@ void ResetSonnerie() {
 }
 //---------------------------------------------------------------------------
 void OnceOnly(){	
-	// Analyse si jour circulé lancement normal
-	// lecture calendrier
+	/* Analyse si jour circulé lancement normal */
+	
 	OuvrirCalendrier(); // ouvre calendrier circulation en SPIFFS
 	if(calendrier[month()][day()] == 0){
 		// si non retour, deep sleep SIM800 et ESP32
@@ -1536,15 +1537,15 @@ void OnceOnly(){
 		
 		// Sim800l.sleep();
 		// on calcul la durée de sleep = t maintenant jusqu'a Svie
-		Serial.print(F("Duree sleep = ")),Serial.println(DureeSleep());
+		Serial.print(F("Duree sleep = ")),Serial.println(DureeSleep(config.Ala_Vie));
 		
 		// ESP sleeptime;
 	}
-	Serial.print(F("Duree sleep = ")),Serial.println(DureeSleep());
+	Serial.print(F("Duree sleep = ")),Serial.println(DureeSleep(config.Ala_Vie));
 	Serial.println(F("Jour circulé")); // on continue normalement
 }
 //---------------------------------------------------------------------------
-long DureeSleep(){
+long DureeSleep(long target){
 	/* calcul durée entre maintenant et
 	heure Vie-5mn, 5 mn(Tlancement)*/
 	long SleepTime = 0;
@@ -1552,15 +1553,15 @@ long DureeSleep(){
 	Heureactuelle += minute();
 	Heureactuelle  = Heureactuelle*60;
 	Heureactuelle += second(); // en secondes
-	if(Heureactuelle < config.Ala_Vie){
-		SleepTime = config.Ala_Vie - Heureactuelle;
+	if(Heureactuelle < target){
+		SleepTime = target - Heureactuelle;
 	}
 	else{
 		if(Heureactuelle < 86400){// < 24h00
-			SleepTime = (86400 - Heureactuelle) + config.Ala_Vie;
+			SleepTime = (86400 - Heureactuelle) + target;
 		}
 	}
-	return SleepTime - config.Tlancement;
+	return SleepTime;
 }
 //---------------------------------------------------------------------------
 void SignalVie(){
@@ -1814,7 +1815,7 @@ void OuvrirCalendrier(){
 void FinJournee(){
 	// fin de journée retour deep sleep
 	Serial.print(F("Fin de journée retour sleep a terminer"));
-	Serial.print(F("Durée sleep = ")),Serial.println(DureeSleep());
+	Serial.print(F("Durée sleep = ")),Serial.println(DureeSleep(config.Ala_Vie));
 }
 //---------------------------------------------------------------------------
 void PrintEEPROM(){
