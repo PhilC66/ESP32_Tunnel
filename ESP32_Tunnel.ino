@@ -14,7 +14,9 @@ en fin de journée retour sleep jusqu'a 06h55
 pas d'option wake up à une heure donnée
 il faut donc calculer une durée de sleep(quid precision RTC)
 si non circulé, 
-retour SIM800 et ESP32 en sleep pour 23h55
+retour SIM800 et ESP32 en sleep reveil toute les heures
+au reveil attendre au moins 30s pour que les SMS arrivent,
+quand plus de SMS et traitement retour sleep 1H00
 
 mode normal
 SIM800 en reception
@@ -36,7 +38,10 @@ temps mini pedale enfoncée
 alarme cable/porte
 page web
 message ST a remanier
-accelerer lecture SMS si grande qte au lancement, ne pas attendre nest Acquisition
+
+accelerer lecture SMS si grande qte au lancement, 
+ne pas attendre next Acquisition 4mn 14SMS > 3mn 14SMS??? 
+perdu lescture des Interrupts -- a revoir --
 
 
 Compilation LOLIN D32
@@ -101,8 +106,8 @@ volatile int IRQ_Cpt_PDL2  = 0;
 volatile int IRQ_Cpt_Porte = 0;
 int Cpt_PDL1 = 0;
 int Cpt_PDL2 = 0;
-volatile unsigned long rebond1 = 0;		//	antirebond IRQ	
-volatile unsigned long rebond2 = 0;
+// volatile unsigned long rebond1 = 0;		//	antirebond IRQ	
+// volatile unsigned long rebond2 = 0;
 byte confign = 0;					// Num enregistrement EEPROM
 bool Allume = false;
 bool FlagAlarmeTension       = false; // Alarme tension Batterie
@@ -364,8 +369,8 @@ void loop() {
 	static unsigned long T02 = 0;
 	recvOneChar();
 	showNewData();
-	if(rebond1 > millis()) rebond1 = millis();
-	if(rebond2 > millis()) rebond2 = millis();
+	// if(rebond1 > millis()) rebond1 = millis();
+	// if(rebond2 > millis()) rebond2 = millis();
 	
   char* bufPtr = SIM800InBuffer;	//buffer pointer
   if (Serial2.available()) {      	//any data available from the FONA?    
@@ -581,15 +586,15 @@ void Acquisition(){
   int8_t smsnum = Sim800l.getNumSms(); // nombre de SMS en attente
   Serial.print(F("Sms en attente = ")), Serial.println (smsnum);
 
-  if (smsnum > 0) {	// nombre de SMS en attente
+  if(smsnum > 0) {	// nombre de SMS en attente
     // il faut les traiter
 		int numsms = Sim800l.getIndexSms(); // cherche l'index des sms en mémoire
     traite_sms(numsms);// traitement des SMS en attente
-		smsnum = Sim800l.getNumSms();
-		if(smsnum > 0){
-			Acquisition();
-			Alarm.delay(1);
-		}
+		// smsnum = Sim800l.getNumSms();
+		// if(smsnum > 0){
+			// Acquisition();
+			// Alarm.delay(1);
+		// }
   }
 	else if (smsnum == 0 && FlagReset) { // on verifie que tous les SMS sont traités avant Reset
     FlagReset = false;
