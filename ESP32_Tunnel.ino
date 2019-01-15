@@ -268,8 +268,8 @@ void setup() {
 		config.Pedale1       = true;
 		config.Pedale2       = true;
 		config.Porte         = true;
-		config.Jour_Nmax     = 3*60*1000/10; // 3mn /10 temps de boucle Acquisition
-		config.Nuit_Nmax     = 30*1000/10;   // 30s /10 temps de boucle Acquisition
+		config.Jour_Nmax     = 3*60/10; // 3mn /10 temps de boucle Acquisition
+		config.Nuit_Nmax     = 30/10;   // 30s /10 temps de boucle Acquisition
 		String temp          = "TPCF_Canal";// TPCF_TCnls
     temp.toCharArray(config.Idchar, 11);
 		EEPROM.put(confign,config);
@@ -1838,8 +1838,8 @@ void PrintEEPROM(){
 	Serial.print(F("Ala_Vie = "))									,Serial.println(config.Ala_Vie);
 	Serial.print(F("Fin jour = "))								,Serial.println(config.FinJour);
 	Serial.print(F("Lancement (s) = "))						,Serial.println(config.Tlancement);
-	Serial.print(F("Comptage Pedale = "))       	,Serial.println(config.Cpt_PDL);
-	Serial.print(F("Tempo Pedale (ms) = "))				,Serial.println(config.tempPDL);
+	Serial.print(F("TimeOut Alarme Jour (s) = ")) ,Serial.println(config.Jour_Nmax);
+	Serial.print(F("TimeOut Alarme Nuit (s) = "))	,Serial.println(config.Nuit_Nmax);
 	Serial.print(F("Tempo Sortie (s) = "))				,Serial.println(config.tempoSortie);
 	Serial.print(F("Time Out Eclairage (s) = "))	,Serial.println(config.timeOutS);
 	Serial.print(F("Time Out Wifi (s) = "))				,Serial.println(config.timeoutWifi);
