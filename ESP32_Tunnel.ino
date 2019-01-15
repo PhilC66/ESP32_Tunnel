@@ -5,7 +5,7 @@ Alimentation sur panneaux solaires
 mode deep sleep 
 reveille tout les matin 06h55
 reception des SMS en attente
-apres 5 min de fonctionnement (ex: 2mn pour reception/suppression 8 SMS)
+apres 5 min de fonctionnement (ex: 2mn pour reception/suppression 8 SMS, 4mn 14SMS)
 envoie sms signal vie 
 analyse calendrier sauvegardé en SPIFFS
 si jour circulé 
@@ -36,8 +36,7 @@ temps mini pedale enfoncée
 alarme cable/porte
 page web
 message ST a remanier
-
-armer interrupt apres lancement
+accelerer lecture SMS si grande qte au lancement, ne pas attendre nest Acquisition
 
 
 Compilation LOLIN D32
@@ -582,12 +581,13 @@ void Acquisition(){
   int8_t smsnum = Sim800l.getNumSms(); // nombre de SMS en attente
   Serial.print(F("Sms en attente = ")), Serial.println (smsnum);
 
-  if (smsnum > 0) {	// nombre de SMS en attente
+  while (smsnum > 0) {	// nombre de SMS en attente
     // il faut les traiter
 		int numsms = Sim800l.getIndexSms(); // cherche l'index des sms en mémoire
     traite_sms(numsms);// traitement des SMS en attente
   }
-  else if (smsnum == 0 && FlagReset) { // on verifie que tous les SMS sont traités avant Reset
+	
+  if (smsnum == 0 && FlagReset) { // on verifie que tous les SMS sont traités avant Reset
     FlagReset = false;
     ESP.restart();				//	reset soft
   }
