@@ -581,13 +581,17 @@ void Acquisition(){
   int8_t smsnum = Sim800l.getNumSms(); // nombre de SMS en attente
   Serial.print(F("Sms en attente = ")), Serial.println (smsnum);
 
-  while (smsnum > 0) {	// nombre de SMS en attente
+  if (smsnum > 0) {	// nombre de SMS en attente
     // il faut les traiter
 		int numsms = Sim800l.getIndexSms(); // cherche l'index des sms en mémoire
     traite_sms(numsms);// traitement des SMS en attente
+		smsnum = Sim800l.getNumSms();
+		if(smsnum > 0){
+			Acquisition();
+			Alarm.delay(1);
+		}
   }
-	
-  if (smsnum == 0 && FlagReset) { // on verifie que tous les SMS sont traités avant Reset
+	else if (smsnum == 0 && FlagReset) { // on verifie que tous les SMS sont traités avant Reset
     FlagReset = false;
     ESP.restart();				//	reset soft
   }
