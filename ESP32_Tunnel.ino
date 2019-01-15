@@ -45,7 +45,7 @@ perdu lescture des Interrupts -- a revoir --
 
 
 Compilation LOLIN D32
-905718 69%, 53288 16%
+977650 74%, 46832 14%
 
  */
  
@@ -106,8 +106,8 @@ volatile int IRQ_Cpt_PDL2  = 0;
 volatile int IRQ_Cpt_Porte = 0;
 int Cpt_PDL1 = 0;
 int Cpt_PDL2 = 0;
-// volatile unsigned long rebond1 = 0;		//	antirebond IRQ	
-// volatile unsigned long rebond2 = 0;
+volatile unsigned long rebond1 = 0;		//	antirebond IRQ	
+volatile unsigned long rebond2 = 0;
 byte confign = 0;					// Num enregistrement EEPROM
 bool Allume = false;
 bool FlagAlarmeTension       = false; // Alarme tension Batterie
@@ -121,6 +121,7 @@ bool FirstSonn = false;				// Premier appel sonnerie
 bool SonnMax   = false;				// temps de sonnerie maxi atteint
 bool FlagReset = false;
 int  Nmax      = 0;						// comptage alarme cable avant alarme different Jour/Nuit
+byte DbounceTime = 10;				// antirebond
 // byte CptAlarme1 = 0;
 // byte CptAlarme2 = 0;
 int CoeffTension[3];          // Coeff calibration Tension
@@ -191,28 +192,29 @@ Sim800l Sim800l;  											// to declare the library
 
 //---------------------------------------------------------------------------
 	void IRAM_ATTR handleInterruptP1() { // Pedale 1
-		// if (millis() - rebond1 > 100){
-			portENTER_CRITICAL_ISR(&mux);
+		
+		portENTER_CRITICAL_ISR(&mux);
+		if(xTaskGetTickCount() - rebond1 > DbounceTime){
 			IRQ_Cpt_PDL1++;
-			portEXIT_CRITICAL_ISR(&mux);
-			// rebond1 = millis();
-		// }
+			rebond1 = xTaskGetTickCount(); // equiv millis()
+		}
+		portEXIT_CRITICAL_ISR(&mux);
+
 	}
 	void IRAM_ATTR handleInterruptP2() { // Pedale 2
-		// if (millis() - rebond2 > 100){
-			portENTER_CRITICAL_ISR(&mux);
+	
+		portENTER_CRITICAL_ISR(&mux);
+		if(xTaskGetTickCount() - rebond2 > DbounceTime){
 			IRQ_Cpt_PDL2++;
-			portEXIT_CRITICAL_ISR(&mux);
-			// rebond2 = millis();
-		// }
+			rebond2 = xTaskGetTickCount(); // equiv millis()
+		}
+		portEXIT_CRITICAL_ISR(&mux);
+
 	}
-	void IRAM_ATTR handleInterruptPo() { // Porte ------------a finir--------------
-		// if (millis() - rebond2 > 100){
-			portENTER_CRITICAL_ISR(&mux);
-			IRQ_Cpt_Porte++;
-			portEXIT_CRITICAL_ISR(&mux);
-			// rebond2 = millis();
-		// }
+	void IRAM_ATTR handleInterruptPo() { // Porte
+		portENTER_CRITICAL_ISR(&mux);
+		IRQ_Cpt_Porte++;
+		portEXIT_CRITICAL_ISR(&mux);
 	}
 //---------------------------------------------------------------------------
 
@@ -369,8 +371,9 @@ void loop() {
 	static unsigned long T02 = 0;
 	recvOneChar();
 	showNewData();
-	// if(rebond1 > millis()) rebond1 = millis();
-	// if(rebond2 > millis()) rebond2 = millis();
+	
+	if(rebond1 > millis()) rebond1 = millis();
+	if(rebond2 > millis()) rebond2 = millis();
 	
   char* bufPtr = SIM800InBuffer;	//buffer pointer
   if (Serial2.available()) {      	//any data available from the FONA?    
@@ -1554,7 +1557,7 @@ void OnceOnly(){
 	Serial.println(F("Jour circulé")); // on continue normalement
 }
 //---------------------------------------------------------------------------
-long DureeSleep(long target){
+long DureeSleep(long Htarget){ // Htarget Heure de reveil visée
 	/* calcul durée entre maintenant et
 	heure Vie-5mn, 5 mn(Tlancement)*/
 	long SleepTime = 0;
@@ -1562,12 +1565,12 @@ long DureeSleep(long target){
 	Heureactuelle += minute();
 	Heureactuelle  = Heureactuelle*60;
 	Heureactuelle += second(); // en secondes
-	if(Heureactuelle < target){
-		SleepTime = target - Heureactuelle;
+	if(Heureactuelle < Htarget){
+		SleepTime = Htarget - Heureactuelle;
 	}
 	else{
 		if(Heureactuelle < 86400){// < 24h00
-			SleepTime = (86400 - Heureactuelle) + target;
+			SleepTime = (86400 - Heureactuelle) + Htarget;
 		}
 	}
 	return SleepTime;
@@ -2257,25 +2260,23 @@ int print_wakeup_reason(){
 
   wakeup_reason = esp_sleep_get_wakeup_cause();
 
-  switch(wakeup_reason)
-  {
-    case 1  : return 1; // Serial.println("Wakeup caused by external signal using RTC_IO"); break;
-    // case 2  : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
-		case 2: {
+  switch(wakeup_reason){
+    case ESP_SLEEP_WAKEUP_EXT0  : return ESP_SLEEP_WAKEUP_EXT0; // 2
+		case ESP_SLEEP_WAKEUP_EXT1: { // 3
 				uint64_t wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
 				if (wakeup_pin_mask != 0) {
 					int pin = __builtin_ffsll(wakeup_pin_mask)-1;
-					Serial.println("Wake up from GPIO " + String(pin));
+					Serial.print(F("Wake up from GPIO ")); Serial.print(String(pin));
 					return pin;
 				} else {
-					Serial.println(" Wake up from GPIO ?");
+					Serial.println(F(" Wake up from GPIO ?"));
 					return 99;
 				}
 				break;
 		}
-    case 3  : return 3; // Serial.println("Wakeup caused by timer"); break;
-    case 4  : return 4; // Serial.println("Wakeup caused by touchpad"); break;
-    case 5  : return 5; // Serial.println("Wakeup caused by ULP program"); break;
+    case ESP_SLEEP_WAKEUP_TIMER    : return ESP_SLEEP_WAKEUP_TIMER; // 4
+    case ESP_SLEEP_WAKEUP_TOUCHPAD : return ESP_SLEEP_WAKEUP_TOUCHPAD; // 5
+    case ESP_SLEEP_WAKEUP_ULP      : return ESP_SLEEP_WAKEUP_ULP; // 6
     default : return 0; // Serial.println("Wakeup was not caused by deep sleep"); break;// demarrage normal
   }
 	Serial.flush();
