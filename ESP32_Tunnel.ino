@@ -119,7 +119,7 @@ bool FirstSonn = false;				// Premier appel sonnerie
 bool SonnMax   = false;				// temps de sonnerie maxi atteint
 bool FlagReset = false;
 int  Nmax      = 0;						// comptage alarme cable avant alarme different Jour/Nuit
-byte DbounceTime = 10;				// antirebond
+byte DbounceTime = 20;				// antirebond
 int CoeffTension[3];          // Coeff calibration Tension
 int CoeffTensionDefaut = 7000;// Coefficient par defaut
 
