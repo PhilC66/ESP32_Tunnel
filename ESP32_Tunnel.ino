@@ -45,7 +45,7 @@ perdu lescture des Interrupts -- a revoir --
 
 
 Compilation LOLIN D32
-977302 74%, 46832 14%
+976558 74%, 46808 14%
 
  */
  
@@ -104,8 +104,6 @@ char replybuffer[255];              // 	Buffer de reponse SIM800
 volatile int IRQ_Cpt_PDL1  = 0;
 volatile int IRQ_Cpt_PDL2  = 0;
 volatile int IRQ_Cpt_Porte = 0;
-int Cpt_PDL1 = 0;
-int Cpt_PDL2 = 0;
 volatile unsigned long rebond1 = 0;		//	antirebond IRQ	
 volatile unsigned long rebond2 = 0;
 byte confign = 0;					// Num enregistrement EEPROM
@@ -122,8 +120,6 @@ bool SonnMax   = false;				// temps de sonnerie maxi atteint
 bool FlagReset = false;
 int  Nmax      = 0;						// comptage alarme cable avant alarme different Jour/Nuit
 byte DbounceTime = 10;				// antirebond
-// byte CptAlarme1 = 0;
-// byte CptAlarme2 = 0;
 int CoeffTension[3];          // Coeff calibration Tension
 int CoeffTensionDefaut = 7000;// Coefficient par defaut
 
@@ -157,8 +153,6 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
 	int     Tlancement  ;         // Temps lancement, prise decision circulé/noncirculé
   int			tempoSortie ;					// tempo eclairage apres sorties(s)
   int			timeOutS	 	;					// tempo time out eclairage (s)
-	int 		tempPDL 		;					// tempo entre n coups pedale(ms)
-	int			Cpt_PDL			;					// Nombre de coup de pedale pour declencher 1 à n
 	int			timeoutWifi ;					// tempo coupure Wifi si pas de mise a jour (s)
 	int 		Dsonn 	;							// Durée Sonnerie
   int 		DsonnMax;							// Durée Max Sonnerie
@@ -262,8 +256,6 @@ void setup() {
 		config.Dsonnrepos    = 120;
 		config.tempoSortie   = 10;
 		config.timeOutS      = 60;// 3600
-		config.tempPDL       = 3000;
-		config.Cpt_PDL       = 1;
 		config.timeoutWifi   = 10*60;
 		config.Pedale1       = true;
 		config.Pedale2       = true;
@@ -369,8 +361,6 @@ Serial.print(F("temps =")),Serial.println(millis());
 //---------------------------------------------------------------------------
 void loop() {
 	
-	// static unsigned long T01 = 0;
-	// static unsigned long T02 = 0;
 	recvOneChar();
 	showNewData();
 	
@@ -415,40 +405,25 @@ void loop() {
 		}
 	}
 	
-	// if(IRQ_Cpt_PDL1 > 0 || IRQ_Cpt_PDL2 > 0){ 
-		// Serial.print(F("Interruption : "));
-		// Serial.print(IRQ_Cpt_PDL1);
-		// Serial.print(" ");
-		// Serial.println(IRQ_Cpt_PDL2);
-		
-		if(IRQ_Cpt_PDL1 > 0){
-			// T01 = millis();
-			// Serial.print(F("pedale1=")),Serial.println(Cpt_PDL1);
-			// Cpt_PDL1 ++;
-			// if(Cpt_PDL1 > config.Cpt_PDL - 1){
-				// Cpt_PDL1 = 0;
-				Allumage(1);
-				portENTER_CRITICAL(&mux);
-				IRQ_Cpt_PDL1 = 0;
-				portEXIT_CRITICAL(&mux);
-			// }
-		}
-		if(IRQ_Cpt_PDL2 > 0){
-			// T02 = millis();
-			// Serial.print(F("pedale2=")),Serial.println(Cpt_PDL2);
-			// Cpt_PDL2 ++;
-			// if(Cpt_PDL2 > config.Cpt_PDL - 1){
-				// Cpt_PDL2 = 0;
-				Allumage(2);
-				portENTER_CRITICAL(&mux);
-				IRQ_Cpt_PDL2 = 0;
-				portEXIT_CRITICAL(&mux);
-			// }
-		}
-	// }
-	// if(Cpt_PDL1 >0 && (millis() - T01 > config.tempPDL)) Cpt_PDL1 = 0;//timeout pedale
-	// if(Cpt_PDL2 >0 && (millis() - T02 > config.tempPDL)) Cpt_PDL2 = 0;//timeout pedale
-	
+	if(IRQ_Cpt_PDL1 > 0 || IRQ_Cpt_PDL2 > 0){ 
+		Serial.print(F("Interruption : "));
+		Serial.print(IRQ_Cpt_PDL1);
+		Serial.print(" ");
+		Serial.println(IRQ_Cpt_PDL2);
+	}
+	if(IRQ_Cpt_PDL1 > 0){
+		Allumage(1);
+		portENTER_CRITICAL(&mux);
+		IRQ_Cpt_PDL1 = 0;
+		portEXIT_CRITICAL(&mux);
+	}
+	if(IRQ_Cpt_PDL2 > 0){
+		Allumage(2);
+		portENTER_CRITICAL(&mux);
+		IRQ_Cpt_PDL2 = 0;
+		portEXIT_CRITICAL(&mux);
+	}
+
 	ArduinoOTA.handle();
 	Alarm.delay(1);
 	
@@ -1015,20 +990,6 @@ fin_i:
 				}
 				message += F("Time Out Eclairage (s) = ");
 				message += config.timeOutS;
-				message += fl;
-				EnvoyerSms(number, sms);				
-			}
-			else if(textesms.indexOf(F("CPTPEDALE")) == 0){// compteur pedale avant armement
-				if (textesms.indexOf(char(61)) == 9){ // =
-					int i = textesms.substring(10).toInt();
-					// Serial.print("Cpt pedale = "),Serial.println(i);
-					if(i > 0 && i < 10){
-						config.Cpt_PDL = i;
-						sauvConfig();                               // sauvegarde en EEPROM
-					}
-				}
-				message += F("Compteur Pedale = ");
-				message += config.Cpt_PDL;
 				message += fl;
 				EnvoyerSms(number, sms);				
 			}
