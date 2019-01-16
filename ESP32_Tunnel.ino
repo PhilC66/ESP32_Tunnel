@@ -94,7 +94,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le ca
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
-int Magique       = 4321;
+int Magique       = 2341;
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
@@ -369,8 +369,8 @@ Serial.print(F("temps =")),Serial.println(millis());
 //---------------------------------------------------------------------------
 void loop() {
 	
-	static unsigned long T01 = 0;
-	static unsigned long T02 = 0;
+	// static unsigned long T01 = 0;
+	// static unsigned long T02 = 0;
 	recvOneChar();
 	showNewData();
 	
@@ -415,42 +415,39 @@ void loop() {
 		}
 	}
 	
-	if(IRQ_Cpt_PDL1 > 0 || IRQ_Cpt_PDL2 > 0){ 
-		Serial.print(F("Interruption : "));
-		Serial.print(IRQ_Cpt_PDL1);
-		Serial.print(" ");
-		Serial.println(IRQ_Cpt_PDL2);
+	// if(IRQ_Cpt_PDL1 > 0 || IRQ_Cpt_PDL2 > 0){ 
+		// Serial.print(F("Interruption : "));
+		// Serial.print(IRQ_Cpt_PDL1);
+		// Serial.print(" ");
+		// Serial.println(IRQ_Cpt_PDL2);
 		
 		if(IRQ_Cpt_PDL1 > 0){
-			T01 = millis();
-			Serial.print(F("pedale1=")),Serial.println(Cpt_PDL1);
-			Cpt_PDL1 ++;
-			if(Cpt_PDL1 > config.Cpt_PDL - 1){
-				Cpt_PDL1 = 0;
+			// T01 = millis();
+			// Serial.print(F("pedale1=")),Serial.println(Cpt_PDL1);
+			// Cpt_PDL1 ++;
+			// if(Cpt_PDL1 > config.Cpt_PDL - 1){
+				// Cpt_PDL1 = 0;
 				Allumage(1);
-			}
+				portENTER_CRITICAL(&mux);
+				IRQ_Cpt_PDL1 = 0;
+				portEXIT_CRITICAL(&mux);
+			// }
 		}
 		if(IRQ_Cpt_PDL2 > 0){
-			T02 = millis();
-			Serial.print(F("pedale2=")),Serial.println(Cpt_PDL2);
-			Cpt_PDL2 ++;
-			if(Cpt_PDL2 > config.Cpt_PDL - 1){
-				Cpt_PDL2 = 0;
+			// T02 = millis();
+			// Serial.print(F("pedale2=")),Serial.println(Cpt_PDL2);
+			// Cpt_PDL2 ++;
+			// if(Cpt_PDL2 > config.Cpt_PDL - 1){
+				// Cpt_PDL2 = 0;
 				Allumage(2);
-			}
+				portENTER_CRITICAL(&mux);
+				IRQ_Cpt_PDL2 = 0;
+				portEXIT_CRITICAL(&mux);
+			// }
 		}
-		
-		portENTER_CRITICAL(&mux);
-		if(IRQ_Cpt_PDL1 > 0)IRQ_Cpt_PDL1 = 0;
-		portEXIT_CRITICAL(&mux);
-	
-		portENTER_CRITICAL(&mux);
-		if(IRQ_Cpt_PDL2 > 0)IRQ_Cpt_PDL2 = 0;
-		portEXIT_CRITICAL(&mux);
-		
-	}
-	if(Cpt_PDL1 >0 && (millis() - T01 > config.tempPDL)) Cpt_PDL1 = 0;//timeout pedale
-	if(Cpt_PDL2 >0 && (millis() - T02 > config.tempPDL)) Cpt_PDL2 = 0;//timeout pedale
+	// }
+	// if(Cpt_PDL1 >0 && (millis() - T01 > config.tempPDL)) Cpt_PDL1 = 0;//timeout pedale
+	// if(Cpt_PDL2 >0 && (millis() - T02 > config.tempPDL)) Cpt_PDL2 = 0;//timeout pedale
 	
 	ArduinoOTA.handle();
 	Alarm.delay(1);
@@ -1878,8 +1875,8 @@ void Allumage(byte n){
 			break;
 	}
 	
-	Serial.print(F("Sub Allumage avec n = ")),Serial.print(n);
-	Serial.print(F(" Al1,Al2 = ")),Serial.print(Al1),Serial.print(char(44)),Serial.println(Al2);
+	// Serial.print(F("Sub Allumage avec n = ")),Serial.print(n);
+	// Serial.print(F(" Al1,Al2 = ")),Serial.print(Al1),Serial.print(char(44)),Serial.println(Al2);
 	
 	if(!Allume){	// si pas Allumé
 		Serial.println(F("                   Allumage"));
