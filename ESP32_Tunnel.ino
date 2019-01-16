@@ -45,7 +45,7 @@ perdu lescture des Interrupts -- a revoir --
 
 
 Compilation LOLIN D32
-976558 74%, 46808 14%
+977446 74%, 46808 14%
 
  */
  
@@ -94,7 +94,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le ca
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
-int Magique       = 2341;
+int Magique       = 1234;
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
@@ -396,11 +396,10 @@ void loop() {
 	
 	if(IRQ_Cpt_Porte > 0){ // Alarme porte
 		if(config.Intru && config.Porte){
-			// FlagAlarmePorte = true;
+			FlagAlarmePorte = true;
 			portENTER_CRITICAL(&mux);
 			if(IRQ_Cpt_Porte > 0)IRQ_Cpt_Porte = 0;
-			portEXIT_CRITICAL(&mux);
-			
+			portEXIT_CRITICAL(&mux);			
 			Acquisition();
 		}
 	}
@@ -902,6 +901,32 @@ fin_i:
 				generationMessage();
 				EnvoyerSms(number, sms);				
       }
+			else if(textesms.indexOf(F("PARAM")) == 0){ // parametre Jour/Nuit
+				if (textesms.indexOf(char(61))== 5) { //char(61) "="	liste capteur actif
+					String bidon=textesms.substring(6,textesms.length());
+					byte pos = bidon.indexOf(char(44)); // char(44) ","
+					Serial.print(bidon),Serial.print(":"),Serial.println(pos);
+					int val = bidon.substring(0,pos).toInt();
+					Serial.println(val);
+					if(val > 9 && val < 600){
+						int val2 = bidon.substring(pos+1,bidon.length()).toInt();
+						if(val2 > 9 && val2 < 600){
+							config.Jour_Nmax = val/10; // 10 temps boucle acquisition=10s
+							config.Nuit_Nmax = val2/10;
+							Serial.print(F("Jour_Nmax = ")),Serial.print(val);
+							Serial.print(F(" Nuit_Nmax = ")),Serial.println(val2);
+							sauvConfig();											// sauvegarde en EEPROM
+						}
+					}
+				}
+				message += F("Parametres (s)");
+				message += fl;
+				message += F("Jour : ");
+				message += config.Jour_Nmax*10 + fl;
+				message += F("Nuit : ");
+				message += config.Nuit_Nmax*10 + fl;
+				EnvoyerSms(number, sms);
+			}
 			else if(textesms.indexOf(F("CAPTEUR")) == 0){	// Capteurs actif CAPTEUR=1,0,1 (Pedale1,Pedale2,Porte)
 				bool flag = true; // validation du format
 				if (textesms.indexOf(char(61))== 7) { //char(61) "="	liste capteur actif
@@ -2184,13 +2209,11 @@ void AIntru_HeureActuelle(){
 //---------------------------------------------------------------------------
 void IntruF(){// Charge parametre Alarme Intrusion Jour
 	Nmax 			= config.Jour_Nmax;
-	// TmCptMax  = config.Jour_TmCptMax;
 	Serial.println(F("Jour"));
 }
 //---------------------------------------------------------------------------
 void IntruD(){// Charge parametre Alarme Intrusion Nuit
 	Nmax 			= config.Nuit_Nmax;
-	// TmCptMax  = config.Nuit_TmCptMax;
 	Serial.println(F("Nuit"));
 }
 //---------------------------------------------------------------------------

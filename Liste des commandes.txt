@@ -36,3 +36,4 @@ TIMEOUTECL														Time out extinction eclairage secours (s) defaut  1H
 TIMEOUTECL=n													600-7200
 TEMPOSORTIE														Temporisation Eclairage à la Sortie (s)
 TEMPOSORTIE=n													1-120
+PARAM=n,m															Parametre compteur pour alarme cable Jour/Nuit en s multiple de 10
