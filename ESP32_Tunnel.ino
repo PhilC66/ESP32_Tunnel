@@ -45,7 +45,7 @@ perdu lescture des Interrupts -- a revoir --
 
 
 Compilation LOLIN D32,default,80MHz
-977446 74%, 46816 14%
+977710 74%, 46816 14%
 
  */
  
@@ -2270,6 +2270,14 @@ void HomePage(){
 	webpage += F("<td>Fin Jour</td>");
 	webpage += F("<td>");	webpage += Hdectohhmm(config.FinJour);	webpage += F("</td>");
 	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Nmax Jour (s)</td>");
+	webpage += F("<td>");	webpage += String(config.Jour_Nmax*10);	webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Nmax Nuit (s)</td>");
+	webpage += F("<td>");	webpage += String(config.Nuit_Nmax*10);	webpage += F("</td>");
+	webpage += F("</tr>");	
 	webpage += F("<tr>");
 	webpage += F("<td>Tempo Sortie (s)</td>");
 	webpage += F("<td>");	webpage += String(config.tempoSortie);	webpage += F("</td>");
