@@ -44,8 +44,8 @@ ne pas attendre next Acquisition 4mn 14SMS > 3mn 14SMS???
 perdu lescture des Interrupts -- a revoir --
 
 
-Compilation LOLIN D32
-977446 74%, 46808 14%
+Compilation LOLIN D32,default,80MHz
+977446 74%, 46816 14%
 
  */
  
@@ -124,7 +124,7 @@ int CoeffTension[3];          // Coeff calibration Tension
 int CoeffTensionDefaut = 7000;// Coefficient par defaut
 
 RTC_DATA_ATTR int CptAllumage = 0; // Nombre Allumage par jour en memoire RTC
-byte   slot = 0;            			 //this will be the slot number of the SMS
+int   slot = 0;            			 //this will be the slot number of the SMS
 char   receivedChar;
 bool   newData = false;
 String demande;
@@ -429,7 +429,6 @@ void loop() {
 }	//fin loop
 //---------------------------------------------------------------------------
 void Acquisition(){	
-	static byte CptAlarmeCable = 0;
 
 	// Serial.print("Coeff 1 = "),Serial.print(CoeffTension[0]);
 	// Serial.print(" Coeff 2 = "),Serial.print(CoeffTension[1]);
@@ -489,8 +488,6 @@ void Acquisition(){
 		if (digitalRead(PinPorte) && config.Porte){
 			nalaPorte ++;		
 			if(nalaPorte > 1){
-				// CptAlarme1 = 1;
-				// FausseAlarme1 = 1000;//V2-11
 				FlagAlarmeIntrusion = true;
 				FlagAlarmePorte = true;
 				nalaPorte = 0;
@@ -503,8 +500,6 @@ void Acquisition(){
 		if (digitalRead(PinPedale1) && config.Pedale1){
 			nalaPIR1 ++;		
 			if(nalaPIR1 > Nmax){
-				// CptAlarme1 = 1;
-				// FausseAlarme1 = 1000;//V2-11
 				FlagAlarmeIntrusion = true;
 				FlagAlarmeCable1 = true;
 				nalaPIR1 = 0;
@@ -517,8 +512,6 @@ void Acquisition(){
 		if (digitalRead(PinPedale2) && config.Pedale2){
 			nalaPIR2 ++;		
 			if(nalaPIR2 > Nmax){
-				// CptAlarme2 = 1;
-				// FausseAlarme2 = 1000;//V2-11
 				FlagAlarmeIntrusion = true;
 				FlagAlarmeCable2 = true;
 				nalaPIR2 = 0;
@@ -547,8 +540,6 @@ void Acquisition(){
 		FlagAlarmeCable1 = false;
 		FlagAlarmeCable2 = false;
 		FlagAlarmePorte = false;
-		// CptAlarme1 = 0;
-		// CptAlarme2 = 0;
 	}		
 	Serial.printf("Nala Porte = %d ,",nalaPorte);
 	Serial.printf("Nala Ped 1 = %d ,",nalaPIR1);
@@ -565,11 +556,6 @@ void Acquisition(){
     // il faut les traiter
 		int numsms = Sim800l.getIndexSms(); // cherche l'index des sms en mémoire
     traite_sms(numsms);// traitement des SMS en attente
-		// smsnum = Sim800l.getNumSms();
-		// if(smsnum > 0){
-			// Acquisition();
-			// Alarm.delay(1);
-		// }
   }
 	else if (smsnum == 0 && FlagReset) { // on verifie que tous les SMS sont traités avant Reset
     FlagReset = false;
