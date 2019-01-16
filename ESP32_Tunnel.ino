@@ -45,7 +45,7 @@ perdu lescture des Interrupts -- a revoir --
 
 
 Compilation LOLIN D32
-977650 74%, 46832 14%
+977302 74%, 46832 14%
 
  */
  
@@ -94,7 +94,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le ca
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
-int Magique       = 3421;
+int Magique       = 4321;
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
@@ -326,12 +326,13 @@ void setup() {
 	
 	OuvrirCalendrier();					// ouvre calendrier circulation en SPIFFS
 	OuvrirFichierCalibration(); // ouvre fichier calibration en SPIFFS
+// Serial.print(F("temps =")),Serial.println(millis());
 	Sim800l.reset(PIN);					// lancer SIM800	
-	Sim800l.getRSSI();
-	Alarm.delay(1000);
-	
+	// Sim800l.getRSSI();
+	// Alarm.delay(1000);
+// Serial.print(F("temps =")),Serial.println(millis());
 	MajHeure();
-	
+// Serial.print(F("temps =")),Serial.println(millis());
   // OneH = Alarm.timerRepeat(3600,test);
 	
 	loopPrincipale = Alarm.timerRepeat(10, Acquisition); // boucle principale 15s
@@ -363,6 +364,7 @@ void setup() {
 	
 	ActiveInterrupt();
 	
+Serial.print(F("temps =")),Serial.println(millis());
 }
 //---------------------------------------------------------------------------
 void loop() {
@@ -584,9 +586,8 @@ void Acquisition(){
 	
 	/* verification nombre SMS en attente(raté en lecture directe)
 		 traitement des sms en memeoire un par un, 
-		 pas de traitement en serie par commande 51, traitement beaucoup trop long */
-		 
-  int8_t smsnum = Sim800l.getNumSms(); // nombre de SMS en attente
+		 pas de traitement en serie par commande 51, traitement beaucoup trop long */ 
+  int8_t smsnum = Sim800l.getNumSms(); // nombre de SMS en attente (1s)
   Serial.print(F("Sms en attente = ")), Serial.println (smsnum);
 
   if(smsnum > 0) {	// nombre de SMS en attente
@@ -632,9 +633,7 @@ void traite_sms(byte slot){
 		si slot=51, demande de balayer tous les slots pour verification
 		si slot=99, demande depuis liaison serie en test, traiter sans envoyer de sms	
 	*/
-	
-	char text[50];
-	char rep2[50];
+		
 	char number[13];													// numero expediteur SMS
 	bool error;
 	String textesms;													// texte du SMS reçu
@@ -1360,7 +1359,7 @@ void generationMessage() {
 	message += fl ;
 	
 	if (config.Intru && FlagAlarmeIntrusion) {
-    message += F("-- Cable coupe !--") ;		// Intrusion !
+    message += F("-- Alarme !--") ;
 		message += fl;
 		if(FlagAlarmeCable1){
 			message += F("Pedale 1");
@@ -1478,16 +1477,16 @@ void MajHeure(){
 	AIntru_HeureActuelle();
 	
 	/* test */
-	char dateheure[20];
-	sprintf(dateheure,"%02d/%02d/%d %02d:%02d:%02d",Nday,Nmonth,Nyear,Nhour,Nminute,Nsecond);
-	message = Id;
-	message += ecart;
-	message += fl;
-	message += String(dateheure);
-	message += fl;
-	message += displayTime(0);
-	message += fl;
-	Serial.println(message);
+	// char dateheure[20];
+	// sprintf(dateheure,"%02d/%02d/%d %02d:%02d:%02d",Nday,Nmonth,Nyear,Nhour,Nminute,Nsecond);
+	// message = Id;
+	// message += ecart;
+	// message += fl;
+	// message += String(dateheure);
+	// message += fl;
+	// message += displayTime(0);
+	// message += fl;
+	// Serial.println(message);
 	
 }
 //---------------------------------------------------------------------------
@@ -1781,7 +1780,7 @@ void OuvrirCalendrier(){
 	// this opens the file "f.txt" in read-mode
 	listDir(SPIFFS, "/", 0);
 	bool f = SPIFFS.exists(filecalendrier);
-	Serial.println(f);
+	// Serial.println(f);
 	File f0 = SPIFFS.open(filecalendrier, "r");
 
 	if (!f || f0.size() == 0){
