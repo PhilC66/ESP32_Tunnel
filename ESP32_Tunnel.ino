@@ -45,7 +45,7 @@ perdu lescture des Interrupts -- a revoir --
 
 
 Compilation LOLIN D32,default,80MHz
-977710 74%, 46816 14%
+980638 74%, 46916 14%
 
  */
  
@@ -92,9 +92,11 @@ byte calendrier[13][32]; // tableau calendrier ligne 0 et jour 0 non utilisé, 1
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
 char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le calendrier de calibration
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
+
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
-int Magique       = 1234;
+int Magique       = 2341;
+
 String Sbidon 		= "";
 String message;
 String bufferrcpt;
@@ -150,11 +152,12 @@ champ record[5];
 
 byte recordn = 100;							// Num enregistrement EEPROM
 
-struct  config_t 									// Structure configuration sauvée en EEPROM
+struct  config_t 								// Structure configuration sauvée en EEPROM
 {
   int 		magic				;					// num magique
   long    Ala_Vie 		;					// Heure message Vie, 7h matin en seconde = 7*60*60
 	long    FinJour 		;					// Heure fin jour, 20h matin en seconde = 20*60*60
+	long    RepeatWakeUp ; 				// Periodicité WakeUp Jour non circulé
 	int     Tanalyse    ;         // tempo analyse alarme sur interruption
   int			tempoSortie ;					// tempo eclairage apres sorties(s)
   int			timeOutS	 	;					// tempo time out eclairage (s)
@@ -253,9 +256,10 @@ void setup() {
 		config.magic         = Magique;
 		config.Ala_Vie       = 7*60*60;
 		config.FinJour       = 20*60*60;
+		config.RepeatWakeUp  = 60*60;
 		config.Tanalyse      = 10*60;
-		config.Intru         = false;
-		config.Silence       = true;
+		config.Intru         = true;
+		config.Silence       = false;
 		config.Dsonn         = 60;
 		config.DsonnMax      = 90;
 		config.Dsonnrepos    = 120;
@@ -442,6 +446,7 @@ void Acquisition(){
 	/* une seule fois au demarrage attendre au moins 40s et plus de sms en attente */
 		
 		byte wr = get_wakeup_reason();
+		Serial.print(F("Wake up reason = ")),Serial.println(wr);
 		if(wr == 99 || (wr > 31 && wr < 35)){ // entrée ext1
 			/* declenchement externe pendant deep sleep
 				si nuit ou jour noncirculé
@@ -457,9 +462,22 @@ void Acquisition(){
 			}
 		}
 		else if(wr == 4){ // timer
-		/* jour noncirculé fonctionnement normal pour xx mn */
+		/* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00 
+			verifier si wake up arrive avant fin journée marge 5mn*/
 			if(calendrier[month()][day()] == 0){
-				
+				if(HActuelledec() < config.FinJour - 180){
+					TIME_TO_SLEEP = DureeSleep(HActuelledec() + config.RepeatWakeUp);
+				}
+				else{
+					TIME_TO_SLEEP = DureeSleep(config.FinJour - 180);
+				}
+				Sbidon = F("lance timer 1H ");
+				Sbidon += String(TIME_TO_SLEEP);
+				MajLog(F("Auto"),Sbidon);
+				DebutSleep();
+			}
+			else{ // jour circulé
+				/*  ne rien faire  */
 			}
 		}
 		else if(wr == 0 || wr == 2 || wr == 5 || wr == 6){ // 0,2,5,6
@@ -470,6 +488,8 @@ void Acquisition(){
 	cpt ++;
 	
 	if(LastWupAlarme != WupAlarme && nsms == 0){ // fin de la tempo analyse retour sleep
+		LastWupAlarme = false;
+		WupAlarme     = false;
 		if(!jour){ // retour sleep jusqu'a 3mn avant AlaVie			
 			TIME_TO_SLEEP = DureeSleep(config.Ala_Vie - 3*60);// 3mn avant
 			Sbidon = F("Externe ");
@@ -567,9 +587,9 @@ void Acquisition(){
 			if (nalaPIR2 > 0) nalaPIR2 --;		//	efface progressivement le compteur
 		}
 		
-		Serial.print(F("Pedale 1 enfonce ")),Serial.println(nalaPIR1);
-		Serial.print(F("Pedale 2 enfonce ")),Serial.println(nalaPIR2);
-		Serial.print(F("Flag Porte ")),Serial.println(FlagAlarmePorte);
+		Serial.print(F("Pedale 1 :")),Serial.print(nalaPIR1);
+		Serial.print(F(":Pedale 2 :")),Serial.print(nalaPIR2);
+		Serial.print(F(":Flag Porte :")),Serial.println(FlagAlarmePorte);
 		
 		if(FlagAlarmeIntrusion){
 			ActivationSonnerie();		// activation Sonnerie
@@ -582,14 +602,14 @@ void Acquisition(){
 		}
 	}
 	else{
-		FlagAlarmeIntrusion = false;// efface alarme 
+		FlagAlarmeIntrusion = false; // efface alarme 
 		FlagAlarmeCable1 = false;
 		FlagAlarmeCable2 = false;
 		FlagAlarmePorte = false;
 	}		
-	Serial.printf("Nala Porte = %d ,",nalaPorte);
-	Serial.printf("Nala Ped 1 = %d ,",nalaPIR1);
-	Serial.printf("Nala Ped 2 = %d\n",nalaPIR2);
+	// Serial.printf("Nala Porte = %d ,",nalaPorte);
+	// Serial.printf("Nala Ped 1 = %d ,",nalaPIR1);
+	// Serial.printf("Nala Ped 2 = %d\n",nalaPIR2);
 	
 	
 	/* verification nombre SMS en attente(raté en lecture directe)
@@ -1490,6 +1510,7 @@ void MajHeure(){
 			Alarm.enable(TimeOut);
 			Alarm.enable(FinJour);			
 			Alarm.enable(TempoAnalyse);
+			
 		}		
 	}
 	displayTime(0);
@@ -1559,6 +1580,7 @@ void ResetSonnerie() {
 //---------------------------------------------------------------------------
 void FinAnalyse(){
 	/* retour etat normal apres Alarme sur Interruption */
+	Alarm.disable(TempoAnalyse);	
 	WupAlarme = false;
 }
 //---------------------------------------------------------------------------
@@ -1566,10 +1588,7 @@ long DureeSleep(long Htarget){ // Htarget Heure de reveil visée
 	/* calcul durée entre maintenant et
 	heure Vie-5mn, 5 mn(Tlancement)*/
 	long SleepTime = 0;
-	long Heureactuelle = hour()*60;// calcul en 4 lignes sinon bug!
-	Heureactuelle += minute();
-	Heureactuelle  = Heureactuelle*60;
-	Heureactuelle += second(); // en secondes
+	long Heureactuelle = HActuelledec();
 	if(Heureactuelle < Htarget){
 		SleepTime = Htarget - Heureactuelle;
 	}
@@ -1579,6 +1598,14 @@ long DureeSleep(long Htarget){ // Htarget Heure de reveil visée
 		}
 	}
 	return SleepTime;
+}
+//---------------------------------------------------------------------------
+long HActuelledec(){
+	long Heureactuelle = hour()*60;// calcul en 4 lignes sinon bug!
+	Heureactuelle += minute();
+	Heureactuelle  = Heureactuelle*60;
+	Heureactuelle += second(); // en secondes
+	return Heureactuelle;
 }
 //---------------------------------------------------------------------------
 void SignalVie(){
@@ -1848,12 +1875,13 @@ void PrintEEPROM(){
 	Serial.print(F("Alarme = "))									,Serial.println(config.Intru);
 	Serial.print(F("Ala_Vie = "))									,Serial.println(config.Ala_Vie);
 	Serial.print(F("Fin jour = "))								,Serial.println(config.FinJour);
-	Serial.print(F("Tempo Analyse Alarme (s) = ")),Serial.println(config.Tanalyse);
-	Serial.print(F("TimeOut Alarme Jour (s) = ")) ,Serial.println(config.Jour_Nmax);
-	Serial.print(F("TimeOut Alarme Nuit (s) = "))	,Serial.println(config.Nuit_Nmax);
-	Serial.print(F("Tempo Sortie (s) = "))				,Serial.println(config.tempoSortie);
-	Serial.print(F("Time Out Eclairage (s) = "))	,Serial.println(config.timeOutS);
-	Serial.print(F("Time Out Wifi (s) = "))				,Serial.println(config.timeoutWifi);
+	Serial.print(F("Interval reveil JCirc (s)= ")),Serial.println(config.RepeatWakeUp);
+	Serial.print(F("Tempo Analyse Alarme (s)= ")) ,Serial.println(config.Tanalyse);
+	Serial.print(F("TimeOut Alarme Jour (s)= "))  ,Serial.println(config.Jour_Nmax);
+	Serial.print(F("TimeOut Alarme Nuit (s)= "))	,Serial.println(config.Nuit_Nmax);
+	Serial.print(F("Tempo Sortie (s)= "))				  ,Serial.println(config.tempoSortie);
+	Serial.print(F("Time Out Eclairage (s)= "))   ,Serial.println(config.timeOutS);
+	Serial.print(F("Time Out Wifi (s)= "))				,Serial.println(config.timeoutWifi);
 	Serial.print(F("Alarme sur Pedale 1 = ")) 	  ,Serial.println(config.Pedale1);
 	Serial.print(F("Alarme sur Pedale 2 = ")) 	  ,Serial.println(config.Pedale2);
 	Serial.print(F("Alarme sur Porte = ")) 	      ,Serial.println(config.Porte);
@@ -2205,10 +2233,7 @@ void ActiveInterrupt(){
 //---------------------------------------------------------------------------
 void AIntru_HeureActuelle(){
 	
-	long Heureactuelle = hour()*60;// calcul en 4 lignes sinon bug!
-	Heureactuelle += minute();
-	Heureactuelle  = Heureactuelle*60;
-	Heureactuelle += second(); // en secondes
+	long Heureactuelle =HActuelledec();
 	
 	if(config.FinJour > config.Ala_Vie){
 		if((Heureactuelle > config.FinJour && Heureactuelle > config.Ala_Vie)
@@ -2255,9 +2280,9 @@ void DebutSleep(){
   //Go to sleep now
   Serial.println(F("Going to sleep now"));
 	
-	Sim800l.sleep();
-	Serial.flush();
-  esp_deep_sleep_start();
+	// Sim800l.sleep();
+	// Serial.flush();
+  // esp_deep_sleep_start();
 	
   Serial.println(F("This will never be printed"));
 	Serial.flush();
@@ -2324,6 +2349,10 @@ void HomePage(){
 	webpage += F("<tr>");
 	webpage += F("<td>Tempo Analyse Alarme (s)</td>");
 	webpage += F("<td>");	webpage += String(config.Tanalyse);	webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Interval Reveil Jour Circul&eacute; (s)</td>");
+	webpage += F("<td>");	webpage += String(config.RepeatWakeUp);	webpage += F("</td>");
 	webpage += F("</tr>");	
 	webpage += F("<tr>");
 	webpage += F("<td>Tempo Sortie (s)</td>");
