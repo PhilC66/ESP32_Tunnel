@@ -2,7 +2,7 @@ Liste des commandes
 ID
 ID=abcdefghij  10 car max
 timeoutwifi														durée du timeout wifi avant retour fonctionnement normale
-timeoutwifi=300												durée en secondes(0-3600)
+timeoutwifi=300												durée en secondes(10-3600)
 Wifi,ssid,password										connexion wifi case sensitive
 lst?																	Liste le Phone Book
 tel=+331234567890,Nom									crestion nouveau numero dans le Phone Book
@@ -33,7 +33,7 @@ RST																		Reset du systeme
 CALIBRATION														Calibration des mesures de tension cde locale uniquement
 CALIBRATION=.X												X entrée 1 2 3
 TIMEOUTECL														Time out extinction eclairage secours (s) defaut  1H
-TIMEOUTECL=n													600-7200
+TIMEOUTECL=n													60-7200
 TEMPOSORTIE														Temporisation Eclairage à la Sortie (s)
 TEMPOSORTIE=n													1-120
-PARAM=n,m															Parametre compteur pour alarme cable Jour/Nuit en s multiple de 10
+PARAM=n,m															Parametre compteur pour alarme cable Jour/Nuit en s multiple de 10s

@@ -83,10 +83,10 @@ bool    SPIFFS_present = false;
 
 #define BUTTON_PIN_BITMASK 0x700000000 // 32,33,34 Interruption Wake up
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP  15       /* Time ESP32 will go to sleep (in seconds) */
 
 WebServer server(80);
 
+long TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
 unsigned long debut = millis(); // pour decompteur temps wifi
 byte calendrier[13][32]; // tableau calendrier ligne 0 et jour 0 non utilisé, 12*31
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
@@ -95,6 +95,7 @@ char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le lo
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
 int Magique       = 1234;
+String Sbidon 		= "";
 String message;
 String bufferrcpt;
 String fl = "\n";                   //	saut de ligne SMS
@@ -118,12 +119,16 @@ bool FlagLastAlarmeIntrusion = false;
 bool FirstSonn = false;				// Premier appel sonnerie
 bool SonnMax   = false;				// temps de sonnerie maxi atteint
 bool FlagReset = false;
+bool jour      = false;				// jour = true, nuit = false
 int  Nmax      = 0;						// comptage alarme cable avant alarme different Jour/Nuit
 byte DbounceTime = 20;				// antirebond
 int CoeffTension[3];          // Coeff calibration Tension
 int CoeffTensionDefaut = 7000;// Coefficient par defaut
 
 RTC_DATA_ATTR int CptAllumage = 0; // Nombre Allumage par jour en memoire RTC
+RTC_DATA_ATTR bool WupAlarme  = false; // declenchement alarme externe
+bool LastWupAlarme            = false;
+
 int   slot = 0;            			 //this will be the slot number of the SMS
 char   receivedChar;
 bool   newData = false;
@@ -150,7 +155,7 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
   int 		magic				;					// num magique
   long    Ala_Vie 		;					// Heure message Vie, 7h matin en seconde = 7*60*60
 	long    FinJour 		;					// Heure fin jour, 20h matin en seconde = 20*60*60
-	int     Tlancement  ;         // Temps lancement, prise decision circulé/noncirculé
+	int     Tanalyse    ;         // tempo analyse alarme sur interruption
   int			tempoSortie ;					// tempo eclairage apres sorties(s)
   int			timeOutS	 	;					// tempo time out eclairage (s)
 	int			timeoutWifi ;					// tempo coupure Wifi si pas de mise a jour (s)
@@ -168,10 +173,10 @@ struct  config_t 									// Structure configuration sauvée en EEPROM
 } ;
 config_t config;
 
-// AlarmId OneH;
-AlarmId loopPrincipale;	// boucle principlae
+
+AlarmId loopPrincipale;	// boucle principale
 AlarmId Svie;						// tempo Signal de Vie et MajHeure
-AlarmId FirstMessage;		// Premier message analyse jour circulé O/N
+AlarmId TempoAnalyse;		// tempo analyse alarme suite Interruption
 AlarmId TempoSortie;		// Temporisation eclairage a la sortie
 AlarmId TimeOut;				// TimeOut Allumage
 AlarmId FinJour;				// Fin de journée retour deep sleep
@@ -221,7 +226,7 @@ void setup() {
   SIM800Serial->begin(9600); // 4800
 	Sim800l.begin();
 	
-	Serial.print(F("Raison wake up : ")),Serial.println(print_wakeup_reason());
+	Serial.print(F("Raison wake up : ")),Serial.println(get_wakeup_reason());
 	
 	pinMode(PinEclairage,OUTPUT);
   pinMode(PinPedale1  ,INPUT_PULLUP);
@@ -248,7 +253,7 @@ void setup() {
 		config.magic         = Magique;
 		config.Ala_Vie       = 7*60*60;
 		config.FinJour       = 20*60*60;
-		config.Tlancement    = 5*60;
+		config.Tanalyse      = 10*60;
 		config.Intru         = false;
 		config.Silence       = true;
 		config.Dsonn         = 60;
@@ -327,11 +332,11 @@ void setup() {
 // Serial.print(F("temps =")),Serial.println(millis());
   // OneH = Alarm.timerRepeat(3600,test);
 	
-	loopPrincipale = Alarm.timerRepeat(10, Acquisition); // boucle principale 15s
+	loopPrincipale = Alarm.timerRepeat(10, Acquisition); // boucle principale 10s
   Alarm.enable(loopPrincipale);
 
-	FirstMessage = Alarm.timerOnce(config.Tlancement, OnceOnly); // appeler une fois apres 5min type=0
-	Alarm.enable(FirstMessage);
+	TempoAnalyse = Alarm.timerRepeat(config.Tanalyse, FinAnalyse); // Tempo Analyse Alarme sur interruption
+	Alarm.disable(TempoAnalyse);
 	
 	TempoSortie = Alarm.timerRepeat(config.tempoSortie, Extinction); // tempo extinction a la sortie
 	Alarm.disable(TempoSortie);
@@ -429,10 +434,51 @@ void loop() {
 }	//fin loop
 //---------------------------------------------------------------------------
 void Acquisition(){	
-
-	// Serial.print("Coeff 1 = "),Serial.print(CoeffTension[0]);
-	// Serial.print(" Coeff 2 = "),Serial.print(CoeffTension[1]);
-	// Serial.print(" Coeff 3 = "),Serial.println(CoeffTension[2]);
+	static int8_t nsms;
+	static int cpt = 0; // compte le nombre de passage boucle
+	static bool firstdecision = false;
+	
+	if(cpt > 3 && nsms == 0 && !firstdecision){ 
+	/* une seule fois au demarrage attendre au moins 40s et plus de sms en attente */
+		
+		byte wr = get_wakeup_reason();
+		if(wr == 99 || (wr > 31 && wr < 35)){ // entrée ext1
+			/* declenchement externe pendant deep sleep
+				si nuit ou jour noncirculé
+				on reste en fonctionnement pendant TempoAnalyse 
+				avant retour deep sleep*/
+			if(!jour ||(jour && calendrier[month()][day()] == 0)){
+				WupAlarme = true;
+				LastWupAlarme = true;
+				Alarm.enable(TempoAnalyse); // debut tempo analyse ->fonctionnement normal
+				Sbidon = F("Externe ");
+				Sbidon += String(wr);
+				MajLog(F("Auto"),Sbidon);
+			}
+		}
+		else if(wr == 4){ // timer
+		/* jour noncirculé fonctionnement normal pour xx mn */
+			if(calendrier[month()][day()] == 0){
+				
+			}
+		}
+		else if(wr == 0 || wr == 2 || wr == 5 || wr == 6){ // 0,2,5,6
+			/*  ne rien faire  */
+		}
+		firstdecision = true;
+	}
+	cpt ++;
+	
+	if(LastWupAlarme != WupAlarme && nsms == 0){ // fin de la tempo analyse retour sleep
+		if(!jour){ // retour sleep jusqu'a 3mn avant AlaVie			
+			TIME_TO_SLEEP = DureeSleep(config.Ala_Vie - 3*60);// 3mn avant
+			Sbidon = F("Externe ");
+			Sbidon += String(TIME_TO_SLEEP);
+			MajLog(F("Auto"),Sbidon);
+			DebutSleep();
+		}		
+	}
+	
 	
 	if(CoeffTension[0] == 0 || CoeffTension[1] == 0 || CoeffTension[2] == 0){
 		OuvrirFichierCalibration(); // patch relecture des coeff perdu
@@ -549,15 +595,15 @@ void Acquisition(){
 	/* verification nombre SMS en attente(raté en lecture directe)
 		 traitement des sms en memeoire un par un, 
 		 pas de traitement en serie par commande 51, traitement beaucoup trop long */ 
-  int8_t smsnum = Sim800l.getNumSms(); // nombre de SMS en attente (1s)
-  Serial.print(F("Sms en attente = ")), Serial.println (smsnum);
+  nsms = Sim800l.getNumSms(); // nombre de SMS en attente (1s)
+  Serial.print(F("Sms en attente = ")), Serial.println (nsms);
 
-  if(smsnum > 0) {	// nombre de SMS en attente
+  if(nsms > 0) {	// nombre de SMS en attente
     // il faut les traiter
 		int numsms = Sim800l.getIndexSms(); // cherche l'index des sms en mémoire
     traite_sms(numsms);// traitement des SMS en attente
   }
-	else if (smsnum == 0 && FlagReset) { // on verifie que tous les SMS sont traités avant Reset
+	else if (nsms == 0 && FlagReset) { // on verifie que tous les SMS sont traités avant Reset
     FlagReset = false;
     ESP.restart();				//	reset soft
   }
@@ -836,7 +882,7 @@ fin_i:
 					ActiveInterrupt();
 					if(!sms){															//V2-14
 						nom = F("console");
-						// bidon.toCharArray(nom,8);//	si commande locale
+						// Sbidon.toCharArray(nom,8);//	si commande locale
 					}
 					logRecord(nom,"A"); // V2-14 renseigne le log
 					MajLog(nom,"A");
@@ -862,7 +908,7 @@ fin_i:
 					// FlagPIR = false;
 					if(!sms){															//V2-14
 						nom = F("console");
-						// bidon.toCharArray(nom,8);//	si commande locale
+						// Sbidon.toCharArray(nom,8);//	si commande locale
 					}
 					logRecord(nom,"D");				// V2-14 renseigne le log
 					MajLog(nom, "D");
@@ -889,13 +935,13 @@ fin_i:
       }
 			else if(textesms.indexOf(F("PARAM")) == 0){ // parametre Jour/Nuit
 				if (textesms.indexOf(char(61))== 5) { //char(61) "="	liste capteur actif
-					String bidon=textesms.substring(6,textesms.length());
-					byte pos = bidon.indexOf(char(44)); // char(44) ","
-					Serial.print(bidon),Serial.print(":"),Serial.println(pos);
-					int val = bidon.substring(0,pos).toInt();
+					Sbidon=textesms.substring(6,textesms.length());
+					byte pos = Sbidon.indexOf(char(44)); // char(44) ","
+					Serial.print(Sbidon),Serial.print(":"),Serial.println(pos);
+					int val = Sbidon.substring(0,pos).toInt();
 					Serial.println(val);
 					if(val > 9 && val < 600){
-						int val2 = bidon.substring(pos+1,bidon.length()).toInt();
+						int val2 = Sbidon.substring(pos+1,Sbidon.length()).toInt();
 						if(val2 > 9 && val2 < 600){
 							config.Jour_Nmax = val/10; // 10 temps boucle acquisition=10s
 							config.Nuit_Nmax = val2/10;
@@ -917,15 +963,15 @@ fin_i:
 				bool flag = true; // validation du format
 				if (textesms.indexOf(char(61))== 7) { //char(61) "="	liste capteur actif
 					byte Num[3];
-					String bidon=textesms.substring(8,13);
-					// Serial.print("bidon="),Serial.print(bidon),Serial.println(bidon.length());
-					if (bidon.length() == 5){
+					Sbidon=textesms.substring(8,13);
+					// Serial.print("Sbidon="),Serial.print(Sbidon),Serial.println(Sbidon.length());
+					if (Sbidon.length() == 5){
 						int j=0;
 						for (int i = 0;i < 5; i +=2){
-							if(bidon.substring(i,i+1) == "0" || bidon.substring(i,i+1) == "1"){
-								// Serial.print(",="),Serial.println(bidon.substring(i+1,i+2));
-								// Serial.print("X="),Serial.println(bidon.substring(i,i+1));
-								Num[j] = bidon.substring(i,i+1).toInt();
+							if(Sbidon.substring(i,i+1) == "0" || Sbidon.substring(i,i+1) == "1"){
+								// Serial.print(",="),Serial.println(Sbidon.substring(i+1,i+2));
+								// Serial.print("X="),Serial.println(Sbidon.substring(i,i+1));
+								Num[j] = Sbidon.substring(i,i+1).toInt();
 								// Serial.print(i),Serial.print(","),Serial.print(j),Serial.print(","),Serial.println(Num[j]);
 								j++;
 							}
@@ -1171,14 +1217,14 @@ fin_i:
 						static int tensionmemo memorisation de la premiere tension mesurée en calibration
 						int CoeffTension = CoeffTensionDefaut 6600 par défaut
 				*/
-				String bidon = textesms.substring(12,16);// texte apres =
-				//Serial.print(F("bidon=")),Serial.print(bidon),Serial.print(char(44)),Serial.println(bidon.length());
+				Sbidon = textesms.substring(12,16);// texte apres =
+				//Serial.print(F("Sbidon=")),Serial.print(Sbidon),Serial.print(char(44)),Serial.println(Sbidon.length());
 				long tension = 0;
-				if(bidon.substring(0,1) == "." && bidon.length() > 1){// debut mode cal					
-					if(bidon.substring(1,2) == "1" ){M = 1; P = PinBattSol; coef = CoeffTension[0];}
-					if(bidon.substring(1,2) == "2" ){M = 2; P = PinBattProc; coef = CoeffTension[1];}
-					if(bidon.substring(1,2) == "3" ){M = 3; P = PinBattUSB; coef = CoeffTension[2];}
-					// Serial.print("mode = "),Serial.print(M),Serial.println(bidon.substring(1,2));
+				if(Sbidon.substring(0,1) == "." && Sbidon.length() > 1){// debut mode cal					
+					if(Sbidon.substring(1,2) == "1" ){M = 1; P = PinBattSol; coef = CoeffTension[0];}
+					if(Sbidon.substring(1,2) == "2" ){M = 2; P = PinBattProc; coef = CoeffTension[1];}
+					if(Sbidon.substring(1,2) == "3" ){M = 3; P = PinBattUSB; coef = CoeffTension[2];}
+					// Serial.print("mode = "),Serial.print(M),Serial.println(Sbidon.substring(1,2));
 					FlagCalibration = true;
 					
 					coef = CoeffTensionDefaut;
@@ -1186,11 +1232,11 @@ fin_i:
 					// Serial.print("TensionBatterie = "),Serial.println(TensionBatterie);
 					tensionmemo = tension;
 				}
-				else if(FlagCalibration && bidon.substring(0,4).toInt() > 0 && bidon.substring(0,4).toInt() <=8000){
+				else if(FlagCalibration && Sbidon.substring(0,4).toInt() > 0 && Sbidon.substring(0,4).toInt() <=8000){
 					// si Calibration en cours et valeur entre 0 et 5000
-					Serial.println(bidon.substring(0,4));
+					Serial.println(Sbidon.substring(0,4));
 					/* calcul nouveau coeff */
-					coef = bidon.substring(0,4).toFloat()/float(tensionmemo)*CoeffTensionDefaut;
+					coef = Sbidon.substring(0,4).toFloat()/float(tensionmemo)*CoeffTensionDefaut;
 					// Serial.print("Coeff Tension = "),Serial.println(CoeffTension);
 					tension = map(moyenneAnalogique(P), 0,4095,0,coef);
 					CoeffTension[M-1] = coef;
@@ -1427,19 +1473,23 @@ void MajHeure(){
 		// ecart += 10;
 		Serial.print(F("Ecart s= ")), Serial.println(ecart);
 		if(abs(ecart) > 5){
+			ArretSonnerie();	// Arret Sonnerie propre
 			Alarm.disable(loopPrincipale);
+			Alarm.disable(TSonnRepos);
 			Alarm.disable(Svie);
 			Alarm.disable(TempoSortie);
 			Alarm.disable(TimeOut);
-			Alarm.disable(FinJour);	
+			Alarm.disable(FinJour);
+			Alarm.disable(TempoAnalyse);
 			
 			setTime(Nhour,Nminute,Nsecond,Nday,Nmonth,Nyear);
 			
 			Alarm.enable(loopPrincipale);
+			Alarm.enable(Svie);
 			Alarm.enable(TempoSortie);
 			Alarm.enable(TimeOut);
-			Alarm.enable(FinJour);
-			Alarm.enable(Svie);
+			Alarm.enable(FinJour);			
+			Alarm.enable(TempoAnalyse);
 		}		
 	}
 	displayTime(0);
@@ -1507,22 +1557,9 @@ void ResetSonnerie() {
   ArretSonnerie();
 }
 //---------------------------------------------------------------------------
-void OnceOnly(){	
-	/* Analyse si jour circulé lancement normal */
-	
-	OuvrirCalendrier(); // ouvre calendrier circulation en SPIFFS
-	if(calendrier[month()][day()] == 0){
-		// si non retour, deep sleep SIM800 et ESP32
-		Serial.println(F("Jour non circulé")); // on entre en sleep pour 23h55
-		
-		// Sim800l.sleep();
-		// on calcul la durée de sleep = t maintenant jusqu'a Svie
-		Serial.print(F("Duree sleep = ")),Serial.println(DureeSleep(config.Ala_Vie));
-		
-		// ESP sleeptime;
-	}
-	Serial.print(F("Duree sleep = ")),Serial.println(DureeSleep(config.Ala_Vie));
-	Serial.println(F("Jour circulé")); // on continue normalement
+void FinAnalyse(){
+	/* retour etat normal apres Alarme sur Interruption */
+	WupAlarme = false;
 }
 //---------------------------------------------------------------------------
 long DureeSleep(long Htarget){ // Htarget Heure de reveil visée
@@ -1550,6 +1587,7 @@ void SignalVie(){
 	envoieGroupeSMS(0);
 	Sim800l.delAllSms();// au cas ou, efface tous les SMS envoyé/reçu
 	CptAllumage = 0;
+	
 }
 //---------------------------------------------------------------------------
 void sauvConfig() { // sauve configuration en EEPROM
@@ -1715,31 +1753,31 @@ void MajLog(String Id,String Raison){ // mise à jour fichier log en SPIFFS
 	}
 	f.close();
 	/* preparation de la ligne */
-	char bidon[46]; //19 + 2 + 14 + 10 + 1
-	sprintf(bidon,"%02d/%02d/%4d %02d:%02d:%02d",day(),month(),year(),hour(),minute(),second());	
+	char Cbidon[46]; //19 + 2 + 14 + 10 + 1
+	sprintf(Cbidon,"%02d/%02d/%4d %02d:%02d:%02d",day(),month(),year(),hour(),minute(),second());	
 	Id = ";" + Id + ";";
 	Raison += "\n";
-	strcat(bidon,Id.c_str());
-	strcat(bidon,Raison.c_str());
-	Serial.print(bidon);
-	appendFile(SPIFFS, filelog, bidon);
+	strcat(Cbidon,Id.c_str());
+	strcat(Cbidon,Raison.c_str());
+	Serial.print(Cbidon);
+	appendFile(SPIFFS, filelog, Cbidon);
 }
 //---------------------------------------------------------------------------
 void EnregistreCalendrier(){ // remplace le nouveau calendrier
 	
 	SPIFFS.remove(filecalendrier);
-	String bidon="";
+	Sbidon = "";
 	char bid[63];
 	for(int m = 1; m < 13; m++){
 		for(int j = 1; j < 32; j++){
-			bidon += calendrier[m][j];
-			if(j < 31)bidon += char(59); // ;
+			Sbidon += calendrier[m][j];
+			if(j < 31)Sbidon += char(59); // ;
 		}
-		Serial.println(bidon);
-		bidon += fl;
-		bidon.toCharArray(bid,63);
+		Serial.println(Sbidon);
+		Sbidon += fl;
+		Sbidon.toCharArray(bid,63);
 		appendFile(SPIFFS, filecalendrier, bid);
-		bidon = "";
+		Sbidon = "";
 	}
 	
 }
@@ -1755,21 +1793,21 @@ void OuvrirCalendrier(){
 	if (!f || f0.size() == 0){
 		Serial.println(F("File doesn't exist yet. Creating it")); // creation calendrier defaut
 		char bid[63];
-		String bidon="";
+		Sbidon="";
 		for(int m = 1; m < 13;m++){
 			for(int j = 1; j < 32; j++){
 				if(m == 1 || m == 2 || m == 3 || m == 11 || m == 12){
-					bidon += "0;";
+					Sbidon += "0;";
 				}
 				else{
-					bidon += "1;";
+					Sbidon += "1;";
 				}
 			}
-			Serial.println(bidon);
-			bidon += fl;
-			bidon.toCharArray(bid,63);
+			Serial.println(Sbidon);
+			Sbidon += fl;
+			Sbidon.toCharArray(bid,63);
 			appendFile(SPIFFS, filecalendrier, bid);
-			bidon = "";
+			Sbidon = "";
 		}
 		/* f = SPIFFS.exists(filecalendrier);
 		if (!f) {
@@ -1794,8 +1832,13 @@ void OuvrirCalendrier(){
 //---------------------------------------------------------------------------
 void FinJournee(){
 	// fin de journée retour deep sleep
-	Serial.print(F("Fin de journée retour sleep a terminer"));
-	Serial.print(F("Durée sleep = ")),Serial.println(DureeSleep(config.Ala_Vie));
+	jour = false;
+	Serial.println(F("Fin de journée retour sleep"));
+	TIME_TO_SLEEP = DureeSleep(config.Ala_Vie - 3*60);// 3mn avant
+	Sbidon = F("FinJour ");
+	Sbidon += String(TIME_TO_SLEEP);
+	MajLog(F("Auto"),Sbidon);
+	DebutSleep();
 }
 //---------------------------------------------------------------------------
 void PrintEEPROM(){
@@ -1805,7 +1848,7 @@ void PrintEEPROM(){
 	Serial.print(F("Alarme = "))									,Serial.println(config.Intru);
 	Serial.print(F("Ala_Vie = "))									,Serial.println(config.Ala_Vie);
 	Serial.print(F("Fin jour = "))								,Serial.println(config.FinJour);
-	Serial.print(F("Lancement (s) = "))						,Serial.println(config.Tlancement);
+	Serial.print(F("Tempo Analyse Alarme (s) = ")),Serial.println(config.Tanalyse);
 	Serial.print(F("TimeOut Alarme Jour (s) = ")) ,Serial.println(config.Jour_Nmax);
 	Serial.print(F("TimeOut Alarme Nuit (s) = "))	,Serial.println(config.Nuit_Nmax);
 	Serial.print(F("Tempo Sortie (s) = "))				,Serial.println(config.tempoSortie);
@@ -2162,44 +2205,41 @@ void ActiveInterrupt(){
 //---------------------------------------------------------------------------
 void AIntru_HeureActuelle(){
 	
-	// chagement parametre intru en fonction de l'heure actuelle
 	long Heureactuelle = hour()*60;// calcul en 4 lignes sinon bug!
 	Heureactuelle += minute();
 	Heureactuelle  = Heureactuelle*60;
 	Heureactuelle += second(); // en secondes
 	
-		if(config.FinJour > config.Ala_Vie){
-			if((Heureactuelle > config.FinJour && Heureactuelle > config.Ala_Vie)
-			 ||(Heureactuelle < config.FinJour && Heureactuelle < config.Ala_Vie)){
-				// Nuit
-				IntruD();
-			}
-			else{	// Jour
-				IntruF();
-			}
+	if(config.FinJour > config.Ala_Vie){
+		if((Heureactuelle > config.FinJour && Heureactuelle > config.Ala_Vie)
+		 ||(Heureactuelle < config.FinJour && Heureactuelle < config.Ala_Vie)){
+			// Nuit
+			IntruD();
 		}
-		else{
-			if(Heureactuelle > config.FinJour && Heureactuelle < config.Ala_Vie){
-			 // Nuit
-				IntruD();
-			}
-			else{	// Jour
-				IntruF();
-			}
+		else{	// Jour
+			IntruF();
 		}
-	// Serial.print(F("Hintru = ")),Serial.print(Heureactuelle),Serial.print(",");
-	// Serial.print(config.Ala_Vie),Serial.print(","),Serial.print(config.FinJour);
-	// Serial.print(","),Serial.println(config.Intru);
-	
+	}
+	else{
+		if(Heureactuelle > config.FinJour && Heureactuelle < config.Ala_Vie){
+		 // Nuit
+			IntruD();
+		}
+		else{	// Jour
+			IntruF();
+		}
+	}
 }	
 //---------------------------------------------------------------------------
 void IntruF(){// Charge parametre Alarme Intrusion Jour
-	Nmax 			= config.Jour_Nmax;
+	Nmax = config.Jour_Nmax;
+	jour = true;
 	Serial.println(F("Jour"));
 }
 //---------------------------------------------------------------------------
 void IntruD(){// Charge parametre Alarme Intrusion Nuit
-	Nmax 			= config.Nuit_Nmax;
+	Nmax = config.Nuit_Nmax;
+	jour = false;
 	Serial.println(F("Nuit"));
 }
 //---------------------------------------------------------------------------
@@ -2214,14 +2254,17 @@ void DebutSleep(){
 	Serial.flush();
   //Go to sleep now
   Serial.println(F("Going to sleep now"));
+	
+	Sim800l.sleep();
 	Serial.flush();
   esp_deep_sleep_start();
+	
   Serial.println(F("This will never be printed"));
 	Serial.flush();
 	
 }
 //---------------------------------------------------------------------------
-int print_wakeup_reason(){
+int get_wakeup_reason(){
   esp_sleep_wakeup_cause_t wakeup_reason;
 
   wakeup_reason = esp_sleep_get_wakeup_cause();
@@ -2277,6 +2320,10 @@ void HomePage(){
 	webpage += F("<tr>");
 	webpage += F("<td>Nmax Nuit (s)</td>");
 	webpage += F("<td>");	webpage += String(config.Nuit_Nmax*10);	webpage += F("</td>");
+	webpage += F("</tr>");
+	webpage += F("<tr>");
+	webpage += F("<td>Tempo Analyse Alarme (s)</td>");
+	webpage += F("<td>");	webpage += String(config.Tanalyse);	webpage += F("</td>");
 	webpage += F("</tr>");	
 	webpage += F("<tr>");
 	webpage += F("<td>Tempo Sortie (s)</td>");
