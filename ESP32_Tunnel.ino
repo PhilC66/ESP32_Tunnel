@@ -45,7 +45,7 @@ perdu lescture des Interrupts -- a revoir --
 
 
 Compilation LOLIN D32,default,80MHz
-980638 74%, 46916 14%
+980650 74%, 46916 14%
 
  */
  
@@ -588,8 +588,8 @@ void Acquisition(){
 		}
 		
 		Serial.print(F("Pedale 1 :")),Serial.print(nalaPIR1);
-		Serial.print(F(":Pedale 2 :")),Serial.print(nalaPIR2);
-		Serial.print(F(":Flag Porte :")),Serial.println(FlagAlarmePorte);
+		Serial.print(F(" Pedale 2 :")),Serial.print(nalaPIR2);
+		Serial.print(F(" Flag Porte :")),Serial.println(FlagAlarmePorte);
 		
 		if(FlagAlarmeIntrusion){
 			ActivationSonnerie();		// activation Sonnerie
@@ -616,7 +616,7 @@ void Acquisition(){
 		 traitement des sms en memeoire un par un, 
 		 pas de traitement en serie par commande 51, traitement beaucoup trop long */ 
   nsms = Sim800l.getNumSms(); // nombre de SMS en attente (1s)
-  Serial.print(F("Sms en attente = ")), Serial.println (nsms);
+  Serial.print(F("Sms en attente = ")), Serial.println(nsms);
 
   if(nsms > 0) {	// nombre de SMS en attente
     // il faut les traiter
@@ -633,6 +633,8 @@ void Acquisition(){
 	digitalWrite(LED_PIN,0);
 	Alarm.delay(50);
 	digitalWrite(LED_PIN,1);
+	
+	Serial.println();
 	
 }
 //---------------------------------------------------------------------------
