@@ -37,3 +37,4 @@ TIMEOUTECL=n													60-7200
 TEMPOSORTIE														Temporisation Eclairage à la Sortie (s)
 TEMPOSORTIE=n													1-120
 PARAM=n,m															Parametre compteur pour alarme cable Jour/Nuit en s multiple de 10s
+CIRCULE																Demande passer en mode Circulé pour jour courant, sans modification du calendrier enregistré

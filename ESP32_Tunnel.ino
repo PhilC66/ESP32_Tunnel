@@ -465,14 +465,14 @@ void Acquisition(){
 		/* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00 
 			verifier si wake up arrive avant fin journée marge 5mn*/
 			if(calendrier[month()][day()] == 0){
-				if(HActuelledec() < config.FinJour - 180){
-					TIME_TO_SLEEP = DureeSleep(HActuelledec() + config.RepeatWakeUp);
+				if(HActuelledec() < config.FinJour - config.RepeatWakeUp - 180){
+					TIME_TO_SLEEP = config.RepeatWakeUp; 
 				}
 				else{
 					TIME_TO_SLEEP = DureeSleep(config.FinJour - 180);
 				}
 				Sbidon = F("lance timer 1H ");
-				Sbidon += String(TIME_TO_SLEEP);
+				Sbidon += Hdectohhmm(TIME_TO_SLEEP);
 				MajLog(F("Auto"),Sbidon);
 				DebutSleep();
 			}
@@ -493,7 +493,7 @@ void Acquisition(){
 		if(!jour){ // retour sleep jusqu'a 3mn avant AlaVie			
 			TIME_TO_SLEEP = DureeSleep(config.Ala_Vie - 3*60);// 3mn avant
 			Sbidon = F("Externe ");
-			Sbidon += String(TIME_TO_SLEEP);
+			Sbidon += Hdectohhmm(TIME_TO_SLEEP);
 			MajLog(F("Auto"),Sbidon);
 			DebutSleep();
 		}		
@@ -587,9 +587,9 @@ void Acquisition(){
 			if (nalaPIR2 > 0) nalaPIR2 --;		//	efface progressivement le compteur
 		}
 		
-		Serial.print(F("Pedale 1 :")),Serial.print(nalaPIR1);
-		Serial.print(F(" Pedale 2 :")),Serial.print(nalaPIR2);
-		Serial.print(F(" Flag Porte :")),Serial.println(FlagAlarmePorte);
+		Serial.print(F("Pedale 1:")),Serial.print(nalaPIR1);
+		Serial.print(F(" Pedale 2:")),Serial.print(nalaPIR2);
+		Serial.print(F(" Flag Porte:")),Serial.println(FlagAlarmePorte);
 		
 		if(FlagAlarmeIntrusion){
 			ActivationSonnerie();		// activation Sonnerie
@@ -1207,6 +1207,19 @@ fin_i:
 				}
 				if(!flag){
 					message += F("Format non reconnu !");
+				}
+				message += fl;
+				EnvoyerSms(number, sms);
+			}
+			else if (textesms == F("CIRCULE")) { 
+			/* demande passer en mode Circulé pour le jour courant, 
+				sans modification calendrier enregistré en SPIFFS */
+				if(calendrier[month()][day()] == 0){
+					calendrier[month()][day()] == 1;
+					message += F("OK");
+				}
+				else{
+					message += F("Jour deja Circule");
 				}
 				message += fl;
 				EnvoyerSms(number, sms);
@@ -1865,7 +1878,7 @@ void FinJournee(){
 	Serial.println(F("Fin de journée retour sleep"));
 	TIME_TO_SLEEP = DureeSleep(config.Ala_Vie - 3*60);// 3mn avant
 	Sbidon = F("FinJour ");
-	Sbidon += String(TIME_TO_SLEEP);
+	Sbidon += Hdectohhmm(TIME_TO_SLEEP);
 	MajLog(F("Auto"),Sbidon);
 	DebutSleep();
 }
@@ -2204,8 +2217,13 @@ String Hdectohhmm(long Hdec){
 	hhmm += ":";
 	if(int((Hdec % 3600) / 60) < 10) hhmm += "0";
 	hhmm += int((Hdec % 3600) / 60);
+	hhmm += ":";
+	if(int((Hdec % 3600) % 60) <10); hhmm += "0";
+	hhmm += int((Hdec % 3600) % 60);
 	return hhmm;
 }
+//---------------------------------------------------------------------------
+
 //---------------------------------------------------------------------------
 void DesActiveInterrupt(){
 	
@@ -2275,9 +2293,8 @@ void DebutSleep(){
   esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK,ESP_EXT1_WAKEUP_ANY_HIGH);
 	
 	esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-  Serial.println(F("Setup ESP32 to sleep for "));
-	Serial.println(String(TIME_TO_SLEEP));
-	Serial.println(F("Seconds"));
+  Serial.print(F("Setup ESP32 to sleep for "));
+	Serial.println(Hdectohhmm(TIME_TO_SLEEP));
 	Serial.flush();
   //Go to sleep now
   Serial.println(F("Going to sleep now"));
