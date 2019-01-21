@@ -1226,6 +1226,19 @@ fin_i:
 				message += fl;
 				EnvoyerSms(number, sms);
 			}
+			else if (textesms == F("NONCIRCULE")) { 
+			/* demande passer en mode nonCirculé pour le jour courant, 
+				sans modification calendrier enregistré en SPIFFS */
+				if(calendrier[month()][day()] == 1){
+					calendrier[month()][day()] == 0;
+					message += F("OK");
+				}
+				else{
+					message += F("Jour deja NonCircule");
+				}
+				message += fl;
+				EnvoyerSms(number, sms);
+			}
 			else if (textesms == F("RST")) {               // demande RESET
         message += F("Le systeme va etre relance");  // apres envoie du SMS!
 				message += fl;
