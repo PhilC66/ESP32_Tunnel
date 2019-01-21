@@ -45,7 +45,7 @@ perdu lescture des Interrupts -- a revoir --
 
 
 Compilation LOLIN D32,default,80MHz
-980650 74%, 46916 14%
+981710 74%, 46916 14%
 
  */
  
@@ -57,11 +57,11 @@ Compilation LOLIN D32,default,80MHz
 #include <sys/time.h>
 #include <WiFi.h>
 #include <EEPROM.h>               // variable en EEPROM
-#include "SPIFFS.h"
+#include <SPIFFS.h>
 #include <ArduinoOTA.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
-#include "FS.h"
+#include <FS.h>
 #include <SPI.h>
 
 String  webpage = "";
