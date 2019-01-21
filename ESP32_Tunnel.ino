@@ -503,6 +503,7 @@ void Acquisition(){
 	if(CoeffTension[0] == 0 || CoeffTension[1] == 0 || CoeffTension[2] == 0){
 		OuvrirFichierCalibration(); // patch relecture des coeff perdu
 	}
+	
 	if(!Sim800l.getetatSIM())Sim800l.reset(PIN);// verification SIM
 	Serial.print(displayTime(0));
 	Serial.print(F(" Freemem = ")),Serial.println(ESP.getFreeHeap());
@@ -512,18 +513,19 @@ void Acquisition(){
 	VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension[1]);
 	VUSB            = map(moyenneAnalogique(PinBattUSB) , 0, 4095, 0, CoeffTension[2]);
 	
-	if(Battpct(TensionBatterie) < 25 || VUSB < 4000 || VUSB > 6000){
+	if(Battpct(TensionBatterie) < 25 || VUSB < 4000){ // || VUSB > 6000
 		nalaTension ++;
     if (nalaTension == 4) {
       FlagAlarmeTension = true;
       nalaTension = 0;
     }
 	}
-	else if (Battpct(TensionBatterie) > 80 && VUSB > 4800 && VUSB < 5400) {	//hysteresis et tempo sur Alarme Batterie
+	else if (Battpct(TensionBatterie) > 80 && VUSB > 4800) { //  && VUSB < 5400	//hysteresis et tempo sur Alarme Batterie
     nRetourTension ++;
 		if(nRetourTension == 4){
 			FlagAlarmeTension = false;			
 			nRetourTension =0;
+			nalaTension = 0;
 		}
   }
   else {
@@ -2222,8 +2224,6 @@ String Hdectohhmm(long Hdec){
 	hhmm += int((Hdec % 3600) % 60);
 	return hhmm;
 }
-//---------------------------------------------------------------------------
-
 //---------------------------------------------------------------------------
 void DesActiveInterrupt(){
 	
