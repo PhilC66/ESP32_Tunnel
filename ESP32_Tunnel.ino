@@ -442,7 +442,7 @@ void Acquisition(){
 	
 	if(cpt > 3 && nsms == 0 && !firstdecision){ 
 	/* une seule fois au demarrage attendre au moins 40s et plus de sms en attente */
-		action_wakeup_reason();
+		action_wakeup_reason(get_wakeup_reason());
 		firstdecision = true;
 	}
 	cpt ++;
@@ -469,9 +469,12 @@ void Acquisition(){
 	Serial.print(F(" Freemem = ")),Serial.println(ESP.getFreeHeap());
 	static byte nalaTension = 0;
 	static byte nRetourTension = 0;
-	TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension[0]);
+	/* test */
+	TensionBatterie = 1250;
+	VUSB = 5000;
+	// TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension[0]);
 	VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension[1]);
-	VUSB            = map(moyenneAnalogique(PinBattUSB) , 0, 4095, 0, CoeffTension[2]);
+	// VUSB            = map(moyenneAnalogique(PinBattUSB) , 0, 4095, 0, CoeffTension[2]);
 	
 	if(Battpct(TensionBatterie) < 25 || VUSB < 4000){ // || VUSB > 6000
 		nalaTension ++;
@@ -1173,31 +1176,43 @@ fin_i:
 				message += fl;
 				EnvoyerSms(number, sms);
 			}
-			else if (textesms == F("CIRCULE")) { 
+			else if (textesms == F("CIRCULE")) {
+				bool ok = false;
 			/* demande passer en mode Circulé pour le jour courant, 
 				sans modification calendrier enregistré en SPIFFS */
 				if(calendrier[month()][day()] == 0){
 					calendrier[month()][day()] = 1;
 					message += F("OK, Circule");
+					ok = true;
 				}
 				else{
 					message += F("Jour deja Circule");
 				}
 				message += fl;
 				EnvoyerSms(number, sms);
+				if(ok){
+					if(sms)EffaceSMS(slot);
+					action_wakeup_reason(4);
+				}
 			}
-			else if (textesms == F("NONCIRCULE")) { 
+			else if (textesms == F("NONCIRCULE")) {
+				bool ok = false;
 			/* demande passer en mode nonCirculé pour le jour courant, 
 				sans modification calendrier enregistré en SPIFFS */
 				if(calendrier[month()][day()] == 1){
 					calendrier[month()][day()] = 0;
 					message += F("OK, NonCircule");
+					ok = true;
 				}
 				else{
 					message += F("Jour deja NonCircule");
 				}
 				message += fl;
 				EnvoyerSms(number, sms);
+				if(ok){
+					if(sms)EffaceSMS(slot);
+					action_wakeup_reason(4);
+				}
 			}
 			else if (textesms == F("RST")) {               // demande RESET
         message += F("Le systeme va etre relance");  // apres envoie du SMS!
@@ -1769,13 +1784,13 @@ void MajLog(String Id,String Raison){ // mise à jour fichier log en SPIFFS
 	}
 	f.close();
 	/* preparation de la ligne */
-	char Cbidon[46]; //19 + 2 + 14 + 10 + 1
+	char Cbidon[101]; //19 + 2 + 14 + 10 + 1
 	sprintf(Cbidon,"%02d/%02d/%4d %02d:%02d:%02d",day(),month(),year(),hour(),minute(),second());	
 	Id = ";" + Id + ";";
 	Raison += "\n";
 	strcat(Cbidon,Id.c_str());
 	strcat(Cbidon,Raison.c_str());
-	Serial.print(Cbidon);
+	Serial.println(Cbidon);
 	appendFile(SPIFFS, filelog, Cbidon);
 }
 //---------------------------------------------------------------------------
@@ -2247,37 +2262,36 @@ void DebutSleep(){
 	
 	esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.print(F("Setup ESP32 to sleep for "));
+	Serial.print(TIME_TO_SLEEP);
+	Serial.print(";");
 	Serial.println(Hdectohhmm(TIME_TO_SLEEP));
 	Serial.flush();
   //Go to sleep now
   Serial.println(F("Going to sleep now"));
 	
 	Sim800l.sleep();
+	delay(1000);
 	Serial.flush();
   esp_deep_sleep_start();
+	delay(100);
 	
   Serial.println(F("This will never be printed"));
 	Serial.flush();
 	
 }
 //---------------------------------------------------------------------------
-void action_wakeup_reason(){ // action en fonction du wake up
-	
-	esp_sleep_wakeup_cause_t wakeup_reason;
-  wakeup_reason = esp_sleep_get_wakeup_cause();
-	uint64_t wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
-	
-  switch(wakeup_reason){
-		case ESP_SLEEP_WAKEUP_EXT0 : break; // ne rien faire
+void action_wakeup_reason(byte wr){ // action en fonction du wake up	
+	Serial.println(F("Wakeup :")),Serial.print(wr);
+	byte pin = 0;
+	if(wr == 99 || wr == 32 || wr == 33 || wr == 34){
+		pin = wr;
+		wr = 3;
+	}
+  switch(wr){
+		case 2: break; // ne rien faire ESP_SLEEP_WAKEUP_EXT0
 			
-		case ESP_SLEEP_WAKEUP_EXT1 :
+		case 3: // ESP_SLEEP_WAKEUP_EXT1
 			
-			if (wakeup_pin_mask != 0) {
-				int pin = __builtin_ffsll(wakeup_pin_mask)-1;
-				Serial.print(F("Wake up from GPIO ")); Serial.print(String(pin));
-			} else {
-				Serial.println(F(" Wake up from GPIO ?"));					
-			}
 			/* declenchement externe pendant deep sleep
 				si nuit ou jour noncirculé
 				on reste en fonctionnement pendant TempoAnalyse 
@@ -2287,12 +2301,12 @@ void action_wakeup_reason(){ // action en fonction du wake up
 				LastWupAlarme = true;
 				Alarm.enable(TempoAnalyse); // debut tempo analyse ->fonctionnement normal
 				Sbidon = F("Externe ");
-				Sbidon += String(wakeup_reason);
+				Sbidon += String(pin);
 				MajLog(F("Auto"),Sbidon);
 			}
 			break;
 			
-		case ESP_SLEEP_WAKEUP_TIMER :
+		case 4: // SP_SLEEP_WAKEUP_TIMER
 			/* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00 
 			verifier si wake up arrive avant fin journée marge 3mn*/
 			if(calendrier[month()][day()] == 0){
@@ -2312,12 +2326,39 @@ void action_wakeup_reason(){ // action en fonction du wake up
 			}
 			break;
 			
-    case ESP_SLEEP_WAKEUP_TOUCHPAD : break; // ne rien faire
-    case ESP_SLEEP_WAKEUP_ULP : break; // ne rien faire
+    case 5: break; // ne rien faire ESP_SLEEP_WAKEUP_TOUCHPAD
+    case 6: break; // ne rien faire ESP_SLEEP_WAKEUP_ULP
     default: break; // demarrage normal	
 	}
+}
+//---------------------------------------------------------------------------
+int get_wakeup_reason(){
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch(wakeup_reason){
+    case ESP_SLEEP_WAKEUP_EXT0  : return ESP_SLEEP_WAKEUP_EXT0; // 2
+		case ESP_SLEEP_WAKEUP_EXT1: { // 3
+				uint64_t wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
+				if (wakeup_pin_mask != 0) {
+					int pin = __builtin_ffsll(wakeup_pin_mask)-1;
+					Serial.print(F("Wake up from GPIO ")); Serial.print(String(pin));
+					return pin; // pin
+				} else {
+					Serial.println(F(" Wake up from GPIO ?"));
+					return 99; // 99
+				}
+				break;
+		}
+    case ESP_SLEEP_WAKEUP_TIMER    : return ESP_SLEEP_WAKEUP_TIMER; // 4
+    case ESP_SLEEP_WAKEUP_TOUCHPAD : return ESP_SLEEP_WAKEUP_TOUCHPAD; // 5
+    case ESP_SLEEP_WAKEUP_ULP      : return ESP_SLEEP_WAKEUP_ULP; // 6
+    default : return 0; // Serial.println("Wakeup was not caused by deep sleep"); break;// demarrage normal
+  }
 	Serial.flush();
 }
+
 //---------------------------------------------------------------------------
 void EffaceSMS(int s){
 	bool err;
