@@ -593,7 +593,7 @@ void Acquisition(){
 		Serial.print(F(" Pedale 2:")),Serial.print(nalaPIR2);
 		Serial.print(F(" Flag Porte:")),Serial.println(FlagAlarmePorte);
 		
-		if(FlagAlarmeIntrusion){
+		if(FlagAlarmeIntrusion || FlagAlarmePorte){
 			ActivationSonnerie();		// activation Sonnerie
 			if(FlagAlarmePorte){
 				Serial.println(F("Alarme Porte"));
