@@ -1297,8 +1297,7 @@ fin_i:
       Serial.print(F("Appelant non reconnu ! "));
     }
 		if(sms){ // suppression du SMS
-			error = Serial.println(Sim800l.delSms(slot));
-			Serial.print(F("resultat del Sms ")),Serial.println(error);
+			EffaceSMS(slot);
 		}
 	}
 	// Alarm.enable(loopPrincipale);
@@ -1992,26 +1991,7 @@ void ConnexionWifi(char* ssid,char* pwd, char* number, bool sms){
 	if(sms){ // suppression du SMS
 		/* Obligatoire ici si non bouclage au redemarrage apres timeoutwifi
 		ou OTA sms demande Wifi toujours present */
-		// bool err = Sim800l.delSms(slot);
-		// Serial.print(F("resultat del Sms "));
-		// Serial.println(err);
-		// if(!err){ // 2eme essai si echec
-			// err = Sim800l.delAllSms();
-			// Serial.print(F("resultat del Sms "));
-			// Serial.println(err);
-		// }
-		bool err;
-		byte n = 0;
-		do {
-			err = Sim800l.delSms(slot);
-			n ++;
-			Serial.print(F("resultat del Sms "));	Serial.println(err);
-			if(n > 10){ // on efface tous si echec
-				Sim800l.delAllSms();
-				break;
-			}
-		} while(!err);
-		
+		EffaceSMS(slot);
 	}
 	debut = millis();
 	if(!error){
@@ -2337,6 +2317,20 @@ void action_wakeup_reason(){ // action en fonction du wake up
     default: break; // demarrage normal	
 	}
 	Serial.flush();
+}
+//---------------------------------------------------------------------------
+void EffaceSMS(int s){
+	bool err;
+	byte n = 0;
+	do {
+		err = Sim800l.delSms(s);
+		n ++;
+		Serial.print(F("resultat del Sms "));	Serial.println(err);
+		if(n > 10){ // on efface tous si echec
+			Sim800l.delAllSms();
+			break;
+		}
+	} while(!err);
 }
 //---------------------------------------------------------------------------
 void HomePage(){
