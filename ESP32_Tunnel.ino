@@ -45,7 +45,7 @@ perdu lescture des Interrupts -- a revoir --
 
 
 Compilation LOLIN D32,default,80MHz
-981710 74%, 46916 14%
+987002 75%, 46924 14%
 
  */
  
@@ -228,8 +228,6 @@ void setup() {
 	Serial.println(F("lancement SIM800"));
   SIM800Serial->begin(9600); // 4800
 	Sim800l.begin();
-	
-	Serial.print(F("Raison wake up : ")),Serial.println(get_wakeup_reason());
 	
 	pinMode(PinEclairage,OUTPUT);
   pinMode(PinPedale1  ,INPUT_PULLUP);
@@ -444,45 +442,7 @@ void Acquisition(){
 	
 	if(cpt > 3 && nsms == 0 && !firstdecision){ 
 	/* une seule fois au demarrage attendre au moins 40s et plus de sms en attente */
-		
-		byte wr = get_wakeup_reason();
-		Serial.print(F("Wake up reason = ")),Serial.println(wr);
-		if(wr == 99 || (wr > 31 && wr < 35)){ // entrée ext1
-			/* declenchement externe pendant deep sleep
-				si nuit ou jour noncirculé
-				on reste en fonctionnement pendant TempoAnalyse 
-				avant retour deep sleep*/
-			if(!jour ||(jour && calendrier[month()][day()] == 0)){
-				WupAlarme = true;
-				LastWupAlarme = true;
-				Alarm.enable(TempoAnalyse); // debut tempo analyse ->fonctionnement normal
-				Sbidon = F("Externe ");
-				Sbidon += String(wr);
-				MajLog(F("Auto"),Sbidon);
-			}
-		}
-		else if(wr == 4){ // timer
-		/* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00 
-			verifier si wake up arrive avant fin journée marge 5mn*/
-			if(calendrier[month()][day()] == 0){
-				if(HActuelledec() < config.FinJour - config.RepeatWakeUp - 180){
-					TIME_TO_SLEEP = config.RepeatWakeUp; 
-				}
-				else{
-					TIME_TO_SLEEP = DureeSleep(config.FinJour - 180);
-				}
-				Sbidon = F("lance timer 1H ");
-				Sbidon += Hdectohhmm(TIME_TO_SLEEP);
-				MajLog(F("Auto"),Sbidon);
-				DebutSleep();
-			}
-			else{ // jour circulé
-				/*  ne rien faire  */
-			}
-		}
-		else if(wr == 0 || wr == 2 || wr == 5 || wr == 6){ // 0,2,5,6
-			/*  ne rien faire  */
-		}
+		action_wakeup_reason();
 		firstdecision = true;
 	}
 	cpt ++;
@@ -1217,8 +1177,8 @@ fin_i:
 			/* demande passer en mode Circulé pour le jour courant, 
 				sans modification calendrier enregistré en SPIFFS */
 				if(calendrier[month()][day()] == 0){
-					calendrier[month()][day()] == 1;
-					message += F("OK");
+					calendrier[month()][day()] = 1;
+					message += F("OK, Circule");
 				}
 				else{
 					message += F("Jour deja Circule");
@@ -1230,8 +1190,8 @@ fin_i:
 			/* demande passer en mode nonCirculé pour le jour courant, 
 				sans modification calendrier enregistré en SPIFFS */
 				if(calendrier[month()][day()] == 1){
-					calendrier[month()][day()] == 0;
-					message += F("OK");
+					calendrier[month()][day()] = 0;
+					message += F("OK, NonCircule");
 				}
 				else{
 					message += F("Jour deja NonCircule");
@@ -2312,42 +2272,72 @@ void DebutSleep(){
   //Go to sleep now
   Serial.println(F("Going to sleep now"));
 	
-	// Sim800l.sleep();
-	// Serial.flush();
-  // esp_deep_sleep_start();
+	Sim800l.sleep();
+	Serial.flush();
+  esp_deep_sleep_start();
 	
   Serial.println(F("This will never be printed"));
 	Serial.flush();
 	
 }
 //---------------------------------------------------------------------------
-int get_wakeup_reason(){
-  esp_sleep_wakeup_cause_t wakeup_reason;
-
+void action_wakeup_reason(){ // action en fonction du wake up
+	
+	esp_sleep_wakeup_cause_t wakeup_reason;
   wakeup_reason = esp_sleep_get_wakeup_cause();
-
+	uint64_t wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
+	
   switch(wakeup_reason){
-    case ESP_SLEEP_WAKEUP_EXT0  : return ESP_SLEEP_WAKEUP_EXT0; // 2
-		case ESP_SLEEP_WAKEUP_EXT1: { // 3
-				uint64_t wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
-				if (wakeup_pin_mask != 0) {
-					int pin = __builtin_ffsll(wakeup_pin_mask)-1;
-					Serial.print(F("Wake up from GPIO ")); Serial.print(String(pin));
-					return pin;
-				} else {
-					Serial.println(F(" Wake up from GPIO ?"));
-					return 99;
+		case ESP_SLEEP_WAKEUP_EXT0 : break; // ne rien faire
+			
+		case ESP_SLEEP_WAKEUP_EXT1 :
+			
+			if (wakeup_pin_mask != 0) {
+				int pin = __builtin_ffsll(wakeup_pin_mask)-1;
+				Serial.print(F("Wake up from GPIO ")); Serial.print(String(pin));
+			} else {
+				Serial.println(F(" Wake up from GPIO ?"));					
+			}
+			/* declenchement externe pendant deep sleep
+				si nuit ou jour noncirculé
+				on reste en fonctionnement pendant TempoAnalyse 
+				avant retour deep sleep*/
+			if(!jour ||(jour && calendrier[month()][day()] == 0)){
+				WupAlarme = true;
+				LastWupAlarme = true;
+				Alarm.enable(TempoAnalyse); // debut tempo analyse ->fonctionnement normal
+				Sbidon = F("Externe ");
+				Sbidon += String(wakeup_reason);
+				MajLog(F("Auto"),Sbidon);
+			}
+			break;
+			
+		case ESP_SLEEP_WAKEUP_TIMER :
+			/* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00 
+			verifier si wake up arrive avant fin journée marge 3mn*/
+			if(calendrier[month()][day()] == 0){
+				if(HActuelledec() < config.FinJour - config.RepeatWakeUp - 180){
+					TIME_TO_SLEEP = config.RepeatWakeUp; 
 				}
-				break;
-		}
-    case ESP_SLEEP_WAKEUP_TIMER    : return ESP_SLEEP_WAKEUP_TIMER; // 4
-    case ESP_SLEEP_WAKEUP_TOUCHPAD : return ESP_SLEEP_WAKEUP_TOUCHPAD; // 5
-    case ESP_SLEEP_WAKEUP_ULP      : return ESP_SLEEP_WAKEUP_ULP; // 6
-    default : return 0; // Serial.println("Wakeup was not caused by deep sleep"); break;// demarrage normal
-  }
+				else{
+					TIME_TO_SLEEP = DureeSleep(config.FinJour - 180);
+				}
+				Sbidon = F("lance timer 1H ");
+				Sbidon += Hdectohhmm(TIME_TO_SLEEP);
+				MajLog(F("Auto"),Sbidon);
+				DebutSleep();
+			}
+			else{ // jour circulé
+				/*  ne rien faire  */
+			}
+			break;
+			
+    case ESP_SLEEP_WAKEUP_TOUCHPAD : break; // ne rien faire
+    case ESP_SLEEP_WAKEUP_ULP : break; // ne rien faire
+    default: break; // demarrage normal	
+	}
 	Serial.flush();
 }
-
 //---------------------------------------------------------------------------
 void HomePage(){
   SendHTML_Header();
