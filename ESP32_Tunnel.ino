@@ -1188,7 +1188,7 @@ fin_i:
 					ok = true;
 				}
 				else{
-					message += F("Jour deja; Circule");//&agrave;
+					message += F("Jour deja Circule");//&agrave;
 				}
 				message += fl;
 				EnvoyerSms(number, sms);
@@ -2287,7 +2287,8 @@ void DebutSleep(){
 }
 //---------------------------------------------------------------------------
 void action_wakeup_reason(byte wr){ // action en fonction du wake up	
-	Serial.println(F("Wakeup :")),Serial.print(wr);
+	Serial.print(F("Wakeup :")),Serial.println(wr);
+	Serial.print(F("Circule :")),Serial.println(Circule);
 	byte pin = 0;
 	if(wr == 99 || wr == 32 || wr == 33 || wr == 34){
 		pin = wr;
@@ -2315,7 +2316,7 @@ void action_wakeup_reason(byte wr){ // action en fonction du wake up
 		case 4: // SP_SLEEP_WAKEUP_TIMER
 			/* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00 
 			verifier si wake up arrive avant fin journée marge 3mn*/
-			if(calendrier[month()][day()] == 0 && !Circule){
+			if(calendrier[month()][day()] == 0 || !Circule){
 				if(HActuelledec() < config.FinJour - config.RepeatWakeUp - 180){
 					TIME_TO_SLEEP = config.RepeatWakeUp; 
 				}
