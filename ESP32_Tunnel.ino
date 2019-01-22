@@ -48,7 +48,7 @@ Compilation LOLIN D32,default,80MHz
 987002 75%, 46924 14%
 
  */
- 
+
 #include <credentials_home.h>
 
 #include <Sim800l.h>              //my SIM800 modifié
@@ -86,7 +86,7 @@ bool    SPIFFS_present = false;
 
 WebServer server(80);
 
-long TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
+unsigned long TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
 unsigned long debut = millis(); // pour decompteur temps wifi
 byte calendrier[13][32]; // tableau calendrier ligne 0 et jour 0 non utilisé, 12*31
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
@@ -129,6 +129,8 @@ int CoeffTensionDefaut = 7000;// Coefficient par defaut
 
 RTC_DATA_ATTR int CptAllumage = 0; // Nombre Allumage par jour en memoire RTC
 RTC_DATA_ATTR bool WupAlarme  = false; // declenchement alarme externe
+RTC_DATA_ATTR bool Circule    = false; // circule demandé, valable 1 seul jour
+
 bool LastWupAlarme            = false;
 
 int   slot = 0;            			 //this will be the slot number of the SMS
@@ -157,7 +159,7 @@ struct  config_t 								// Structure configuration sauvée en EEPROM
   int 		magic				;					// num magique
   long    Ala_Vie 		;					// Heure message Vie, 7h matin en seconde = 7*60*60
 	long    FinJour 		;					// Heure fin jour, 20h matin en seconde = 20*60*60
-	long    RepeatWakeUp ; 				// Periodicité WakeUp Jour non circulé
+	long    RepeatWakeUp; 				// Periodicité WakeUp Jour non circulé
 	int     Tanalyse    ;         // tempo analyse alarme sur interruption
   int			tempoSortie ;					// tempo eclairage apres sorties(s)
   int			timeOutS	 	;					// tempo time out eclairage (s)
@@ -1186,12 +1188,14 @@ fin_i:
 					ok = true;
 				}
 				else{
-					message += F("Jour deja Circule");
+					message += F("Jour deja; Circule");//&agrave;
 				}
 				message += fl;
 				EnvoyerSms(number, sms);
 				if(ok){
 					if(sms)EffaceSMS(slot);
+					Circule = true;
+					
 					action_wakeup_reason(4);
 				}
 			}
@@ -1211,6 +1215,7 @@ fin_i:
 				EnvoyerSms(number, sms);
 				if(ok){
 					if(sms)EffaceSMS(slot);
+					Circule = false;
 					action_wakeup_reason(4);
 				}
 			}
@@ -1864,6 +1869,7 @@ void OuvrirCalendrier(){
 void FinJournee(){
 	// fin de journée retour deep sleep
 	jour = false;
+	Circule = false;
 	Serial.println(F("Fin de journée retour sleep"));
 	TIME_TO_SLEEP = DureeSleep(config.Ala_Vie - 3*60);// 3mn avant
 	Sbidon = F("FinJour ");
@@ -2296,7 +2302,7 @@ void action_wakeup_reason(byte wr){ // action en fonction du wake up
 				si nuit ou jour noncirculé
 				on reste en fonctionnement pendant TempoAnalyse 
 				avant retour deep sleep*/
-			if(!jour ||(jour && calendrier[month()][day()] == 0)){
+			if(!jour ||(jour && calendrier[month()][day()] == 0 && !Circule)){
 				WupAlarme = true;
 				LastWupAlarme = true;
 				Alarm.enable(TempoAnalyse); // debut tempo analyse ->fonctionnement normal
@@ -2309,7 +2315,7 @@ void action_wakeup_reason(byte wr){ // action en fonction du wake up
 		case 4: // SP_SLEEP_WAKEUP_TIMER
 			/* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00 
 			verifier si wake up arrive avant fin journée marge 3mn*/
-			if(calendrier[month()][day()] == 0){
+			if(calendrier[month()][day()] == 0 && !Circule){
 				if(HActuelledec() < config.FinJour - config.RepeatWakeUp - 180){
 					TIME_TO_SLEEP = config.RepeatWakeUp; 
 				}
