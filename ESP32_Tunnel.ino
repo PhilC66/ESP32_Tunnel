@@ -442,8 +442,8 @@ void Acquisition(){
 	static int cpt = 0; // compte le nombre de passage boucle
 	static bool firstdecision = false;
 	
-	if(cpt > 3 && nsms == 0 && !firstdecision){ 
-	/* une seule fois au demarrage attendre au moins 40s et plus de sms en attente */
+	if(cpt > 5 && nsms == 0 && !firstdecision){ 
+	/* une seule fois au demarrage attendre au moins 60s et plus de sms en attente */
 		action_wakeup_reason(get_wakeup_reason());
 		firstdecision = true;
 	}
@@ -459,16 +459,8 @@ void Acquisition(){
 			MajLog(F("Auto"),Sbidon);
 			DebutSleep();
 		}
-		else if(jour || !Circule ){ // jour non circulé slepp 01H00 ou Finjour-3mn maxi
-			if(HActuelledec() < config.FinJour - config.RepeatWakeUp - 180){
-				TIME_TO_SLEEP = config.RepeatWakeUp; 
-			}
-			else{
-				TIME_TO_SLEEP = DureeSleep(config.FinJour - 180);
-			}
-			Sbidon = F("1 lance timer 1H ");
-			Sbidon += Hdectohhmm(TIME_TO_SLEEP);
-			MajLog(F("Auto"),Sbidon);
+		else if(jour || !Circule ){ // jour non circulé slepp 01H00 ou Finjour-1mn maxi
+			calculTimeSleep();
 			DebutSleep();
 		}
 	}
@@ -2110,6 +2102,7 @@ int moyenneAnalogique(int Pin){	// calcul moyenne 10 mesures consécutives
 }
 //---------------------------------------------------------------------------
 int Battpct(long vbat){
+	// vbat tension batterie 1215 = 12.15V 
 	// retourn etat batterie en %
 	int EtatBat = 0;
 	if (vbat > 1260) {
@@ -2304,7 +2297,7 @@ void DebutSleep(){
 	esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.print(F("Setup ESP32 to sleep for "));
 	Serial.print(TIME_TO_SLEEP);
-	Serial.print(";");
+	Serial.print(F("s ;"));
 	Serial.println(Hdectohhmm(TIME_TO_SLEEP));
 	Serial.flush();
   //Go to sleep now
@@ -2322,8 +2315,9 @@ void DebutSleep(){
 }
 //---------------------------------------------------------------------------
 void action_wakeup_reason(byte wr){ // action en fonction du wake up	
-	Serial.print(F("Wakeup :")),Serial.println(wr);
-	Serial.print(F("Circule :")),Serial.println(Circule);
+	Serial.print(F("Wakeup :")),Serial.print(wr);
+	Serial.print(F(" ,Calendrier :")),Serial.print(calendrier[month()][day()]);
+	Serial.print(F(" ,Circule :")),Serial.println(Circule);
 	byte pin = 0;
 	if(wr == 99 || wr == 32 || wr == 33 || wr == 34){
 		pin = wr;
@@ -2350,17 +2344,9 @@ void action_wakeup_reason(byte wr){ // action en fonction du wake up
 			
 		case 4: // SP_SLEEP_WAKEUP_TIMER
 			/* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00 
-			verifier si wake up arrive avant fin journée marge 3mn*/
+			verifier si wake up arrive avant fin journée marge 1mn*/
 			if(calendrier[month()][day()] == 0 || !Circule){
-				if(HActuelledec() < config.FinJour - config.RepeatWakeUp - 180){
-					TIME_TO_SLEEP = config.RepeatWakeUp; 
-				}
-				else{
-					TIME_TO_SLEEP = DureeSleep(config.FinJour - 180);
-				}
-				Sbidon = F("2 lance timer 1H ");
-				Sbidon += Hdectohhmm(TIME_TO_SLEEP);
-				MajLog(F("Auto"),Sbidon);
+				calculTimeSleep();
 				DebutSleep();
 			}
 			else{ // jour circulé
@@ -2372,6 +2358,20 @@ void action_wakeup_reason(byte wr){ // action en fonction du wake up
     case 6: break; // ne rien faire ESP_SLEEP_WAKEUP_ULP
     default: break; // demarrage normal	
 	}
+}
+//---------------------------------------------------------------------------
+void calculTimeSleep(){
+	if(HActuelledec() < (config.FinJour - config.RepeatWakeUp - 60)){
+		TIME_TO_SLEEP = config.RepeatWakeUp;
+Serial.print("time sleep calcul 1 : "),Serial.println(TIME_TO_SLEEP);
+	}
+	else{
+		TIME_TO_SLEEP = DureeSleep(config.FinJour - 60);
+Serial.print("time sleep calcul 2 : "),Serial.println(TIME_TO_SLEEP);
+	}
+	Sbidon = F("lance timer 1H ");
+	Sbidon += Hdectohhmm(TIME_TO_SLEEP);
+	MajLog(F("Auto"),Sbidon);
 }
 //---------------------------------------------------------------------------
 int get_wakeup_reason(){
@@ -2754,7 +2754,7 @@ void recvOneChar() {
   if (Serial.available() > 0) {
     receivedChar = Serial.read();
     demande += receivedChar;
-    if (receivedChar == 10) {
+    if (receivedChar == 10 || receivedChar == 13) {
       newData = true;
     }
   }
