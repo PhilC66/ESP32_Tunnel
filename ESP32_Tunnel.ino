@@ -77,9 +77,9 @@ bool    SPIFFS_present = false;
 #define PinPorte   		34   // Entrée Porte Coffret Wake up EXT1 
 #define PinEclairage 	21   // Sortie Commande eclairage
 #define PinSirene			0    // Sortie Commande Sirene
-#define PIN						1234 // Code PIN carte SIM
 #define RX_PIN				16   // TX Sim800
 #define TX_PIN				17   // RX Sim800
+#define SIMPIN				1234 // Code PIN carte SIM
 
 #define BUTTON_PIN_BITMASK 0x700000000 // 32,33,34 Interruption Wake up
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
@@ -328,7 +328,7 @@ void setup() {
 	OuvrirCalendrier();					// ouvre calendrier circulation en SPIFFS
 	OuvrirFichierCalibration(); // ouvre fichier calibration en SPIFFS
 // Serial.print(F("temps =")),Serial.println(millis());
-	Sim800l.reset(PIN);					// lancer SIM800	
+	Sim800l.reset(SIMPIN);					// lancer SIM800	
 	// Sim800l.getRSSI();
 	// Alarm.delay(1000);
 // Serial.print(F("temps =")),Serial.println(millis());
@@ -452,21 +452,32 @@ void Acquisition(){
 	if(LastWupAlarme != WupAlarme && nsms == 0){ // fin de la tempo analyse retour sleep
 		LastWupAlarme = false;
 		WupAlarme     = false;
-		if(!jour){ // retour sleep jusqu'a 3mn avant AlaVie			
+		if(!jour){ // nuit retour sleep jusqu'a 3mn avant AlaVie			
 			TIME_TO_SLEEP = DureeSleep(config.Ala_Vie - 3*60);// 3mn avant
 			Sbidon = F("Externe ");
 			Sbidon += Hdectohhmm(TIME_TO_SLEEP);
 			MajLog(F("Auto"),Sbidon);
 			DebutSleep();
-		}		
+		}
+		else if(jour || !Circule ){ // jour non circulé slepp 01H00 ou Finjour-3mn maxi
+			if(HActuelledec() < config.FinJour - config.RepeatWakeUp - 180){
+				TIME_TO_SLEEP = config.RepeatWakeUp; 
+			}
+			else{
+				TIME_TO_SLEEP = DureeSleep(config.FinJour - 180);
+			}
+			Sbidon = F("lance timer 1H ");
+			Sbidon += Hdectohhmm(TIME_TO_SLEEP);
+			MajLog(F("Auto"),Sbidon);
+			DebutSleep();
+		}
 	}
-	
-	
+		
 	if(CoeffTension[0] == 0 || CoeffTension[1] == 0 || CoeffTension[2] == 0){
 		OuvrirFichierCalibration(); // patch relecture des coeff perdu
 	}
 	
-	if(!Sim800l.getetatSIM())Sim800l.reset(PIN);// verification SIM
+	if(!Sim800l.getetatSIM())Sim800l.reset(SIMPIN);// verification SIM
 	Serial.print(displayTime(0));
 	Serial.print(F(" Freemem = ")),Serial.println(ESP.getFreeHeap());
 	static byte nalaTension = 0;
@@ -1100,7 +1111,7 @@ fin_i:
 			}			
 			else if (textesms.indexOf(F("MAJHEURE")) == 0) {	//	forcer mise a l'heure V2-19
 				message += F("Mise a l'heure");
-				Sim800l.reset(PIN);// lancer SIM800	
+				Sim800l.reset(SIMPIN);// lancer SIM800	
 				MajHeure();		// mise a l'heure
 				EnvoyerSms(number, sms);
 			}			
