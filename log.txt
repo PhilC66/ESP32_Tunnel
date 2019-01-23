@@ -2285,3 +2285,649 @@ Taille fichier log = 22972
 
 Setup ESP32 to sleep for 3600;01:00:00
 Going to sleep now
+
+------------------------------------------------------------------------------------
+
+3/01/2019 12:39:30 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4170mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 12:39:40 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4233mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 1
+Nom appelant = Philippe
+Numero = +33685577010
+textesms  = NONCIRCULE
+resultat sms 1
+Message (long) = 26
+TPCF_Canal
+OK, NonCircule
+
+resultat del Sms 1
+Wakeup :4
+Circule :0
+Taille fichier log = 23170
+23/01/2019 12:39:56;Auto;2 lance timer 1H 01:00:00
+
+Setup ESP32 to sleep for 3600;01:00:00
+Going to sleep now
+ets Jun  8 2016 00:22:57
+
+rst:0x5 (DEEPSLEEP_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:1
+load:0x3fff0018,len:4
+load:0x3fff001c,len:928
+ho 0 tail 12 room 4
+load:0x40078000,len:9280
+load:0x40080400,len:5848
+entry 0x40080698
+
+lancement SIM800
+Version = V1-1
+ID = TPCF_Canal
+magic = 2341
+Alarme = 1
+Ala_Vie = 25200
+Fin jour = 72000
+Interval reveil JCirc (s)= 3600
+Tempo Analyse Alarme (s)= 600
+TimeOut Alarme Jour (s)= 18
+TimeOut Alarme Nuit (s)= 3
+Tempo Sortie (s)= 10
+Time Out Eclairage (s)= 60
+Time Out Wifi (s)= 600
+Alarme sur Pedale 1 = 1
+Alarme sur Pedale 2 = 1
+Alarme sur Porte = 1
+SPIFFS initialised... file access enabled...
+Listing directory: /
+  FILE: /coeff.txt	SIZE: 18
+  FILE: /filecal.csv	SIZE: 756
+  FILE: /log.txt	SIZE: 23221
+Reading file: /filecal.csv
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+Listing directory: /
+  FILE: /coeff.txt	SIZE: 18
+  FILE: /filecal.csv	SIZE: 756
+  FILE: /log.txt	SIZE: 23221
+Coeff T Batterie = 5483 Coeff T Proc = 7157 Coeff T VUSB = 7020
+
++CPIN: SIM PIN
+
+OK
+
+Mise a l'heure reguliere !, MajH1 23/01/19 13:39:10
+Jour
+temps =11046
+
+Call Ready
+
+Call Ready
+
+
++CTZV: +4
+
+Call Ready
+
++CTZV: +4
+
+
+*PSUTTZ: 2019,1,23,12,39,14,"+4",0
+
+Call Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,12,39,14,"+4",0
+
+
+DST: 0
+
+Call Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,12,39,14,"+4",0
+
+DST: 0
+
+
++CIEV: 10,"20801","Orange F","Orange F", 0, 0
+
+Call Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,12,39,14,"+4",0
+
+DST: 0
+
++CIEV: 10,"20801","Orange F","Orange F", 0, 0
+
+
+SMS Ready
+
+Call Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,12,39,14,"+4",0
+
+DST: 0
+
++CIEV: 10,"20801","Orange F","Orange F", 0, 0
+
+SMS Ready
+
+23/01/2019 13:39:21 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4243mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 13:39:31 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4236mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 13:39:41 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4238mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 13:39:51 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4238mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+Wakeup :4
+Circule :0
+Taille fichier log = 23221
+23/01/2019 13:40:00;Auto;2 lance timer 1H 01:00:00
+
+Setup ESP32 to sleep for 3600;01:00:00
+Going to sleep now
+ets Jun  8 2016 00:22:57
+
+rst:0x5 (DEEPSLEEP_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:1
+load:0x3fff0018,len:4
+load:0x3fff001c,len:928
+ho 0 tail 12 room 4
+load:0x40078000,len:9280
+load:0x40080400,len:5848
+entry 0x40080698
+
+lancement SIM800
+Version = V1-1
+ID = TPCF_Canal
+magic = 2341
+Alarme = 1
+Ala_Vie = 25200
+Fin jour = 72000
+Interval reveil JCirc (s)= 3600
+Tempo Analyse Alarme (s)= 600
+TimeOut Alarme Jour (s)= 18
+TimeOut Alarme Nuit (s)= 3
+Tempo Sortie (s)= 10
+Time Out Eclairage (s)= 60
+Time Out Wifi (s)= 600
+Alarme sur Pedale 1 = 1
+Alarme sur Pedale 2 = 1
+Alarme sur Porte = 1
+SPIFFS initialised... file access enabled...
+Listing directory: /
+  FILE: /coeff.txt	SIZE: 18
+  FILE: /filecal.csv	SIZE: 756
+  FILE: /log.txt	SIZE: 23272
+Reading file: /filecal.csv
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+Listing directory: /
+  FILE: /coeff.txt	SIZE: 18
+  FILE: /filecal.csv	SIZE: 756
+  FILE: /log.txt	SIZE: 23272
+Coeff T Batterie = 5483 Coeff T Proc = 7157 Coeff T VUSB = 7020
+
++CPIN: SIM PIN
+
+OK
+
+Mise a l'heure reguliere !, MajH1 23/01/19 14:39:52
+Jour
+temps =11046
+
+Call Ready
+
+Call Ready
+
+
+SMS Ready
+
+Call Ready
+
+SMS Ready
+
+
++CTZV: +4
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+
+*PSUTTZ: 2019,1,23,13,39,57,"+4",0
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,13,39,57,"+4",0
+
+
+DST: 0
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,13,39,57,"+4",0
+
+DST: 0
+
+
++CIEV: 10,"20801","Orange F","Orange F", 0, 0
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,13,39,57,"+4",0
+
+DST: 0
+
++CIEV: 10,"20801","Orange F","Orange F", 0, 0
+
+23/01/2019 14:40:03 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4243mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 14:40:13 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4241mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 14:40:23 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4243mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+
++CMTI: "SM",1
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,13,39,57,"+4",0
+
+DST: 0
+
++CIEV: 10,"20801","Orange F","Orange F", 0, 0
+
++CMTI: "SM",1
+
+Nom appelant = Philippe
+Numero = +33685577010
+textesms  = FIN=57600
+resultat sms 1
+Message (long) = 41
+TPCF_Canal
+Fin Journee = 16:00:00(hh:mm)
+
+resultat del Sms 1
+23/01/2019 14:40:47 Freemem = 242360
+Batt Solaire = 12.50V, 85%, Batt Proc = 4241mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+Wakeup :4
+Circule :0
+Taille fichier log = 23272
+23/01/2019 14:40:56;Auto;2 lance timer 1H 01:00:00
+
+Setup ESP32 to sleep for 3600;01:00:00
+Going to sleep now
+ets Jun  8 2016 00:22:57
+
+rst:0x5 (DEEPSLEEP_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:1
+load:0x3fff0018,len:4
+load:0x3fff001c,len:928
+ho 0 tail 12 room 4
+load:0x40078000,len:9280
+load:0x40080400,len:5848
+entry 0x40080698
+
+lancement SIM800
+Version = V1-1
+ID = TPCF_Canal
+magic = 2341
+Alarme = 1
+Ala_Vie = 25200
+Fin jour = 57600
+Interval reveil JCirc (s)= 3600
+Tempo Analyse Alarme (s)= 600
+TimeOut Alarme Jour (s)= 18
+TimeOut Alarme Nuit (s)= 3
+Tempo Sortie (s)= 10
+Time Out Eclairage (s)= 60
+Time Out Wifi (s)= 600
+Alarme sur Pedale 1 = 1
+Alarme sur Pedale 2 = 1
+Alarme sur Porte = 1
+SPIFFS initialised... file access enabled...
+Listing directory: /
+  FILE: /coeff.txt	SIZE: 18
+  FILE: /filecal.csv	SIZE: 756
+  FILE: /log.txt	SIZE: 23323
+Reading file: /filecal.csv
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+Listing directory: /
+  FILE: /coeff.txt	SIZE: 18
+  FILE: /filecal.csv	SIZE: 756
+  FILE: /log.txt	SIZE: 23323
+Coeff T Batterie = 5483 Coeff T Proc = 7157 Coeff T VUSB = 7020
+
++CPIN: SIM PIN
+
+OK
+
+Mise a l'heure reguliere !, MajH1 23/01/19 15:40:52
+Jour
+temps =11045
+
+Call Ready
+
+Call Ready
+
+
+SMS Ready
+
+Call Ready
+
+SMS Ready
+
+
++CTZV: +4
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+
+*PSUTTZ: 2019,1,23,14,40,57,"+4",0
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,14,40,57,"+4",0
+
+
+DST: 0
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,14,40,57,"+4",0
+
+DST: 0
+
+
++CIEV: 10,"20801","Orange F","Orange F", 0, 0
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,14,40,57,"+4",0
+
+DST: 0
+
++CIEV: 10,"20801","Orange F","Orange F", 0, 0
+
+23/01/2019 15:41:03 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4241mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 15:41:13 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4240mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 15:41:23 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4240mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 15:41:33 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4238mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+Wakeup :4
+Circule :0
+Taille fichier log = 23323
+23/01/2019 15:41:42;Auto;2 lance timer 1H 00:15:018
+
+Setup ESP32 to sleep for 918;00:15:018
+Going to sleep now
+ets Jun  8 2016 00:22:57
+
+rst:0x5 (DEEPSLEEP_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:1
+load:0x3fff0018,len:4
+load:0x3fff001c,len:928
+ho 0 tail 12 room 4
+load:0x40078000,len:9280
+load:0x40080400,len:5848
+entry 0x40080698
+
+lancement SIM800
+Version = V1-1
+ID = TPCF_Canal
+magic = 2341
+Alarme = 1
+Ala_Vie = 25200
+Fin jour = 57600
+Interval reveil JCirc (s)= 3600
+Tempo Analyse Alarme (s)= 600
+TimeOut Alarme Jour (s)= 18
+TimeOut Alarme Nuit (s)= 3
+Tempo Sortie (s)= 10
+Time Out Eclairage (s)= 60
+Time Out Wifi (s)= 600
+Alarme sur Pedale 1 = 1
+Alarme sur Pedale 2 = 1
+Alarme sur Porte = 1
+SPIFFS initialised... file access enabled...
+Listing directory: /
+  FILE: /coeff.txt	SIZE: 18
+  FILE: /filecal.csv	SIZE: 756
+  FILE: /log.txt	SIZE: 23375
+Reading file: /filecal.csv
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+Listing directory: /
+  FILE: /coeff.txt	SIZE: 18
+  FILE: /filecal.csv	SIZE: 756
+  FILE: /log.txt	SIZE: 23375
+Coeff T Batterie = 5483 Coeff T Proc = 7157 Coeff T VUSB = 7020
+
++CPIN: SIM PIN
+
+OK
+
+Mise a l'heure reguliere !, MajH1 23/01/19 15:57:09
+Jour
+temps =11038
+
+Call Ready
+
+Call Ready
+
+
+SMS Ready
+
+Call Ready
+
+SMS Ready
+
+
++CTZV: +4
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+
+*PSUTTZ: 2019,1,23,14,57,14,"+4",0
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,14,57,14,"+4",0
+
+
+DST: 0
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,14,57,14,"+4",0
+
+DST: 0
+
+
++CIEV: 10,"20801","Orange F","Orange F", 0, 0
+
+Call Ready
+
+SMS Ready
+
++CTZV: +4
+
+*PSUTTZ: 2019,1,23,14,57,14,"+4",0
+
+DST: 0
+
++CIEV: 10,"20801","Orange F","Orange F", 0, 0
+
+23/01/2019 15:57:20 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4240mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 15:57:30 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4241mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 15:57:40 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4175mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+23/01/2019 15:57:50 Freemem = 242376
+Batt Solaire = 12.50V, 85%, Batt Proc = 4173mV, V USB = 5.00V
+Pedale 1:0 Pedale 2:0 Flag Porte:0
+Sms en attente = 0
+
+Wakeup :4
+Circule :0
+Taille fichier log = 23375
+23/01/2019 15:57:59;Auto;2 lance timer 1H 23:59:01
+
+Setup ESP32 to sleep for 86341;23:59:01
+Going to sleep now

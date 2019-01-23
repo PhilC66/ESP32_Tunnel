@@ -76,7 +76,7 @@ bool    SPIFFS_present = false;
 #define PinPedale2		33   // Entrée Pedale2 Wake up EXT1
 #define PinPorte   		34   // Entrée Porte Coffret Wake up EXT1 
 #define PinEclairage 	21   // Sortie Commande eclairage
-#define PinSirene			0    // Sortie Commande Sirene
+#define PinSirene			15   // Sortie Commande Sirene (#0 en sleep 2.3V?)
 #define RX_PIN				16   // TX Sim800
 #define TX_PIN				17   // RX Sim800
 #define SIMPIN				1234 // Code PIN carte SIM
@@ -234,7 +234,7 @@ void setup() {
 	pinMode(PinEclairage,OUTPUT);
   pinMode(PinPedale1  ,INPUT_PULLUP);
 	pinMode(PinPedale2  ,INPUT_PULLUP);
-	pinMode(PinPorte    ,INPUT_PULLUP);
+	pinMode(PinPorte    ,INPUT); // no sw pull up
 	pinMode(PinSirene   ,OUTPUT);
 	digitalWrite(PinEclairage, LOW);
 	digitalWrite(PinSirene, LOW);
@@ -466,7 +466,7 @@ void Acquisition(){
 			else{
 				TIME_TO_SLEEP = DureeSleep(config.FinJour - 180);
 			}
-			Sbidon = F("lance timer 1H ");
+			Sbidon = F("1 lance timer 1H ");
 			Sbidon += Hdectohhmm(TIME_TO_SLEEP);
 			MajLog(F("Auto"),Sbidon);
 			DebutSleep();
@@ -1212,7 +1212,7 @@ fin_i:
 			}
 			else if (textesms == F("NONCIRCULE")) {
 				bool ok = false;
-			/* demande passer en mode nonCirculé pour le jour courant, 
+				/* demande passer en mode nonCirculé pour le jour courant, 
 				sans modification calendrier enregistré en SPIFFS */
 				if(calendrier[month()][day()] == 1){
 					calendrier[month()][day()] = 0;
@@ -1229,6 +1229,30 @@ fin_i:
 					Circule = false;
 					action_wakeup_reason(4);
 				}
+			}
+			else if(textesms.indexOf(F("TEMPOWAKEUP")) == 0){ // Tempo wake up
+				if ((textesms.indexOf(char(61))) == 11){
+					int i = textesms.substring(4).toInt(); //	durée  
+					if (i > 59 && i <= 36000){ // 1mn à 10H
+						config.RepeatWakeUp = i;
+						sauvConfig();															// sauvegarde en EEPROM
+					}				
+				}
+				message += F("Tempo repetition Wake up (s)=");
+				message += config.RepeatWakeUp;
+				EnvoyerSms(number, sms);				
+			}
+			else if(textesms.indexOf(F("TEMPOANALYSE")) == 0){ // Tempo Analyse Alarme apres reveil sur alarme EXT
+				if ((textesms.indexOf(char(61))) == 12){
+					int i = textesms.substring(4).toInt(); //	durée  
+					if (i > 59 && i <= 1800){ // 1mn à 30mn
+						config.Tanalyse = i;
+						sauvConfig();															// sauvegarde en EEPROM
+					}				
+				}
+				message += F("Tempo Analyse apres Wake up (s)=");
+				message += config.Tanalyse;
+				EnvoyerSms(number, sms);				
 			}
 			else if (textesms == F("RST")) {               // demande RESET
         message += F("Le systeme va etre relance");  // apres envoie du SMS!
@@ -1896,8 +1920,8 @@ void PrintEEPROM(){
 	Serial.print(F("Alarme = "))									,Serial.println(config.Intru);
 	Serial.print(F("Ala_Vie = "))									,Serial.println(config.Ala_Vie);
 	Serial.print(F("Fin jour = "))								,Serial.println(config.FinJour);
-	Serial.print(F("Interval reveil JCirc (s)= ")),Serial.println(config.RepeatWakeUp);
-	Serial.print(F("Tempo Analyse Alarme (s)= ")) ,Serial.println(config.Tanalyse);
+	Serial.print(F("Tempo repetition Wake up (s)= ")),Serial.println(config.RepeatWakeUp);
+	Serial.print(F("Tempo Analyse apres Wake up (s)= ")) ,Serial.println(config.Tanalyse);
 	Serial.print(F("TimeOut Alarme Jour (s)= "))  ,Serial.println(config.Jour_Nmax);
 	Serial.print(F("TimeOut Alarme Nuit (s)= "))	,Serial.println(config.Nuit_Nmax);
 	Serial.print(F("Tempo Sortie (s)= "))				  ,Serial.println(config.tempoSortie);
@@ -2334,7 +2358,7 @@ void action_wakeup_reason(byte wr){ // action en fonction du wake up
 				else{
 					TIME_TO_SLEEP = DureeSleep(config.FinJour - 180);
 				}
-				Sbidon = F("lance timer 1H ");
+				Sbidon = F("2 lance timer 1H ");
 				Sbidon += Hdectohhmm(TIME_TO_SLEEP);
 				MajLog(F("Auto"),Sbidon);
 				DebutSleep();
@@ -2422,11 +2446,11 @@ void HomePage(){
 	webpage += F("<td>");	webpage += String(config.Nuit_Nmax*10);	webpage += F("</td>");
 	webpage += F("</tr>");
 	webpage += F("<tr>");
-	webpage += F("<td>Tempo Analyse Alarme (s)</td>");
+	webpage += F("<td>Tempo Analyse apres Wake up (s)</td>");
 	webpage += F("<td>");	webpage += String(config.Tanalyse);	webpage += F("</td>");
 	webpage += F("</tr>");
 	webpage += F("<tr>");
-	webpage += F("<td>Interval Reveil Jour Circul&eacute; (s)</td>");
+	webpage += F("<td>Tempo repetition Wake up Jour Circul&eacute; (s)</td>");
 	webpage += F("<td>");	webpage += String(config.RepeatWakeUp);	webpage += F("</td>");
 	webpage += F("</tr>");	
 	webpage += F("<tr>");
