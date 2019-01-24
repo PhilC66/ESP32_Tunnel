@@ -453,7 +453,8 @@ void Acquisition(){
 		LastWupAlarme = false;
 		WupAlarme     = false;
 		if(!jour){ // nuit retour sleep jusqu'a 3mn avant AlaVie			
-			TIME_TO_SLEEP = DureeSleep(config.Ala_Vie - 3*60);// 3mn avant
+			TIME_TO_SLEEP = DureeSleep(config.Ala_Vie - 90);// 1.5mn avant
+Serial.print("time sleep calcul 3 : "),Serial.println(TIME_TO_SLEEP);
 			Sbidon = F("Externe ");
 			Sbidon += Hdectohhmm(TIME_TO_SLEEP);
 			MajLog(F("Auto"),Sbidon);
@@ -2361,12 +2362,12 @@ void action_wakeup_reason(byte wr){ // action en fonction du wake up
 }
 //---------------------------------------------------------------------------
 void calculTimeSleep(){
-	if(HActuelledec() < (config.FinJour - config.RepeatWakeUp - 60)){
+	if(HActuelledec() < (config.FinJour - config.RepeatWakeUp - 90)){
 		TIME_TO_SLEEP = config.RepeatWakeUp;
 Serial.print("time sleep calcul 1 : "),Serial.println(TIME_TO_SLEEP);
 	}
 	else{
-		TIME_TO_SLEEP = DureeSleep(config.FinJour - 60);
+		TIME_TO_SLEEP = DureeSleep(config.FinJour - 90);
 Serial.print("time sleep calcul 2 : "),Serial.println(TIME_TO_SLEEP);
 	}
 	Sbidon = F("lance timer 1H ");
