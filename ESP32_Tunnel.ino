@@ -50,6 +50,7 @@ Compilation LOLIN D32,default,80MHz
  */
 
 #include <credentials_home.h>
+#include <Battpct.h>
 
 #include <Sim800l.h>              //my SIM800 modifié
 #include <Time.h>
@@ -482,14 +483,14 @@ Serial.print("time sleep calcul 3 : "),Serial.println(TIME_TO_SLEEP);
 	VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension[1]);
 	// VUSB            = map(moyenneAnalogique(PinBattUSB) , 0, 4095, 0, CoeffTension[2]);
 	
-	if(Battpct(TensionBatterie) < 25 || VUSB < 4000){ // || VUSB > 6000
+	if(BattPBpct(TensionBatterie) < 25 || VUSB < 4000){ // || VUSB > 6000
 		nalaTension ++;
     if (nalaTension == 4) {
       FlagAlarmeTension = true;
       nalaTension = 0;
     }
 	}
-	else if (Battpct(TensionBatterie) > 80 && VUSB > 4800) { //  && VUSB < 5400	//hysteresis et tempo sur Alarme Batterie
+	else if (BattPBpct(TensionBatterie) > 80 && VUSB > 4800) { //  && VUSB < 5400	//hysteresis et tempo sur Alarme Batterie
     nRetourTension ++;
 		if(nRetourTension == 4){
 			FlagAlarmeTension = false;			
@@ -504,7 +505,7 @@ Serial.print("time sleep calcul 3 : "),Serial.println(TIME_TO_SLEEP);
 	message = F("Batt Solaire = ");
 	message += float(TensionBatterie/100.0);
 	message += "V, ";
-	message += String(Battpct(TensionBatterie));
+	message += String(BattPBpct(TensionBatterie));
 	message += "%";
 	message += F(", Batt Proc = ");
 	message +=(String(VBatterieProc) + "mV");
@@ -835,7 +836,7 @@ fin_i:
 				message += F("V Batt Sol= ");			
 				message += String(float(TensionBatterie/100.0));
 				message += F("V, ");
-				message += String(Battpct(TensionBatterie));
+				message += String(BattPBpct(TensionBatterie));
 				message += " %";
 				message += fl;
 				message += F("V USB= ");
@@ -1329,7 +1330,7 @@ fin_i:
 				if(M == 1){
 					message += fl;
 					message += F("Batterie = ");
-					message += String(Battpct(tension));
+					message += String(BattPBpct(tension));
 					message += "%";
 				}
 				message += fl;
@@ -1421,7 +1422,7 @@ void generationMessage() {
   else {
     message += F("OK, ");
   }
-	message += String(Battpct(TensionBatterie));
+	message += String(BattPBpct(TensionBatterie));
 	message += "%";
 	message += fl;
 	message += F("V USB =");
@@ -2102,76 +2103,6 @@ int moyenneAnalogique(int Pin){	// calcul moyenne 10 mesures consécutives
 	return moyenne;
 }
 //---------------------------------------------------------------------------
-int Battpct(long vbat){
-	// vbat tension batterie 1215 = 12.15V 
-	// retourn etat batterie en %
-	int EtatBat = 0;
-	if (vbat > 1260) {
-		EtatBat = 100;
-	}
-	else if (vbat > 1255) {
-		EtatBat = 95;
-	}
-	else if (vbat > 1250) {
-		EtatBat = 90;
-	}
-	else if (vbat > 1246) {
-		EtatBat = 85;
-	}
-	else if (vbat > 1242) {
-		EtatBat = 80;
-	}
-	else if (vbat > 1237) {
-		EtatBat = 75;
-	}
-	else if (vbat > 1232) {
-		EtatBat = 70;
-	}
-	else if (vbat > 1226) {
-		EtatBat = 65;
-	}
-	else if (vbat > 1220) {
-		EtatBat = 60;
-	}
-	else if (vbat > 1213) {
-		EtatBat = 55;
-	}
-	else if (vbat > 1206) {
-		EtatBat = 50;
-	}
-	else if (vbat > 1198) {
-		EtatBat = 45;
-	}
-	else if (vbat > 1190) {
-		EtatBat = 40;
-	}
-	else if (vbat > 1183) {
-		EtatBat = 35;
-	}
-	else if (vbat > 1175) {
-		EtatBat = 30;
-	}
-	else if (vbat > 1167) {
-		EtatBat = 25;
-	}
-	else if (vbat > 1158) {
-		EtatBat = 20;	
-	}
-	else if (vbat > 1145) {
-		EtatBat = 15;
-	}
-	else if (vbat > 1131) {
-		EtatBat = 10;
-	}
-	else if (vbat > 1100) {
-		EtatBat = 5;
-	}
-	else if (vbat <= 1050) {
-		EtatBat = 0;
-	}
-	return EtatBat;
-}
-//---------------------------------------------------------------------------
 void OuvrirFichierCalibration(){ // Lecture fichier calibration
 	
 	if(SPIFFS.exists(filecalibration)){
@@ -2317,6 +2248,7 @@ void DebutSleep(){
 //---------------------------------------------------------------------------
 void action_wakeup_reason(byte wr){ // action en fonction du wake up	
 	Serial.print(F("Wakeup :")),Serial.print(wr);
+	Serial.print(F("jour :")),Serial.print(jour);
 	Serial.print(F(" ,Calendrier :")),Serial.print(calendrier[month()][day()]);
 	Serial.print(F(" ,Circule :")),Serial.println(Circule);
 	byte pin = 0;
