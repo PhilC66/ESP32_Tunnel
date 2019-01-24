@@ -504,12 +504,13 @@ Serial.print("time sleep calcul 3 : "),Serial.println(TIME_TO_SLEEP);
 
 	message = F("Batt Solaire = ");
 	message += float(TensionBatterie/100.0);
-	message += "V, ";
+	message += "V ";
 	message += String(BattPBpct(TensionBatterie));
 	message += "%";
 	message += F(", Batt Proc = ");
-	message +=(String(VBatterieProc) + "mV");
-	message +=(F(", V USB = "));
+	message +=(String(VBatterieProc) + "mV ");
+	message += String(BattLipopct(VBatterieProc));
+	message +=(F("%, V USB = "));
 	message +=(float(VUSB/1000.0));
 	message +=("V");
 	message += fl;
@@ -1464,15 +1465,15 @@ void generationMessage() {
 		message += F("Alarme Silencieuse OFF");
 		message += fl;
 	}
-	Serial.println(message);
+	// Serial.println(message);
 }
 //---------------------------------------------------------------------------
 void EnvoyerSms(char *num, bool sms){
 	
 	if(sms){ // envoie sms
 		message.toCharArray(replybuffer,message.length()+1);
-		bool error = Sim800l.sendSms(num,replybuffer);
-		Serial.print(F("resultat sms ")),Serial.println(error);
+		bool OK = Sim800l.sendSms(num,replybuffer);
+		if(OK)Serial.println(F("send sms OK"));
 	}
 	Serial.print (F("Message (long) = ")), Serial.println(message.length());
 	Serial.println(message);
@@ -2235,8 +2236,12 @@ void DebutSleep(){
   //Go to sleep now
   Serial.println(F("Going to sleep now"));
 	
-	Sim800l.sleep();
-	delay(1000);
+	byte i = 0;
+	while(!Sim800l.sleep()){
+		Alarm.delay(100);
+		if(i++ > 10) break;
+	}
+	// delay(1000);
 	Serial.flush();
   esp_deep_sleep_start();
 	delay(100);
