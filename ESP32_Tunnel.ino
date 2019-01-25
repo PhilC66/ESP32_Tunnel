@@ -698,10 +698,14 @@ void traite_sms(byte slot){
 				message += fl;
 			}
 			if(textesms.indexOf(F("WIFIOFF"))>-1){ // Arret Wifi
-				WifiOff();
+				// WifiOff();
 				message += F("Wifi off");
 				message += fl;
-				EnvoyerSms(number, true);
+				EnvoyerSms(number, sms);
+				WiFi.disconnect(true);
+				WiFi.mode(WIFI_OFF);
+				WiFi.mode(WIFI_MODE_NULL);
+				btStop();
 			}
 			else if(textesms.indexOf(F("Wifi"))== 0){ // demande connexion Wifi
 				byte pos1 = textesms.indexOf(char(44));//","
@@ -2062,6 +2066,7 @@ void WifiOff(){
 	Serial.println(F("Wifi off"));
 	WiFi.disconnect(true);
 	WiFi.mode(WIFI_OFF);
+	WiFi.mode(WIFI_MODE_NULL);
 	btStop();
 	Alarm.delay(100);
 	ESP.restart();
@@ -2253,7 +2258,7 @@ void DebutSleep(){
 //---------------------------------------------------------------------------
 void action_wakeup_reason(byte wr){ // action en fonction du wake up	
 	Serial.print(F("Wakeup :")),Serial.print(wr);
-	Serial.print(F("jour :")),Serial.print(jour);
+	Serial.print(F(", jour :")),Serial.print(jour);
 	Serial.print(F(" ,Calendrier :")),Serial.print(calendrier[month()][day()]);
 	Serial.print(F(" ,Circule :")),Serial.println(Circule);
 	byte pin = 0;
@@ -2692,7 +2697,7 @@ void recvOneChar() {
   if (Serial.available() > 0) {
     receivedChar = Serial.read();
     demande += receivedChar;
-    if (receivedChar == 10 || receivedChar == 13) {
+    if (receivedChar == 10){// || receivedChar == 13) {
       newData = true;
     }
   }
