@@ -103,10 +103,10 @@ int Magique       = 2341;
 String Sbidon 		= "";
 String message;
 String bufferrcpt;
-String fl = "\n";                   //	saut de ligne SMS
-String Id ;                         // 	Id du materiel sera lu dans EEPROM
-char    SIM800InBuffer[64];         //	for notifications from the SIM800
-char replybuffer[255];              // 	Buffer de reponse SIM800
+String fl = "\n";                   //  saut de ligne SMS
+String Id ;                         //  Id du materiel sera lu dans EEPROM
+char    SIM800InBuffer[64];         //  for notifications from the SIM800
+char replybuffer[255];              //  Buffer de reponse SIM800
 volatile int IRQ_Cpt_PDL1  = 0;
 volatile int IRQ_Cpt_PDL2  = 0;
 volatile int IRQ_Cpt_Porte = 0;
@@ -1209,8 +1209,7 @@ fin_i:
         EnvoyerSms(number, sms);
         if (ok) {
           if (sms)EffaceSMS(slot);
-          Circule = true;
-
+          Circule = true;					
           action_wakeup_reason(4);
         }
       }
@@ -2285,7 +2284,9 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
     pin = wr;
     wr = 3;
   }
-  switch (wr) {
+	if(wr == 0)wr = 4; // demarrage normal, decision idem timer
+	
+  switch (wr) {		
     case 2: break; // ne rien faire ESP_SLEEP_WAKEUP_EXT0
 
     case 3: // ESP_SLEEP_WAKEUP_EXT1
@@ -2309,10 +2310,12 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
         verifier si wake up arrive avant fin journée marge 1mn*/
       if ((calendrier[month()][day()] == 1 || Circule) && jour) { // jour circulé
         /*  ne rien faire  */
-        Serial.println(F("Jour circulé ou demande circulation"));
+        Nmax = config.Jour_Nmax; // parametre jour
+				Serial.println(F("Jour circulé ou demande circulation"));
       }
-      else if ((calendrier[month()][day()] == 0)) { // non circulé
+      else if ((calendrier[month()][day()] == 0 || !Circule)) { // non circulé
         Serial.println(F("Jour noncirculé"));
+				Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
         DebutSleep();
       }
@@ -2320,7 +2323,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
 
     case 5: break;  // ne rien faire ESP_SLEEP_WAKEUP_TOUCHPAD
     case 6: break;  // ne rien faire ESP_SLEEP_WAKEUP_ULP
-    default: break; // demarrage normal
+    // default: break; // demarrage normal	
   }
 }
 //---------------------------------------------------------------------------
@@ -2363,7 +2366,7 @@ int get_wakeup_reason() {
         uint64_t wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
         if (wakeup_pin_mask != 0) {
           int pin = __builtin_ffsll(wakeup_pin_mask) - 1;
-          Serial.print(F("Wake up from GPIO ")); Serial.print(String(pin));
+          Serial.print(F("Wake up from GPIO ")); Serial.println(String(pin));
           return pin; // pin
         } else {
           Serial.println(F(" Wake up from GPIO ?"));
@@ -2380,7 +2383,7 @@ int get_wakeup_reason() {
 }
 
 //---------------------------------------------------------------------------
-void EffaceSMS(int s) {
+void EffaceSMS(int s){
   bool err;
   byte n = 0;
   do {
