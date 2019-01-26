@@ -2,7 +2,7 @@ Liste des commandes
 ID
 ID=abcdefghij  10 car max
 timeoutwifi														durée du timeout wifi avant retour fonctionnement normale
-timeoutwifi=300												durée en secondes(10-3600)
+timeoutwifi=300												durée en secondes 10-3600 (norm=600)
 Wifi,ssid,password										connexion wifi case sensitive
 lst?																	Liste le Phone Book
 tel=+331234567890,Nom									crestion nouveau numero dans le Phone Book
@@ -39,5 +39,5 @@ TEMPOSORTIE=n													1-120
 PARAM=n,m															Parametre compteur pour alarme cable Jour/Nuit en s multiple de 10s
 CIRCULE																Demande passer en mode Circulé pour jour courant, sans modification du calendrier enregistré
 NONCIRCULE														Demande passer en mode non circulé
-TEMPOWAKEUP=n													Tempo repetition Wake up en s 59 à 36000
-TEMPOANALYSE=n												Tempo Analyse apres Wake up en s 59 à 1800
+TEMPOWAKEUP=n													Tempo repetition Wake up en s 59 à 36000 (norm=3600)
+TEMPOANALYSE=n												Tempo Analyse apres Wake up en s 59 à 1800 (norm=15*60)

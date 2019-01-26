@@ -39,9 +39,11 @@ alarme cable/porte
 page web
 message ST a remanier
 
-accelerer lecture SMS si grande qte au lancement, 
-ne pas attendre next Acquisition 4mn 14SMS > 3mn 14SMS??? 
-perdu lescture des Interrupts -- a revoir --
+
+version prod
+mytel a changer
+Tension batterie 
+parametres par defaut
 
 
 Compilation LOLIN D32,default,80MHz
@@ -366,7 +368,8 @@ void setup() {
 	
 	ActiveInterrupt();
 	
-Serial.print(F("temps =")),Serial.println(millis());
+// Serial.print(F("temps =")),Serial.println(millis());
+Serial.print(F("Circule :")),Serial.println(Circule);
 }
 //---------------------------------------------------------------------------
 void loop() {
@@ -2672,7 +2675,7 @@ String file_size(int bytes){
   return fsize;
 }
 //---------------------------------------------------------------------------
-void handleTime(){
+void handleTime(){ // getion temps page web
 	char time_str[9];
 	const uint32_t millis_in_day    = 1000 * 60 * 60 * 24;
 	const uint32_t millis_in_hour   = 1000 * 60 * 60;
