@@ -2178,7 +2178,7 @@ String Hdectohhmm(long Hdec) {
   if (int((Hdec % 3600) / 60) < 10) hhmm += "0";
   hhmm += int((Hdec % 3600) / 60);
   hhmm += ":";
-  if (int((Hdec % 3600) % 60) < 10); hhmm += "0";
+  if (int((Hdec % 3600) % 60) < 10) hhmm += "0";
   hhmm += int((Hdec % 3600) % 60);
   return hhmm;
 }
