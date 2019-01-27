@@ -961,6 +961,8 @@ fin_i:
         message += config.Jour_Nmax * 10 + fl;
         message += F("Nuit : ");
         message += config.Nuit_Nmax * 10 + fl;
+				message += F("Actuel : ");
+        message += Nmax * 10 + fl;
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("CAPTEUR")) == 0) {	// Capteurs actif CAPTEUR=1,0,1 (Pedale1,Pedale2,Porte)
