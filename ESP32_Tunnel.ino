@@ -134,7 +134,7 @@ RTC_DATA_ATTR int CptAllumage = 0; // Nombre Allumage par jour en memoire RTC
 RTC_DATA_ATTR bool WupAlarme  = false; // declenchement alarme externe
 RTC_DATA_ATTR bool Circule    = false; // circule demandé, valable 1 seul jour
 
-byte anticip = 90;						// temps anticipation lancement s
+byte anticip = 60;						// temps anticipation lancement s
 bool LastWupAlarme            = false;
 
 int   slot = 0;            			 //this will be the slot number of the SMS
@@ -1235,7 +1235,7 @@ fin_i:
       }
       else if (textesms.indexOf(F("TEMPOWAKEUP")) == 0) { // Tempo wake up
         if ((textesms.indexOf(char(61))) == 11) {
-          int i = textesms.substring(4).toInt(); //	durée
+          int i = textesms.substring(12).toInt(); //	durée
           if (i > 59 && i <= 36000) { // 1mn à 10H
             config.RepeatWakeUp = i;
             sauvConfig();															// sauvegarde en EEPROM
@@ -1247,7 +1247,7 @@ fin_i:
       }
       else if (textesms.indexOf(F("TEMPOANALYSE")) == 0) { // Tempo Analyse Alarme apres reveil sur alarme EXT
         if ((textesms.indexOf(char(61))) == 12) {
-          int i = textesms.substring(4).toInt(); //	durée
+          int i = textesms.substring(13).toInt(); //	durée
           if (i > 59 && i <= 1800) { // 1mn à 30mn
             config.Tanalyse = i;
             sauvConfig();															// sauvegarde en EEPROM
