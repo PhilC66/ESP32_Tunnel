@@ -161,7 +161,7 @@ byte recordn = 100;							// Num enregistrement EEPROM
 struct  config_t 								// Structure configuration sauvée en EEPROM
 {
   int 		magic				;					// num magique
-  long    Ala_Vie 		;					// Heure message Vie, 7h matin en seconde = 7*60*60
+  long    DebutJour 	;					// Heure message Vie, 7h matin en seconde = 7*60*60
   long    FinJour 		;					// Heure fin jour, 20h matin en seconde = 20*60*60
   long    RepeatWakeUp; 				// Periodicité WakeUp Jour non circulé
   int     Tanalyse    ;         // tempo analyse alarme sur interruption
@@ -258,7 +258,7 @@ void setup() {
     */
     Serial.println(F("Nouvelle Configuration !"));
     config.magic         = Magique;
-    config.Ala_Vie       = 7 * 60 * 60;
+    config.DebutJour     = 7 * 60 * 60;
     config.FinJour       = 20 * 60 * 60;
     config.RepeatWakeUp  = 60 * 60;
     config.Tanalyse      = 10 * 60;
@@ -352,7 +352,7 @@ void setup() {
   TimeOut = Alarm.timerRepeat(config.timeOutS, Extinction); // tempo time out extinction
   Alarm.disable(TimeOut);
 
-  Svie = Alarm.alarmRepeat(config.Ala_Vie, SignalVie); // chaque jour
+  Svie = Alarm.alarmRepeat(config.DebutJour, SignalVie); // chaque jour
   Alarm.enable(Svie);
 
   FinJour = Alarm.alarmRepeat(config.FinJour, FinJournee); // Fin de journée retour deep sleep
@@ -457,18 +457,18 @@ void Acquisition() {
   if (LastWupAlarme != WupAlarme && nsms == 0) { // fin de la tempo analyse retour sleep
     LastWupAlarme = false;
     WupAlarme     = false;
-    // if(!jour){ // nuit retour sleep jusqu'a 1.5mn avant AlaVie
-    // TIME_TO_SLEEP = DureeSleep(config.Ala_Vie - anticip);// 1.5mn avant
-    // Serial.print(F("Fin TempoAnalyse nuit time sleep calcul 0 : ")),Serial.println(TIME_TO_SLEEP);
-    // Sbidon = F("Externe Fin ");
-    // Sbidon += Hdectohhmm(TIME_TO_SLEEP);
-    // MajLog(F("Auto"),Sbidon);
-    // DebutSleep();
+    // if(!jour){ // nuit retour sleep jusqu'a xmn avant AlaVie
+			// TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);// 1.5mn avant
+			// Serial.print(F("Fin TempoAnalyse nuit time sleep calcul 0 : ")),Serial.println(TIME_TO_SLEEP);
+			// Sbidon = F("Externe Fin ");
+			// Sbidon += Hdectohhmm(TIME_TO_SLEEP);
+			// MajLog(F("Auto"),Sbidon);
+			// DebutSleep();
     // }
-    // else if(jour || !Circule ){ // jour non circulé sleep 01H00 ou Finjour-1mn maxi
-    Serial.println(F("Fin TempoAnalyse"));
-    calculTimeSleep();
-    DebutSleep();
+			// else{// if(jour || !Circule ){ // jour non circulé sleep 01H00 ou Finjour-1mn maxi
+			Serial.println(F("Fin TempoAnalyse"));
+			calculTimeSleep();
+			DebutSleep();
     // }
   }
 
@@ -1060,13 +1060,13 @@ fin_i:
         if (textesms.indexOf(char(61)) == 3) {
           long i = atol(textesms.substring(4).c_str()); //	Heure message Vie
           if (i > 0 && i <= 86340) {                    //	ok si entre 0 et 86340(23h59)
-            config.Ala_Vie = i;
+            config.DebutJour = i;
             sauvConfig();                               // sauvegarde en EEPROM
-            Svie = Alarm.alarmRepeat(config.Ala_Vie, SignalVie);// init tempo
+            Svie = Alarm.alarmRepeat(config.DebutJour, SignalVie);// init tempo
           }
         }
         message += F("Heure Vie = ");
-        message += Hdectohhmm(config.Ala_Vie);
+        message += Hdectohhmm(config.DebutJour);
         message += F("(hh:mm)");
         message += fl;
         EnvoyerSms(number, sms);
@@ -1646,8 +1646,7 @@ void FinAnalyse() {
 }
 //---------------------------------------------------------------------------
 long DureeSleep(long Htarget) { // Htarget Heure de reveil visée
-  /* calcul durée entre maintenant et
-    heure Vie-5mn, 5 mn(Tlancement)*/
+  /* calcul durée entre maintenant et Htarget*/
   long SleepTime = 0;
   long Heureactuelle = HActuelledec();
   if (Heureactuelle < Htarget) {
@@ -1923,7 +1922,7 @@ void FinJournee() {
   jour = false;
   Circule = false;
   Serial.println(F("Fin de journée retour sleep"));
-  TIME_TO_SLEEP = DureeSleep(config.Ala_Vie - anticip);// 1.5mn avant
+  TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);// 1.5mn avant
   Sbidon = F("FinJour ");
   Sbidon += Hdectohhmm(TIME_TO_SLEEP);
   MajLog(F("Auto"), Sbidon);
@@ -1935,7 +1934,7 @@ void PrintEEPROM() {
   Serial.print(F("ID = "))											, Serial.println(config.Idchar);
   Serial.print(F("magic = "))										, Serial.println(config.magic);
   Serial.print(F("Alarme = "))									, Serial.println(config.Intru);
-  Serial.print(F("Ala_Vie = "))									, Serial.println(config.Ala_Vie);
+  Serial.print(F("Debut Jour = "))							, Serial.println(config.DebutJour);
   Serial.print(F("Fin jour = "))								, Serial.println(config.FinJour);
   Serial.print(F("Tempo repetition Wake up (s)= ")), Serial.println(config.RepeatWakeUp);
   Serial.print(F("Tempo Analyse apres Wake up (s)= ")) , Serial.println(config.Tanalyse);
@@ -2215,9 +2214,9 @@ void AIntru_HeureActuelle() {
 
   long Heureactuelle = HActuelledec();
 
-  if (config.FinJour > config.Ala_Vie) {
-    if ((Heureactuelle > config.FinJour && Heureactuelle > config.Ala_Vie)
-        || (Heureactuelle < config.FinJour && Heureactuelle < config.Ala_Vie)) {
+  if (config.FinJour > config.DebutJour) {
+    if ((Heureactuelle > config.FinJour && Heureactuelle > config.DebutJour)
+        || (Heureactuelle < config.FinJour && Heureactuelle < config.DebutJour)) {
       // Nuit
       IntruD();
     }
@@ -2226,7 +2225,7 @@ void AIntru_HeureActuelle() {
     }
   }
   else {
-    if (Heureactuelle > config.FinJour && Heureactuelle < config.Ala_Vie) {
+    if (Heureactuelle > config.FinJour && Heureactuelle < config.DebutJour) {
       // Nuit
       IntruD();
     }
@@ -2252,6 +2251,8 @@ void DebutSleep() {
   //If you were to use ext1, you would use it like
   esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
 
+	// a tester
+	// esp_deep_sleep_enable_timer_wakeup
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.print(F("Setup ESP32 to sleep for "));
   Serial.print(TIME_TO_SLEEP);
@@ -2319,7 +2320,12 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
         Serial.println(F("Jour noncirculé"));
 				Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
-        DebutSleep();
+				if(TIME_TO_SLEEP < 60){ // on continue sans sleep
+					Serial.println("on continue sans sleep");
+				}
+				else{
+					DebutSleep();
+				}
       }
       break;
 
@@ -2330,23 +2336,23 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
 }
 //---------------------------------------------------------------------------
 void calculTimeSleep() {
-  // if(HActuelledec() < (config.FinJour - config.RepeatWakeUp - anticip)){
-  // TIME_TO_SLEEP = config.RepeatWakeUp;
-  // Serial.print("time sleep calcul 1 : "),Serial.println(TIME_TO_SLEEP);
-  // }
-  // else{
-  // TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
-  // Serial.print("time sleep calcul 2 : "),Serial.println(TIME_TO_SLEEP);
-  // }
-
-  if ((HActuelledec() + config.RepeatWakeUp) > config.FinJour) {
-    TIME_TO_SLEEP = config.FinJour - anticip - HActuelledec();
-    Serial.print(F("time sleep calcul 1 : ")), Serial.println(TIME_TO_SLEEP);
-  }
-  else if ((HActuelledec() > config.FinJour) && (HActuelledec() < (config.Ala_Vie - anticip))) {
-    TIME_TO_SLEEP = config.Ala_Vie - anticip - HActuelledec();
-    Serial.print(F("time sleep calcul 2 : ")), Serial.println(TIME_TO_SLEEP);
-  }
+	
+	AIntru_HeureActuelle(); // determine si jour/nuit
+	
+	if(jour && (HActuelledec() + config.RepeatWakeUp) > config.FinJour){		
+		TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
+    Serial.print(F("time sleep calcul 1 : ")), Serial.println(TIME_TO_SLEEP);		
+	}
+	else if(!jour){
+		if(HActuelledec() < (config.DebutJour - anticip)){
+			TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);
+			Serial.print(F("time sleep calcul 2 : ")), Serial.println(TIME_TO_SLEEP);
+		}
+		else if(HActuelledec() < 86400){
+			TIME_TO_SLEEP = (86400 - HActuelledec()) + config.DebutJour - anticip;
+			Serial.print(F("time sleep calcul 2bis : ")), Serial.println(TIME_TO_SLEEP);
+		}		
+	}
   else {
     TIME_TO_SLEEP = config.RepeatWakeUp;
     Serial.print(F("time sleep calcul 3 : ")), Serial.println(TIME_TO_SLEEP);
@@ -2414,7 +2420,7 @@ void HomePage() {
   webpage += F("<tr>");
   webpage += F("<tr>");
   webpage += F("<td>Debut Jour</td>");
-  webpage += F("<td>");	webpage += Hdectohhmm(config.Ala_Vie);	webpage += F("</td>");
+  webpage += F("<td>");	webpage += Hdectohhmm(config.DebutJour);	webpage += F("</td>");
   webpage += F("</tr>");
   webpage += F("<tr>");
   webpage += F("<td>Fin Jour</td>");
@@ -2429,11 +2435,11 @@ void HomePage() {
   webpage += F("<td>");	webpage += String(config.Nuit_Nmax * 10);	webpage += F("</td>");
   webpage += F("</tr>");
   webpage += F("<tr>");
-  webpage += F("<td>Tempo Analyse apres Wake up (s)</td>");
+  webpage += F("<td>Tempo Analyse apr&egrave;s Wake up (s)</td>");
   webpage += F("<td>");	webpage += String(config.Tanalyse);	webpage += F("</td>");
   webpage += F("</tr>");
   webpage += F("<tr>");
-  webpage += F("<td>Tempo repetition Wake up Jour Circul&eacute; (s)</td>");
+  webpage += F("<td>Tempo r&eacute;p&eacute;tition Wake up Jour Circul&eacute; (s)</td>");
   webpage += F("<td>");	webpage += String(config.RepeatWakeUp);	webpage += F("</td>");
   webpage += F("</tr>");
   webpage += F("<tr>");
