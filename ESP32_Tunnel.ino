@@ -47,7 +47,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  989614 75%, 46940 14%
+  989634 75%, 46940 14%
 
 */
 
@@ -2341,21 +2341,25 @@ void calculTimeSleep() {
 	
 	if(jour && (HActuelledec() + config.RepeatWakeUp) > config.FinJour){		
 		TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
-    Serial.print(F("time sleep calcul 1 : ")), print_uint64_t(TIME_TO_SLEEP);		
+		Serial.print(F("time sleep calcul 1 : ")), print_uint64_t(TIME_TO_SLEEP);
+		Serial.println("");		
 	}
 	else if(!jour){
 		if(HActuelledec() < (config.DebutJour - anticip)){
 			TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);
 			Serial.print(F("time sleep calcul 2 : ")), print_uint64_t(TIME_TO_SLEEP);
+			Serial.println("");
 		}
 		else if(HActuelledec() < 86400){
 			TIME_TO_SLEEP = (86400 - HActuelledec()) + config.DebutJour - anticip;
 			Serial.print(F("time sleep calcul 2bis : ")), print_uint64_t(TIME_TO_SLEEP);
+			Serial.println("");
 		}		
 	}
   else {
-    TIME_TO_SLEEP = config.RepeatWakeUp;
-    Serial.print(F("time sleep calcul 3 : ")), print_uint64_t(TIME_TO_SLEEP);
+		TIME_TO_SLEEP = config.RepeatWakeUp;
+		Serial.print(F("time sleep calcul 3 : ")), print_uint64_t(TIME_TO_SLEEP);
+		Serial.println("");
   }
 
   Sbidon = F("lance timer \"1H\" ");
