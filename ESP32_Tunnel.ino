@@ -47,7 +47,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  987002 75%, 46924 14%
+  989614 75%, 46940 14%
 
 */
 
@@ -2255,7 +2255,7 @@ void DebutSleep() {
 	// esp_deep_sleep_enable_timer_wakeup
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.print(F("Setup ESP32 to sleep for "));
-  // Serial.print(TIME_TO_SLEEP);
+  print_uint64_t(TIME_TO_SLEEP);
   Serial.print(F("s ;"));
   Serial.println(Hdectohhmm(TIME_TO_SLEEP));
   Serial.flush();
@@ -2341,21 +2341,21 @@ void calculTimeSleep() {
 	
 	if(jour && (HActuelledec() + config.RepeatWakeUp) > config.FinJour){		
 		TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
-    // Serial.print(F("time sleep calcul 1 : ")), Serial.println(TIME_TO_SLEEP);		
+    Serial.print(F("time sleep calcul 1 : ")), print_uint64_t(TIME_TO_SLEEP);		
 	}
 	else if(!jour){
 		if(HActuelledec() < (config.DebutJour - anticip)){
 			TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);
-			// Serial.print(F("time sleep calcul 2 : ")), Serial.println(TIME_TO_SLEEP);
+			Serial.print(F("time sleep calcul 2 : ")), print_uint64_t(TIME_TO_SLEEP);
 		}
 		else if(HActuelledec() < 86400){
 			TIME_TO_SLEEP = (86400 - HActuelledec()) + config.DebutJour - anticip;
-			// Serial.print(F("time sleep calcul 2bis : ")), Serial.println(TIME_TO_SLEEP);
+			Serial.print(F("time sleep calcul 2bis : ")), print_uint64_t(TIME_TO_SLEEP);
 		}		
 	}
   else {
     TIME_TO_SLEEP = config.RepeatWakeUp;
-    // Serial.print(F("time sleep calcul 3 : ")), Serial.println(TIME_TO_SLEEP);
+    Serial.print(F("time sleep calcul 3 : ")), print_uint64_t(TIME_TO_SLEEP);
   }
 
   Sbidon = F("lance timer \"1H\" ");
@@ -2403,6 +2403,22 @@ void EffaceSMS(int s){
       break;
     }
   } while (!err);
+}
+//---------------------------------------------------------------------------
+void print_uint64_t(uint64_t num) {
+
+  char rev[128]; 
+  char *p = rev+1;
+
+  while (num > 0) {
+    *p++ = '0' + ( num % 10);
+    num/= 10;
+  }
+  p--;
+  /*Print the number which is now in reverse*/
+  while (p > rev) {
+    Serial.print(*p--);
+  }
 }
 //---------------------------------------------------------------------------
 void HomePage() {
