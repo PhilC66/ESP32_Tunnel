@@ -89,8 +89,8 @@ bool    SPIFFS_present = false;
 
 WebServer server(80);
 
-unsigned long TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
-unsigned long debut = millis(); // pour decompteur temps wifi
+uint64_t TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
+uint64_t debut = millis(); // pour decompteur temps wifi
 byte calendrier[13][32]; // tableau calendrier ligne 0 et jour 0 non utilisé, 12*31
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
 char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le calendrier de calibration
@@ -2255,7 +2255,7 @@ void DebutSleep() {
 	// esp_deep_sleep_enable_timer_wakeup
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.print(F("Setup ESP32 to sleep for "));
-  Serial.print(TIME_TO_SLEEP);
+  // Serial.print(TIME_TO_SLEEP);
   Serial.print(F("s ;"));
   Serial.println(Hdectohhmm(TIME_TO_SLEEP));
   Serial.flush();
@@ -2341,21 +2341,21 @@ void calculTimeSleep() {
 	
 	if(jour && (HActuelledec() + config.RepeatWakeUp) > config.FinJour){		
 		TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
-    Serial.print(F("time sleep calcul 1 : ")), Serial.println(TIME_TO_SLEEP);		
+    // Serial.print(F("time sleep calcul 1 : ")), Serial.println(TIME_TO_SLEEP);		
 	}
 	else if(!jour){
 		if(HActuelledec() < (config.DebutJour - anticip)){
 			TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);
-			Serial.print(F("time sleep calcul 2 : ")), Serial.println(TIME_TO_SLEEP);
+			// Serial.print(F("time sleep calcul 2 : ")), Serial.println(TIME_TO_SLEEP);
 		}
 		else if(HActuelledec() < 86400){
 			TIME_TO_SLEEP = (86400 - HActuelledec()) + config.DebutJour - anticip;
-			Serial.print(F("time sleep calcul 2bis : ")), Serial.println(TIME_TO_SLEEP);
+			// Serial.print(F("time sleep calcul 2bis : ")), Serial.println(TIME_TO_SLEEP);
 		}		
 	}
   else {
     TIME_TO_SLEEP = config.RepeatWakeUp;
-    Serial.print(F("time sleep calcul 3 : ")), Serial.println(TIME_TO_SLEEP);
+    // Serial.print(F("time sleep calcul 3 : ")), Serial.println(TIME_TO_SLEEP);
   }
 
   Sbidon = F("lance timer \"1H\" ");
