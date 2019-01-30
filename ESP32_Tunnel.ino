@@ -1,4 +1,3 @@
-
 /* Ph CORBEL 12/2018
   Gestion eclairage tunnel
   Alimentation sur panneaux solaires
@@ -458,17 +457,17 @@ void Acquisition() {
     LastWupAlarme = false;
     WupAlarme     = false;
     // if(!jour){ // nuit retour sleep jusqu'a xmn avant AlaVie
-			// TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);// 1.5mn avant
-			// Serial.print(F("Fin TempoAnalyse nuit time sleep calcul 0 : ")),Serial.println(TIME_TO_SLEEP);
-			// Sbidon = F("Externe Fin ");
-			// Sbidon += Hdectohhmm(TIME_TO_SLEEP);
-			// MajLog(F("Auto"),Sbidon);
-			// DebutSleep();
+    // TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);// 1.5mn avant
+    // Serial.print(F("Fin TempoAnalyse nuit time sleep calcul 0 : ")),Serial.println(TIME_TO_SLEEP);
+    // Sbidon = F("Externe Fin ");
+    // Sbidon += Hdectohhmm(TIME_TO_SLEEP);
+    // MajLog(F("Auto"),Sbidon);
+    // DebutSleep();
     // }
-			// else{// if(jour || !Circule ){ // jour non circulé sleep 01H00 ou Finjour-1mn maxi
-			Serial.println(F("Fin TempoAnalyse"));
-			calculTimeSleep();
-			DebutSleep();
+    // else{// if(jour || !Circule ){ // jour non circulé sleep 01H00 ou Finjour-1mn maxi
+    Serial.println(F("Fin TempoAnalyse"));
+    calculTimeSleep();
+    DebutSleep();
     // }
   }
 
@@ -961,7 +960,7 @@ fin_i:
         message += config.Jour_Nmax * 10 + fl;
         message += F("Nuit : ");
         message += config.Nuit_Nmax * 10 + fl;
-				message += F("Actuel : ");
+        message += F("Actuel : ");
         message += Nmax * 10 + fl;
         EnvoyerSms(number, sms);
       }
@@ -1211,7 +1210,7 @@ fin_i:
         EnvoyerSms(number, sms);
         if (ok) {
           if (sms)EffaceSMS(slot);
-          Circule = true;					
+          Circule = true;
           action_wakeup_reason(4);
         }
       }
@@ -2251,8 +2250,8 @@ void DebutSleep() {
   //If you were to use ext1, you would use it like
   esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
 
-	// a tester
-	// esp_deep_sleep_enable_timer_wakeup
+  // a tester
+  // esp_deep_sleep_enable_timer_wakeup
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.print(F("Setup ESP32 to sleep for "));
   print_uint64_t(TIME_TO_SLEEP);
@@ -2283,13 +2282,14 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
   Serial.print(F(" ,Calendrier :")), Serial.print(calendrier[month()][day()]);
   Serial.print(F(" ,Circule :")), Serial.println(Circule);
   byte pin = 0;
+	Serial.println(F("***********************************"));
   if (wr == 99 || wr == 32 || wr == 33 || wr == 34) {
     pin = wr;
     wr = 3;
   }
-	if(wr == 0)wr = 4; // demarrage normal, decision idem timer
-	
-  switch (wr) {		
+  if (wr == 0)wr = 4; // demarrage normal, decision idem timer
+
+  switch (wr) {
     case 2: break; // ne rien faire ESP_SLEEP_WAKEUP_EXT0
 
     case 3: // ESP_SLEEP_WAKEUP_EXT1
@@ -2306,7 +2306,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
       Sbidon += String(pin);
       MajLog(F("Alarme"), Sbidon);
       // }
-      break;
+		break;
 
     case 4: // SP_SLEEP_WAKEUP_TIMER
       /* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00
@@ -2314,52 +2314,52 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
       if ((calendrier[month()][day()] == 1 || Circule) && jour) { // jour circulé
         /*  ne rien faire  */
         Nmax = config.Jour_Nmax; // parametre jour
-				Serial.println(F("Jour circulé ou demande circulation"));
+        Serial.println(F("Jour circulé ou demande circulation"));
       }
       else if ((calendrier[month()][day()] == 0 || !Circule)) { // non circulé
         Serial.println(F("Jour noncirculé"));
-				Nmax = config.Nuit_Nmax; // parametre nuit
+        Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
-				if(TIME_TO_SLEEP < 60){ // on continue sans sleep
-					Serial.println("on continue sans sleep");
-				}
-				else{
-					DebutSleep();
-				}
+        if (TIME_TO_SLEEP < 60) { // on continue sans sleep
+          Serial.println("on continue sans sleep");
+        }
+        else {
+          DebutSleep();
+        }
       }
-      break;
+		break;
 
     case 5: break;  // ne rien faire ESP_SLEEP_WAKEUP_TOUCHPAD
     case 6: break;  // ne rien faire ESP_SLEEP_WAKEUP_ULP
-    // default: break; // demarrage normal	
+      // default: break; // demarrage normal
   }
 }
 //---------------------------------------------------------------------------
 void calculTimeSleep() {
-	
-	AIntru_HeureActuelle(); // determine si jour/nuit
-	
-	if(jour && (HActuelledec() + config.RepeatWakeUp) > config.FinJour){		
-		TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
-		Serial.print(F("time sleep calcul 1 : ")), print_uint64_t(TIME_TO_SLEEP);
-		Serial.println("");		
-	}
-	else if(!jour){
-		if(HActuelledec() < (config.DebutJour - anticip)){
-			TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);
-			Serial.print(F("time sleep calcul 2 : ")), print_uint64_t(TIME_TO_SLEEP);
-			Serial.println("");
-		}
-		else if(HActuelledec() < 86400){
-			TIME_TO_SLEEP = (86400 - HActuelledec()) + config.DebutJour - anticip;
-			Serial.print(F("time sleep calcul 2bis : ")), print_uint64_t(TIME_TO_SLEEP);
-			Serial.println("");
-		}		
-	}
+
+  AIntru_HeureActuelle(); // determine si jour/nuit
+
+  if (jour && (HActuelledec() + config.RepeatWakeUp) > config.FinJour) {
+    TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
+    Serial.print(F("time sleep calcul 1 : ")), print_uint64_t(TIME_TO_SLEEP);
+    Serial.println("");
+  }
+  else if (!jour) {
+    if (HActuelledec() < (config.DebutJour - anticip)) {
+      TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);
+      Serial.print(F("time sleep calcul 2 : ")), print_uint64_t(TIME_TO_SLEEP);
+      Serial.println("");
+    }
+    else if (HActuelledec() < 86400) {
+      TIME_TO_SLEEP = (86400 - HActuelledec()) + config.DebutJour - anticip;
+      Serial.print(F("time sleep calcul 2bis : ")), print_uint64_t(TIME_TO_SLEEP);
+      Serial.println("");
+    }
+  }
   else {
-		TIME_TO_SLEEP = config.RepeatWakeUp;
-		Serial.print(F("time sleep calcul 3 : ")), print_uint64_t(TIME_TO_SLEEP);
-		Serial.println("");
+    TIME_TO_SLEEP = config.RepeatWakeUp;
+    Serial.print(F("time sleep calcul 3 : ")), print_uint64_t(TIME_TO_SLEEP);
+    Serial.println("");
   }
 
   Sbidon = F("lance timer \"1H\" ");
@@ -2374,18 +2374,18 @@ int get_wakeup_reason() {
 
   switch (wakeup_reason) {
     case ESP_SLEEP_WAKEUP_EXT0  : return ESP_SLEEP_WAKEUP_EXT0; // 2
-    case ESP_SLEEP_WAKEUP_EXT1: { // 3
-        uint64_t wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
-        if (wakeup_pin_mask != 0) {
-          int pin = __builtin_ffsll(wakeup_pin_mask) - 1;
-          Serial.print(F("Wake up from GPIO ")); Serial.println(String(pin));
-          return pin; // pin
-        } else {
-          Serial.println(F(" Wake up from GPIO ?"));
-          return 99; // 99
-        }
-        break;
-      }
+    case ESP_SLEEP_WAKEUP_EXT1: // 3
+			uint64_t wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
+			if (wakeup_pin_mask != 0) {
+				int pin = __builtin_ffsll(wakeup_pin_mask) - 1;
+				Serial.print(F("Wake up from GPIO ")); Serial.println(String(pin));
+				return pin; // pin
+			} else {
+				Serial.println(F(" Wake up from GPIO ?"));
+				return 99; // 99
+			}
+		break;
+
     case ESP_SLEEP_WAKEUP_TIMER    : return ESP_SLEEP_WAKEUP_TIMER; // 4
     case ESP_SLEEP_WAKEUP_TOUCHPAD : return ESP_SLEEP_WAKEUP_TOUCHPAD; // 5
     case ESP_SLEEP_WAKEUP_ULP      : return ESP_SLEEP_WAKEUP_ULP; // 6
@@ -2395,7 +2395,7 @@ int get_wakeup_reason() {
 }
 
 //---------------------------------------------------------------------------
-void EffaceSMS(int s){
+void EffaceSMS(int s) {
   bool err;
   byte n = 0;
   do {
@@ -2411,12 +2411,12 @@ void EffaceSMS(int s){
 //---------------------------------------------------------------------------
 void print_uint64_t(uint64_t num) {
 
-  char rev[128]; 
-  char *p = rev+1;
+  char rev[128];
+  char *p = rev + 1;
 
   while (num > 0) {
     *p++ = '0' + ( num % 10);
-    num/= 10;
+    num /= 10;
   }
   p--;
   /*Print the number which is now in reverse*/
