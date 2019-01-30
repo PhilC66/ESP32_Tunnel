@@ -1,3 +1,4 @@
+
 /* Ph CORBEL 12/2018
   Gestion eclairage tunnel
   Alimentation sur panneaux solaires
@@ -47,7 +48,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  989634 75%, 46940 14%
+  989594 75%, 46932 14%
 
 */
 
@@ -87,10 +88,8 @@ bool    SPIFFS_present = false;
 #define BUTTON_PIN_BITMASK 0x700000000 // 32,33,34 Interruption Wake up
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
 
-WebServer server(80);
-
 uint64_t TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
-uint64_t debut = millis(); // pour decompteur temps wifi
+unsigned long debut    = millis(); // pour decompteur temps wifi
 byte calendrier[13][32]; // tableau calendrier ligne 0 et jour 0 non utilisé, 12*31
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
 char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le calendrier de calibration
@@ -146,6 +145,7 @@ long   VBatterieProc    = 0; // Tension Batterie Processeur
 long   VUSB             = 0; // Tension USB
 String catalog[2][10]; // liste des fichiers en SPIFFS nom/taille 10 lignes max
 
+WebServer server(80);
 File UploadFile;
 
 typedef struct											// declaration structure  pour les log
