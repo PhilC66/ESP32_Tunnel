@@ -195,7 +195,7 @@ AlarmId TSonnRepos;			// 6 tempo repos apres maxi
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 HardwareSerial *SIM800Serial = &Serial2;// liaison serie FONA SIM800
-Sim800l Sim800l;  											// to declare the library
+Sim800l Sim800;  											// to declare the library
 
 //---------------------------------------------------------------------------
 void IRAM_ATTR handleInterruptP1() { // Pedale 1
@@ -232,7 +232,7 @@ void setup() {
   Serial.println();
   Serial.println(F("lancement SIM800"));
   SIM800Serial->begin(9600); // 4800
-  Sim800l.begin();
+  Sim800.begin();
 
   pinMode(PinEclairage, OUTPUT);
   pinMode(PinPedale1  , INPUT_PULLUP);
@@ -331,8 +331,8 @@ void setup() {
   OuvrirCalendrier();					// ouvre calendrier circulation en SPIFFS
   OuvrirFichierCalibration(); // ouvre fichier calibration en SPIFFS
   // Serial.print(F("temps =")),Serial.println(millis());
-  Sim800l.reset(SIMPIN);					// lancer SIM800
-  // Sim800l.getRSSI();
+  Sim800.reset(SIMPIN);					// lancer SIM800
+  // Sim800.getRSSI();
   // Alarm.delay(1000);
   // Serial.print(F("temps =")),Serial.println(millis());
   MajHeure();
@@ -398,7 +398,7 @@ void loop() {
       Serial.println(bufferrcpt);
     }
     if ((bufferrcpt.indexOf(F("RING"))) > -1) {	// RING, Ca sonne
-      Sim800l.hangoffCall();									// on raccroche
+      Sim800.hangoffCall();									// on raccroche
     }
     /* Scan the notification string for an SMS received notification.
       If it's an SMS message, we'll get the slot number in 'slot' */
@@ -475,7 +475,7 @@ void Acquisition() {
     OuvrirFichierCalibration(); // patch relecture des coeff perdu
   }
 
-  if (!Sim800l.getetatSIM())Sim800l.reset(SIMPIN); // verification SIM
+  if (!Sim800.getetatSIM())Sim800.reset(SIMPIN); // verification SIM
   Serial.print(displayTime(0));
   Serial.print(F(" Freemem = ")), Serial.println(ESP.getFreeHeap());
   static byte nalaTension = 0;
@@ -592,12 +592,12 @@ void Acquisition() {
   /* verification nombre SMS en attente(raté en lecture directe)
   	 traitement des sms en memeoire un par un,
   	 pas de traitement en serie par commande 51, traitement beaucoup trop long */
-  nsms = Sim800l.getNumSms(); // nombre de SMS en attente (1s)
+  nsms = Sim800.getNumSms(); // nombre de SMS en attente (1s)
   Serial.print(F("Sms en attente = ")), Serial.println(nsms);
 
   if (nsms > 0) {	// nombre de SMS en attente
     // il faut les traiter
-    int numsms = Sim800l.getIndexSms(); // cherche l'index des sms en mémoire
+    int numsms = Sim800.getIndexSms(); // cherche l'index des sms en mémoire
     traite_sms(numsms);// traitement des SMS en attente
   }
   else if (nsms == 0 && FlagReset) { // on verifie que tous les SMS sont traités avant Reset
@@ -619,10 +619,10 @@ void test() {
   // pour test seulement
   // static int cpt = 0;
   // cpt ++;
-  // if(cpt == 3)Sim800l.dateNet();
+  // if(cpt == 3)Sim800.dateNet();
   // if(cpt > 360){ // toute les heures
-  // Sim800l.ModeText();
-  // Sim800l.dateNet();
+  // Sim800.ModeText();
+  // Sim800.dateNet();
   MajHeure();
   // cpt = 0;
   EnvoyerSms(myTel, true);
@@ -667,9 +667,9 @@ void traite_sms(byte slot) {
     slot = k;
     // /* Retrieve SMS sender address/phone number. */
     if (sms) {
-      numero = Sim800l.getNumberSms(slot); 	// recupere le Numero appelant
-      nom = Sim800l.getNameSms(slot);			// recupere le nom appelant
-      textesms = Sim800l.readSms(slot);		// recupere le contenu
+      numero = Sim800.getNumberSms(slot); 	// recupere le Numero appelant
+      nom = Sim800.getNameSms(slot);			// recupere le nom appelant
+      textesms = Sim800.readSms(slot);		// recupere le contenu
       textesms = ExtraireSms(textesms);
       Serial.print(F("Nom appelant = ")), Serial.println(nom);
       Serial.print(F("Numero = ")), Serial.println(numero);
@@ -772,9 +772,9 @@ fin_tel:
         }
         else {
           Serial.println(Send);
-          Sim800l.WritePhoneBook(Send);					//ecriture dans PhoneBook
+          Sim800.WritePhoneBook(Send);					//ecriture dans PhoneBook
           Alarm.delay(500);
-          Sim800l.ModeText(); //pour purger buffer fona
+          Sim800.ModeText(); //pour purger buffer fona
           Alarm.delay(500);
           message = Id;
           message += F("Nouveau Num Tel: ");
@@ -784,15 +784,15 @@ fin_tel:
         }
       }
       else if (textesms == F("LST?")) {	//	Liste des Num Tel
-        byte n = Sim800l.ListPhoneBook(); // nombre de ligne PhoneBook
+        byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
         for (byte i = 1; i < n + 1; i++) {
-          String num = Sim800l.getPhoneBookNumber(i);
+          String num = Sim800.getPhoneBookNumber(i);
           Serial.print(num.length()), Serial.print(" "), Serial.println(num);
           if (num.indexOf("+CPBR:") == 0) { // si existe pas sortir
             Serial.println(F("Failed!"));// next i
             goto fin_i;
           }
-          String name = Sim800l.getPhoneBookName(i);
+          String name = Sim800.getPhoneBookName(i);
           Serial.println(name);
           message += String(i) + ":";
           message += num;
@@ -813,16 +813,16 @@ fin_i:
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("SYS")) > -1) {
-        Sim800l.getetatSIM();// 1s
-        byte n = Sim800l.getNetworkStatus();// 1.1s
-        String Op = Sim800l.getNetworkName();// 1.05s
+        Sim800.getetatSIM();// 1s
+        byte n = Sim800.getNetworkStatus();// 1.1s
+        String Op = Sim800.getNetworkName();// 1.05s
         if (n == 5) {
           message += F(("rmg, "));// roaming 1.0s
         }
         message += Op + fl;
         read_RSSI();
-        int Vbat = Sim800l.BattVoltage();
-        byte Batp = Sim800l.BattPct();
+        int Vbat = Sim800.BattVoltage();
+        byte Batp = Sim800.BattPct();
         message += F("Batt GSM : ");
         message += Vbat;
         message += F(" mV, ");
@@ -1116,13 +1116,13 @@ fin_i:
       }
       else if (textesms.indexOf(F("MAJHEURE")) == 0) {	//	forcer mise a l'heure V2-19
         message += F("Mise a l'heure");
-        Sim800l.reset(SIMPIN);// lancer SIM800
+        Sim800.reset(SIMPIN);// lancer SIM800
         MajHeure();		// mise a l'heure
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("IMEI")) > -1) {
         message += F("IMEI = ");
-        String m = Sim800l.getIMEI();
+        String m = Sim800.getIMEI();
         message += m + fl;
         EnvoyerSms(number, sms);
       }
@@ -1401,7 +1401,7 @@ void envoieGroupeSMS(byte grp) {
     envoie un SMS à tous les numero existant (9 max) du Phone Book
     de la liste restreinte config.Pos_Pn_PB[x]=1			*/
 
-  byte n = Sim800l.ListPhoneBook(); // nombre de ligne PhoneBook
+  byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
   for (byte Index = 1; Index < n + 1; Index++) {		// Balayage des Num Tel Autorisés=dans Phone Book
     // if (!fona.getPhoneBookNumber(Index, Telbuff, 13)) { // lire Phone Book
     // Serial.print(Index), Serial.println(F("fin Phone Book!"));
@@ -1417,7 +1417,7 @@ void envoieGroupeSMS(byte grp) {
         }
       }
       else {	// grp = 0, message à tous */
-    String number = Sim800l.getPhoneBookNumber(Index);
+    String number = Sim800.getPhoneBookNumber(Index);
     generationMessage();
     // sendSMSReply(Telbuff,true);
     char num[13];
@@ -1493,7 +1493,7 @@ void EnvoyerSms(char *num, bool sms) {
 
   if (sms) { // envoie sms
     message.toCharArray(replybuffer, message.length() + 1);
-    bool OK = Sim800l.sendSms(num, replybuffer);
+    bool OK = Sim800.sendSms(num, replybuffer);
     if (OK)Serial.println(F("send sms OK"));
   }
   Serial.print (F("Message (long) = ")), Serial.println(message.length());
@@ -1502,7 +1502,7 @@ void EnvoyerSms(char *num, bool sms) {
 //---------------------------------------------------------------------------
 void read_RSSI() {	// lire valeur RSSI et remplir message
   int r;
-  byte n = Sim800l.getRSSI();
+  byte n = Sim800.getRSSI();
   // Serial.print(F("RSSI = ")); Serial.print(n); Serial.print(F(": "));
   if (n == 0) r = -115;
   if (n == 1) r = -111;
@@ -1525,20 +1525,20 @@ void MajHeure() {
   Serial.print(F("Mise a l'heure reguliere !, "));
   // setTime(10,10,0,1,1,18);
   int Nday, Nmonth, Nyear, Nminute, Nsecond, Nhour;
-  Sim800l.RTCtime(&Nday, &Nmonth, &Nyear, &Nhour, &Nminute, &Nsecond);
+  Sim800.RTCtime(&Nday, &Nmonth, &Nyear, &Nhour, &Nminute, &Nsecond);
 
 
   printf("%s %02d/%02d/%d %02d:%02d:%02d\n", "MajH1", Nday, Nmonth, Nyear, Nhour, Nminute, Nsecond);
   long debut = millis();
   if (First || Nyear < 17) {
     while (Nyear < 17) {
-      Sim800l.RTCtime(&Nday, &Nmonth, &Nyear, &Nhour, &Nminute, &Nsecond);
+      Sim800.RTCtime(&Nday, &Nmonth, &Nyear, &Nhour, &Nminute, &Nsecond);
       printf("%s %02d/%02d/%d %02d:%02d:%02d\n", "MajH2", Nday, Nmonth, Nyear, Nhour, Nminute, Nsecond);
       Alarm.delay(1000);
       if (millis() - debut > 10000) {
-        Sim800l.setPhoneFunctionality(0);
+        Sim800.setPhoneFunctionality(0);
         Alarm.delay(1000);
-        Sim800l.setPhoneFunctionality(1);
+        Sim800.setPhoneFunctionality(1);
         Alarm.delay(1000);
       }
     }
@@ -1671,7 +1671,7 @@ void SignalVie() {
   Serial.println(F("Signal vie"));
   MajHeure();
   envoieGroupeSMS(0);
-  Sim800l.delAllSms();// au cas ou, efface tous les SMS envoyé/reçu
+  Sim800.delAllSms();// au cas ou, efface tous les SMS envoyé/reçu
   CptAllumage = 0;
 
 }
@@ -2262,7 +2262,7 @@ void DebutSleep() {
   Serial.println(F("Going to sleep now"));
 
   byte i = 0;
-  while (!Sim800l.sleep()) {
+  while (!Sim800.sleep()) {
     Alarm.delay(100);
     if (i++ > 10) break;
   }
@@ -2399,11 +2399,11 @@ void EffaceSMS(int s) {
   bool err;
   byte n = 0;
   do {
-    err = Sim800l.delSms(s);
+    err = Sim800.delSms(s);
     n ++;
     Serial.print(F("resultat del Sms "));	Serial.println(err);
     if (n > 10) { // on efface tous si echec
-      Sim800l.delAllSms();
+      Sim800.delAllSms();
       break;
     }
   } while (!err);
