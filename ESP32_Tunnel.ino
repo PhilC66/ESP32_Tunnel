@@ -481,11 +481,11 @@ void Acquisition() {
   static byte nalaTension = 0;
   static byte nRetourTension = 0;
   /* test */
-  TensionBatterie = 1250;
-  VUSB = 5000;
-  // TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension[0]);
+  // TensionBatterie = 1250;
+  // VUSB = 5000;
+  TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension[0]);
   VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension[1]);
-  // VUSB            = map(moyenneAnalogique(PinBattUSB) , 0, 4095, 0, CoeffTension[2]);
+  VUSB            = map(moyenneAnalogique(PinBattUSB) , 0, 4095, 0, CoeffTension[2]);
 
   if (BattPBpct(TensionBatterie) < 25 || VUSB < 4000) { // || VUSB > 6000
     nalaTension ++;
@@ -2371,11 +2371,11 @@ int get_wakeup_reason() {
   esp_sleep_wakeup_cause_t wakeup_reason;
 
   wakeup_reason = esp_sleep_get_wakeup_cause();
-
+	uint64_t wakeup_pin_mask;
   switch (wakeup_reason) {
     case ESP_SLEEP_WAKEUP_EXT0  : return ESP_SLEEP_WAKEUP_EXT0; // 2
-    case ESP_SLEEP_WAKEUP_EXT1: // 3
-			uint64_t wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
+    case ESP_SLEEP_WAKEUP_EXT1: //{// 3
+			wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
 			if (wakeup_pin_mask != 0) {
 				int pin = __builtin_ffsll(wakeup_pin_mask) - 1;
 				Serial.print(F("Wake up from GPIO ")); Serial.println(String(pin));
@@ -2385,7 +2385,7 @@ int get_wakeup_reason() {
 				return 99; // 99
 			}
 		break;
-
+		// }
     case ESP_SLEEP_WAKEUP_TIMER    : return ESP_SLEEP_WAKEUP_TIMER; // 4
     case ESP_SLEEP_WAKEUP_TOUCHPAD : return ESP_SLEEP_WAKEUP_TOUCHPAD; // 5
     case ESP_SLEEP_WAKEUP_ULP      : return ESP_SLEEP_WAKEUP_ULP; // 6
@@ -2781,7 +2781,7 @@ void handleTime() { // getion temps page web
 /* --------------------  test local serial seulement ----------------------*/
 void recvOneChar() {
   if (Serial.available() > 0) {
-    receivedChar = Serial.read();
+    receivedChar = Serial.read();		
     demande += receivedChar;
     if (receivedChar == 10) { // || receivedChar == 13) {
       newData = true;
