@@ -128,14 +128,14 @@ byte DbounceTime = 20;				// antirebond
 int CoeffTension[3];          // Coeff calibration Tension
 int CoeffTensionDefaut = 7000;// Coefficient par defaut
 
-RTC_DATA_ATTR int CptAllumage = 0; // Nombre Allumage par jour en memoire RTC
-RTC_DATA_ATTR bool WupAlarme  = false; // declenchement alarme externe
-RTC_DATA_ATTR bool Circule    = false; // circule demandé, valable 1 seul jour
+RTC_DATA_ATTR int CptAllumage  = 0; // Nombre Allumage par jour en memoire RTC
+RTC_DATA_ATTR bool WupAlarme   = false; // declenchement alarme externe
+RTC_DATA_ATTR bool flagCircule = false; // circule demandé -> inverse le calendrier, valable 1 seul jour
 
-byte anticip = 60;						// temps anticipation lancement s
-bool LastWupAlarme            = false;
+byte anticip = 60;						// temps anticipation du reveille au lancement s
+bool LastWupAlarme             = false;
 
-int   slot = 0;            			 //this will be the slot number of the SMS
+int    slot = 0;            			 //this will be the slot number of the SMS
 char   receivedChar;
 bool   newData = false;
 String demande;
@@ -369,7 +369,7 @@ void setup() {
   ActiveInterrupt();
 
   // Serial.print(F("temps =")),Serial.println(millis());
-  Serial.print(F("Circule :")), Serial.println(Circule);
+  Serial.print(F("flag Circule :")), Serial.println(flagCircule);
 }
 //---------------------------------------------------------------------------
 void loop() {
@@ -456,15 +456,6 @@ void Acquisition() {
   if (LastWupAlarme != WupAlarme && nsms == 0) { // fin de la tempo analyse retour sleep
     LastWupAlarme = false;
     WupAlarme     = false;
-    // if(!jour){ // nuit retour sleep jusqu'a xmn avant AlaVie
-    // TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);// 1.5mn avant
-    // Serial.print(F("Fin TempoAnalyse nuit time sleep calcul 0 : ")),Serial.println(TIME_TO_SLEEP);
-    // Sbidon = F("Externe Fin ");
-    // Sbidon += Hdectohhmm(TIME_TO_SLEEP);
-    // MajLog(F("Auto"),Sbidon);
-    // DebutSleep();
-    // }
-    // else{// if(jour || !Circule ){ // jour non circulé sleep 01H00 ou Finjour-1mn maxi
     Serial.println(F("Fin TempoAnalyse"));
     calculTimeSleep();
     DebutSleep();
@@ -1198,19 +1189,20 @@ fin_i:
         bool ok = false;
         /* demande passer en mode Circulé pour le jour courant,
         	sans modification calendrier enregistré en SPIFFS */
-        if (calendrier[month()][day()] == 0) {
-          calendrier[month()][day()] = 1;
+        if (!(calendrier[month()][day()] ^ flagCircule)) {
+          // calendrier[month()][day()] = 1;
           message += F("OK, Circule");
+					flagCircule = true;
           ok = true;
         }
         else {
-          message += F("Jour deja Circule");//&agrave;
+          message += F("Jour deja Circule");
+					flagCircule = false;
         }
         message += fl;
         EnvoyerSms(number, sms);
         if (ok) {
           if (sms)EffaceSMS(slot);
-          Circule = true;
           action_wakeup_reason(4);
         }
       }
@@ -1218,19 +1210,20 @@ fin_i:
         bool ok = false;
         /* demande passer en mode nonCirculé pour le jour courant,
           sans modification calendrier enregistré en SPIFFS */
-        if (calendrier[month()][day()] == 1) {
-          calendrier[month()][day()] = 0;
-          message += F("OK, NonCircule");
+        if (calendrier[month()][day()] ^ flagCircule) {
+          // calendrier[month()][day()] = 0;
+          message += F("OK, NonCircule");					
+          flagCircule = true;
           ok = true;
         }
         else {
           message += F("Jour deja NonCircule");
+					flagCircule = false;
         }
         message += fl;
         EnvoyerSms(number, sms);
         if (ok) {
           if (sms)EffaceSMS(slot);
-          Circule = false;
           action_wakeup_reason(4);
         }
       }
@@ -1919,7 +1912,7 @@ void OuvrirCalendrier() {
 void FinJournee() {
   // fin de journée retour deep sleep
   jour = false;
-  Circule = false;
+  flagCircule = false;
   Serial.println(F("Fin de journée retour sleep"));
   TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);// 1.5mn avant
   Sbidon = F("FinJour ");
@@ -2280,7 +2273,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
   Serial.print(F("Wakeup :")), Serial.print(wr);
   Serial.print(F(", jour :")), Serial.print(jour);
   Serial.print(F(" ,Calendrier :")), Serial.print(calendrier[month()][day()]);
-  Serial.print(F(" ,Circule :")), Serial.println(Circule);
+  Serial.print(F(" ,flagCircule :")), Serial.println(flagCircule);
   byte pin = 0;
 	Serial.println(F("***********************************"));
   if (wr == 99 || wr == 32 || wr == 33 || wr == 34) {
@@ -2311,12 +2304,12 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
     case 4: // SP_SLEEP_WAKEUP_TIMER
       /* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00
         verifier si wake up arrive avant fin journée marge 1mn*/
-      if ((calendrier[month()][day()] == 1 || Circule) && jour) { // jour circulé
+      if ((calendrier[month()][day()] ^ flagCircule) && jour) { // jour circulé
         /*  ne rien faire  */
         Nmax = config.Jour_Nmax; // parametre jour
         Serial.println(F("Jour circulé ou demande circulation"));
       }
-      else if ((calendrier[month()][day()] == 0 || !Circule)) { // non circulé
+			else { //if ((calendrier[month()][day()] == 0 || !Circule)) { // non circulé
         Serial.println(F("Jour noncirculé"));
         Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
