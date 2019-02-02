@@ -47,7 +47,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  989594 75%, 46932 14%
+  989626 75%, 46932 14%
 
 */
 
@@ -874,11 +874,11 @@ fin_i:
           config.Intru = !config.Intru;
           sauvConfig();											// sauvegarde en EEPROM
           ActiveInterrupt();
-          if (!sms) {															//V2-14
+          if (!sms) {
             nom = F("console");
             // Sbidon.toCharArray(nom,8);//	si commande locale
           }
-          logRecord(nom, "A"); // V2-14 renseigne le log
+          logRecord(nom, "A"); // renseigne le log
           MajLog(nom, "A");
         }
         generationMessage();
@@ -900,11 +900,11 @@ fin_i:
           FlagAlarmeCable2 = false;
           FlagAlarmePorte = false;
           // FlagPIR = false;
-          if (!sms) {															//V2-14
+          if (!sms) {
             nom = F("console");
             // Sbidon.toCharArray(nom,8);//	si commande locale
           }
-          logRecord(nom, "D");				// V2-14 renseigne le log
+          logRecord(nom, "D");				// renseigne le log
           MajLog(nom, "D");
         }
         generationMessage();
@@ -977,7 +977,7 @@ fin_i:
               }
             }
             if (flag) { // sauv configuration
-              DesActiveInterrupt();
+              DesActiveInterrupt(); // desactive tous
               config.Pedale1 = Num[0];
               config.Pedale2 = Num[1];
               config.Porte   = Num[2];
@@ -1915,9 +1915,12 @@ void FinJournee() {
   flagCircule = false;
   Serial.println(F("Fin de journée retour sleep"));
   TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);// 1.5mn avant
-  Sbidon = F("FinJour ");
+  Sbidon  = F("FinJour ");
   Sbidon += Hdectohhmm(TIME_TO_SLEEP);
   MajLog(F("Auto"), Sbidon);
+	Sbidon  = F("nbr allum =");
+	Sbidon += CptAllumage;
+	MajLog(F("Auto"), Sbidon);
   DebutSleep();
 }
 //---------------------------------------------------------------------------
@@ -1944,7 +1947,6 @@ void Extinction() {
   Allumage(0);
   Alarm.disable(TempoSortie);
   Alarm.disable(TimeOut);
-  MajLog(F("Auto"), F("Extinction"));
 }
 //---------------------------------------------------------------------------
 void Allumage(byte n) {
@@ -1975,25 +1977,30 @@ void Allumage(byte n) {
   // Serial.print(F(" Al1,Al2 = ")),Serial.print(Al1),Serial.print(char(44)),Serial.println(Al2);
 
   if (!Allume) {	// si pas Allumé
-    Serial.println(F("                   Allumage"));
+    Serial.println(F("Allumage"));
     digitalWrite(PinEclairage, HIGH);
     Allume = true;
     CptAllumage ++;
     if (n == 1)Al1 = 1;
     if (n == 2)Al2 = 1;
     Alarm.enable(TimeOut);
-    MajLog(F("Auto"), F("Allumage"));
+		Sbidon  = F("Allumage ");
+		Sbidon += n;
+    MajLog(F("Auto"), Sbidon);
   }
   else {	// si Allumé
     if (n == 0) {
       digitalWrite(PinEclairage, LOW);
-      Allume = false;
+      Allume = false;			
     }
     else if (Al1 == Cd2 || Al2 == Cd1) {
-      Serial.print(F("                   Extinction dans (s) ")), Serial.println(config.tempoSortie);
+      Serial.print(F("Extinction dans (s) ")), Serial.println(config.tempoSortie);
       Alarm.enable(TempoSortie);
       Serial.print(F("Nombre Allumage = ")), Serial.println(CptAllumage);
     }
+		Sbidon  = F("Extinction ");
+		Sbidon += n;			
+		MajLog(F("Auto"), Sbidon);
   }
 }
 //---------------------------------------------------------------------------
