@@ -370,6 +370,12 @@ void setup() {
 
   // Serial.print(F("temps =")),Serial.println(millis());
   Serial.print(F("flag Circule :")), Serial.println(flagCircule);
+	
+	if(get_wakeup_reason() == 34 && config.Intru){ // Alarme Porte
+		FlagAlarmePorte = true;
+		FlagAlarmeIntrusion = true;
+	}
+	
 }
 //---------------------------------------------------------------------------
 void loop() {
@@ -559,7 +565,7 @@ void Acquisition() {
     Serial.print(F(" Pedale 2:")), Serial.print(nalaPIR2);
     Serial.print(F(" Flag Porte:")), Serial.println(FlagAlarmePorte);
 
-    if (FlagAlarmeIntrusion || FlagAlarmePorte) {
+    if (FlagAlarmePorte || FlagAlarmePorte) {
       ActivationSonnerie();		// activation Sonnerie
       if (FlagAlarmePorte) {
         Serial.println(F("Alarme Porte"));
@@ -868,7 +874,7 @@ fin_i:
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("INTRUON")) == 0
-               || textesms.indexOf(("A" + Id.substring(6, 10))) == 0) {	//	Armement Alarme
+            || textesms.indexOf(("A" + Id.substring(6, 10))) == 0) {	//	Armement Alarme
         // conserver INTRUON en depannage si ID non conforme
         if (!config.Intru) {
           config.Intru = !config.Intru;
@@ -885,7 +891,7 @@ fin_i:
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("INTRUOFF")) == 0
-               || textesms.indexOf(("D" + Id.substring(6, 10))) == 0) { //	Desarmement
+            || textesms.indexOf(("D" + Id.substring(6, 10))) == 0) { //	Desarmement
         if (config.Intru) {
           config.Intru = !config.Intru;
           sauvConfig();														// sauvegarde en EEPROM
@@ -2780,13 +2786,24 @@ void handleTime() { // getion temps page web
 
 /* --------------------  test local serial seulement ----------------------*/
 void recvOneChar() {
-  if (Serial.available() > 0) {
+/*   if (Serial.available() > 0) {
     receivedChar = Serial.read();		
     demande += receivedChar;
     if (receivedChar == 10) { // || receivedChar == 13) {
       newData = true;
     }
+  } */
+	if (Serial.available() > 0) {
+    receivedChar = Serial.read();
+		if(receivedChar != 10 && receivedChar != 13){
+			demande += receivedChar;
+		}
+		else{
+			newData = true;
+			return;
+		}
   }
+	
 }
 
 void showNewData() {
@@ -2794,6 +2811,7 @@ void showNewData() {
     Serial.println(demande);
     interpretemessage();
     newData = false;
+		demande = "";
   }
 }
 void interpretemessage() {
@@ -2802,11 +2820,12 @@ void interpretemessage() {
   if (demande.indexOf(char(61)) == 0) {
     bidons = demande.substring(1); //(demande.indexOf(char(61))+1);
     int lon0 = bidons.length();
-    bidons.toCharArray(replybuffer, lon0 - 1);// len-1 pour supprimer lf
+    bidons.toCharArray(replybuffer, lon0+1);// len-1 pour supprimer lf
     //Serial.print(lon0),Serial.print(char(44)),Serial.print(bidons),Serial.print(char(44)),Serial.println(replybuffer);
-    traite_sms(99);//	traitement SMS en mode test local
+    // Serial.print("reblybuffer :"),Serial.println(replybuffer);
+		traite_sms(99);//	traitement SMS en mode test local
   }
 
-  demande = "";
+  // demande = "";
 }
 //---------------------------------------------------------------------------
