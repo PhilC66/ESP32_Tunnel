@@ -8,11 +8,11 @@
   apres 5 min de fonctionnement (ex: 2mn pour reception/suppression 8 SMS, 4mn 14SMS)
   envoie sms signal vie
   analyse calendrier sauvegardé en SPIFFS
-  si jour circulé
+  
+	si jour circulé
   on continue normalement
-  en fin de journée retour sleep jusqu'a 06h55
-  pas d'option wake up à une heure donnée
-  il faut donc calculer une durée de sleep(quid precision RTC)
+  en fin de journée retour sleep jusqu'a 06h59
+  
   si non circulé,
   retour SIM800 et ESP32 en sleep reveil toute les heures
   au reveil attendre au moins 30s pour que les SMS arrivent,
@@ -20,10 +20,10 @@
 
   mode normal
   SIM800 en reception
-  entrees pedale 1 et 2 sur interruption ESP32
+  entrees porte, pedale 1 et 2 sur interruption ESP32
   allumage /extinction avec time out de 1 heure
 
-  Si coupure cable(equiv pedale enfoncée en permanence)
+  Si coupure cable(equiv pedale enfoncée en permanence), ou Porte coffret ouverte
   declenchement Alarme
 
   Surveillance Batterie solaire
@@ -33,12 +33,6 @@
 
   to do
 
-  debug a faire
-  temps mini pedale enfoncée
-  alarme cable/porte
-  page web
-  message ST a remanier
-
 
   version prod
   mytel a changer
@@ -47,7 +41,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  989626 75%, 46932 14%
+  992074 75%, 46940 14%
 
 */
 
@@ -95,15 +89,15 @@ char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le lo
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
-int Magique       = 2341;
+int Magique       = 3421;
 
 String Sbidon 		= "";
 String message;
 String bufferrcpt;
 String fl = "\n";                   //  saut de ligne SMS
 String Id ;                         //  Id du materiel sera lu dans EEPROM
-char    SIM800InBuffer[64];         //  for notifications from the SIM800
-char replybuffer[255];              //  Buffer de reponse SIM800
+char   SIM800InBuffer[64];          //  for notifications from the SIM800
+char   replybuffer[255];            //  Buffer de reponse SIM800
 volatile int IRQ_Cpt_PDL1  = 0;
 volatile int IRQ_Cpt_PDL2  = 0;
 volatile int IRQ_Cpt_Porte = 0;
@@ -176,6 +170,7 @@ struct  config_t 								// Structure configuration sauvée en EEPROM
   bool    Porte;                // Alarme Porte Active
   long    Jour_Nmax;            // Comptage Alarme Jour
   long    Nuit_Nmax;            // Comptage Alarme Nuit
+  bool    Pos_Pn_PB[10];        // numero du Phone Book (1-9) à qui envoyer 0/1 0 par defaut
   char 		Idchar[11];						// Id
 } ;
 config_t config;
@@ -273,6 +268,10 @@ void setup() {
     config.Porte         = true;
     config.Jour_Nmax     = 3 * 60 / 10; // 3mn /10 temps de boucle Acquisition
     config.Nuit_Nmax     = 30 / 10; // 30s /10 temps de boucle Acquisition
+		for (int i = 0; i < 10; i++) {// initialise liste PhoneBook liste restreinte
+      config.Pos_Pn_PB[i] = 0;
+    }
+    // config.Pos_Pn_PB[1]  = 1;	// le premier numero du PB par defaut
     String temp          = "TPCF_Canal";// TPCF_TCnls
     temp.toCharArray(config.Idchar, 11);
     EEPROM.put(confign, config);
@@ -756,7 +755,7 @@ fin_tel:
           EnvoyerSms(number, sms);
         }
       }
-      else if (textesms == F("LST?")) {	//	Liste des Num Tel
+      else if (textesms == F("LST?") || textesms == F("LST1")) {	//	Liste des Num Tel
         byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
         for (byte i = 1; i < n + 1; i++) {
           String num = Sim800.getPhoneBookNumber(i);
@@ -1233,6 +1232,47 @@ fin_i:
         message += config.Tanalyse;
         EnvoyerSms(number, sms);
       }
+			else if (textesms.indexOf(F("LST2")) >-1){ //	Liste restreinte	//  =LST2=0,0,0,0,0,0,0,0,0
+				bool flag = true; // validation du format
+				if (textesms.indexOf(char(61)) == 4) { // "="
+					byte Num[10];
+					Sbidon = textesms.substring(5,22);
+					// Serial.print("bidon="),Serial.print(Sbidon),Serial.print("="),Serial.println(Sbidon.length());
+					if (Sbidon.length() == 17){
+						int j=1;
+						for (int i = 0;i < 17; i +=2){
+							if(i == 16 && (Sbidon.substring(i,i+1) == "0"	|| Sbidon.substring(i,i+1) == "1")){
+								Num[j] = Sbidon.substring(i,i+1).toInt();
+							}
+							else if((Sbidon.substring(i+1,i+2)== ",") && (Sbidon.substring(i,i+1) == "0"	|| Sbidon.substring(i,i+1) == "1")){
+								//Serial.print(",="),Serial.println(bidon.substring(i+1,i+2));
+								//Serial.print("X="),Serial.println(bidon.substring(i,i+1));
+								Num[j] = Sbidon.substring(i,i+1).toInt();
+								//Serial.print(i),Serial.print(","),Serial.print(j),Serial.print(","),Serial.println(Num[j]);
+								j++;
+							}
+							else{
+								Serial.println(F("Format pas reconnu"));
+								flag = false;
+							}
+						}
+						if(flag){
+							//Serial.println("copie des num");
+							for (int i = 1; i < 10; i++){
+								config.Pos_Pn_PB[i] = Num[i];
+							}
+							sauvConfig();															// sauvegarde en EEPROM
+						}
+					}
+				}
+				message += F("Liste NumTel2");
+				message += fl;
+				for (int i = 1; i < 10; i++){
+					message += config.Pos_Pn_PB[i];
+					if( i < 9) message += char(44); // ,
+				}
+				EnvoyerSms(number, sms);
+			}
       else if (textesms == F("RST")) {               // demande RESET
         message += F("Le systeme va etre relance");  // apres envoie du SMS!
         message += fl;
@@ -1296,19 +1336,6 @@ fin_i:
           // Serial.print("Coeff Tension = "),Serial.println(CoeffTension);
           tension = map(moyenneAnalogique(P), 0, 4095, 0, coef);
           CoeffTension[M - 1] = coef;
-          // switch(M){
-          // case 1:
-          // CoeffTension[0] = coef;
-          // break;
-          // case 2:
-          // CoeffTension[1] = coef;
-          // break;
-          // case 3:
-          // CoeffTension[2] = coef;
-          // Serial.print("CoeffTension3 = "),Serial.print(CoeffTension[2]);//tracer changement valeur
-          // break;
-          // }
-          // Serial.print("TensionBatterie = "),Serial.println(TensionBatterie);
           FlagCalibration = false;
           Recordcalib();														// sauvegarde en SPIFFS
         }
@@ -1372,34 +1399,20 @@ void envoie_alarme() {
 void envoieGroupeSMS(byte grp) {
   /* si grp = 0,
     envoie un SMS à tous les numero existant (9 max) du Phone Book
+		SAUF ceux de la liste restreinte
     si grp = 1,
     envoie un SMS à tous les numero existant (9 max) du Phone Book
     de la liste restreinte config.Pos_Pn_PB[x]=1			*/
 
   byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
-  for (byte Index = 1; Index < n + 1; Index++) {		// Balayage des Num Tel Autorisés=dans Phone Book
-    // if (!fona.getPhoneBookNumber(Index, Telbuff, 13)) { // lire Phone Book
-    // Serial.print(Index), Serial.println(F("fin Phone Book!"));
-    // break;
-    // }
-    /* Serial.print(F("Num :  ")), Serial.println(Telbuff);
-      if (String(Telbuff).length() > 0)	{	// Numero Tel existant/non vide
-      if (grp == 1) {	// grp = 1 message liste restreinte
-        if (config.Pos_Pn_PB[Index] == 1) {
-    			generationMessage();
-    			message += F("lancement");
-          sendSMSReply(Telbuff,true);
-        }
-      }
-      else {	// grp = 0, message à tous */
-    String number = Sim800.getPhoneBookNumber(Index);
-    generationMessage();
-    // sendSMSReply(Telbuff,true);
-    char num[13];
-    number.toCharArray(num, 13);
-    EnvoyerSms(num, true);
-    //}
-    //}
+  for (byte Index = 1; Index < n + 1; Index++) { // Balayage des Num Tel dans Phone Book
+		if((grp == 0 && config.Pos_Pn_PB[Index] == 0) || (grp == 1 && config.Pos_Pn_PB[Index] == 1)){
+			String number = Sim800.getPhoneBookNumber(Index);
+			generationMessage();
+			char num[13];
+			number.toCharArray(num, 13);
+			EnvoyerSms(num, true);
+		}
   }
 }
 //---------------------------------------------------------------------------
