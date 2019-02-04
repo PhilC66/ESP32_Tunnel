@@ -1265,7 +1265,7 @@ fin_i:
 						}
 					}
 				}
-				message += F("Liste NumTel2");
+				message += F("Liste restreinte");
 				message += fl;
 				for (int i = 1; i < 10; i++){
 					message += config.Pos_Pn_PB[i];
