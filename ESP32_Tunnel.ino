@@ -41,7 +41,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  991662 75%, 46804 14%
+  991910 75%, 46804 14%
 
 */
 
@@ -1876,14 +1876,6 @@ void OuvrirCalendrier() {
       appendFile(SPIFFS, filecalendrier, bid);
       Sbidon = "";
     }
-    /* f = SPIFFS.exists(filecalendrier);
-      if (!f) {
-    	// Serial.println("file creation failed");
-      // }else{Serial.println("file creation OK");}
-      } else {
-      Serial.println(F("Read file"));
-      // we could open the file
-      } */
   }
   readFile(SPIFFS, filecalendrier);
 
@@ -1929,6 +1921,16 @@ void PrintEEPROM() {
   Serial.print(F("Alarme sur Pedale 1 = ")) 	  , Serial.println(config.Pedale1);
   Serial.print(F("Alarme sur Pedale 2 = ")) 	  , Serial.println(config.Pedale2);
   Serial.print(F("Alarme sur Porte = ")) 	      , Serial.println(config.Porte);
+	Serial.print(F("Liste Restreinte = "));
+	for (int i = 1; i < 10; i++) {
+		Serial.print(config.Pos_Pn_PB[i]);
+		if(i==9){
+			Serial.println();
+		}
+		else{
+			Serial.print(F(","));
+		}
+	}
 }
 //---------------------------------------------------------------------------
 void Extinction() {
@@ -2122,13 +2124,6 @@ void OuvrirFichierCalibration() { // Lecture fichier calibration
     for (int i = 0; i < 3; i++) { //Read
       String s = f.readStringUntil('\n');
       CoeffTension[i] = s.toFloat();
-      // Serial.print(i),Serial.print(" "),Serial.println(s);
-      // if(i==0)CoeffTension[0] = s.toFloat();
-      // if(i==1)CoeffTension[1] = s.toFloat();
-      // if(i==2){
-      // CoeffTension[2] = s.toFloat();
-      // Serial.print("CoeffTension3 = "),Serial.print(CoeffTension[2]);//tracer changement valeur
-      // }
     }
     f.close();
   }
@@ -2440,23 +2435,27 @@ void HomePage() {
   webpage += F("<td>Version</td>");
   webpage += F("<td>");	webpage += ver;	webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Id</td>");
   webpage += F("<td>");	webpage += String(config.Idchar);	webpage += F("</td>");
   webpage += F("</tr>");
-  webpage += F("<tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Debut Jour</td>");
   webpage += F("<td>");	webpage += Hdectohhmm(config.DebutJour);	webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Fin Jour</td>");
   webpage += F("<td>");	webpage += Hdectohhmm(config.FinJour);	webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Nmax Jour (s)</td>");
   webpage += F("<td>");	webpage += String(config.Jour_Nmax * 10);	webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Nmax Nuit (s)</td>");
   webpage += F("<td>");	webpage += String(config.Nuit_Nmax * 10);	webpage += F("</td>");
@@ -2465,22 +2464,27 @@ void HomePage() {
   webpage += F("<td>Tempo Analyse apr&egrave;s Wake up (s)</td>");
   webpage += F("<td>");	webpage += String(config.Tanalyse);	webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Tempo r&eacute;p&eacute;tition Wake up Jour Circul&eacute; (s)</td>");
   webpage += F("<td>");	webpage += String(config.RepeatWakeUp);	webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Tempo Sortie (s)</td>");
   webpage += F("<td>");	webpage += String(config.tempoSortie);	webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>TimeOut Eclairage (s)</td>");
   webpage += F("<td>");	webpage += String(config.timeOutS);	webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>TimeOut Wifi (s)</td>");
   webpage += F("<td>");	webpage += String(config.timeoutWifi);	webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Alarme</td>");
   webpage += F("<td>");
@@ -2490,6 +2494,7 @@ void HomePage() {
     webpage += F("Inactive");
   } webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Silence</td>");
   webpage += F("<td>");
@@ -2499,6 +2504,7 @@ void HomePage() {
     webpage += F("OFF");
   } webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Alarme sur Pedale 1</td>");
   webpage += F("<td>");
@@ -2508,6 +2514,7 @@ void HomePage() {
     webpage += F("Inactive");
   } webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Alarme sur Pedale 2</td>");
   webpage += F("<td>");
@@ -2517,6 +2524,7 @@ void HomePage() {
     webpage += F("Inactive");
   } webpage += F("</td>");
   webpage += F("</tr>");
+	
   webpage += F("<tr>");
   webpage += F("<td>Alarme sur Porte</td>");
   webpage += F("<td>");
@@ -2526,7 +2534,18 @@ void HomePage() {
     webpage += F("Inactive");
   } webpage += F("</td>");
   webpage += F("</tr>");
-
+	
+	webpage += F("<tr>");
+  webpage += F("<td>Liste Restreinte</td>");
+  webpage += F("<td>");	
+	for (int i = 1; i < 10; i++) {
+		webpage += String(config.Pos_Pn_PB[i]);
+		if(i<9){
+			webpage +=(F(","));
+		}
+	}	
+	webpage += F("</td>");
+	webpage += F("</tr>");
 
   webpage += F("</table><br>");
 
