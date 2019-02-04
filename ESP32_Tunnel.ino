@@ -84,7 +84,6 @@ bool    SPIFFS_present = false;
 #define TX_PIN				17   // RX Sim800
 #define SIMPIN				1234 // Code PIN carte SIM
 
-#define BUTTON_PIN_BITMASK 0x700000000 // 32,33,34 Interruption Wake up
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
 
 uint64_t TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
@@ -371,7 +370,7 @@ void setup() {
   // Serial.print(F("temps =")),Serial.println(millis());
   Serial.print(F("flag Circule :")), Serial.println(flagCircule);
 	
-	if(get_wakeup_reason() == 34 && config.Intru){ // Alarme Porte
+	if(get_wakeup_reason() == PinPorte && config.Intru){ // Alarme Porte
 		FlagAlarmePorte = true;
 		FlagAlarmeIntrusion = true;
 	}
@@ -2253,11 +2252,30 @@ void IntruD() { // Charge parametre Alarme Intrusion Nuit
 }
 //---------------------------------------------------------------------------
 void DebutSleep() {
-  //If you were to use ext1, you would use it like
-  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
-
-  // a tester
-  // esp_deep_sleep_enable_timer_wakeup
+  // selection du pin mask en fonction des capteurs actif
+	const uint64_t ext_wakeup_pin_1_mask = 1ULL << PinPedale1;
+	const uint64_t ext_wakeup_pin_2_mask = 1ULL << PinPedale2;
+	const uint64_t ext_wakeup_pin_3_mask = 1ULL << PinPorte;
+	
+	if(config.Porte && config.Pedale1 && config.Pedale2){
+		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+	}else if(config.Porte && config.Pedale1){
+		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+	}else if(config.Porte && config.Pedale2){
+		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+	}else if(config.Pedale1 && config.Pedale2){
+		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+	}else if(config.Porte){
+		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+	}else if(config.Pedale1){
+		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+	}else if(config.Pedale2){
+		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+	}
+	else{
+		/* pas de wakeup sur pin */
+	}
+	
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.print(F("Setup ESP32 to sleep for "));
   print_uint64_t(TIME_TO_SLEEP);
@@ -2786,13 +2804,6 @@ void handleTime() { // getion temps page web
 
 /* --------------------  test local serial seulement ----------------------*/
 void recvOneChar() {
-/*   if (Serial.available() > 0) {
-    receivedChar = Serial.read();		
-    demande += receivedChar;
-    if (receivedChar == 10) { // || receivedChar == 13) {
-      newData = true;
-    }
-  } */
 	if (Serial.available() > 0) {
     receivedChar = Serial.read();
 		if(receivedChar != 10 && receivedChar != 13){
@@ -2803,7 +2814,6 @@ void recvOneChar() {
 			return;
 		}
   }
-	
 }
 
 void showNewData() {
@@ -2820,12 +2830,9 @@ void interpretemessage() {
   if (demande.indexOf(char(61)) == 0) {
     bidons = demande.substring(1); //(demande.indexOf(char(61))+1);
     int lon0 = bidons.length();
-    bidons.toCharArray(replybuffer, lon0+1);// len-1 pour supprimer lf
-    //Serial.print(lon0),Serial.print(char(44)),Serial.print(bidons),Serial.print(char(44)),Serial.println(replybuffer);
+    bidons.toCharArray(replybuffer, lon0+1);
     // Serial.print("reblybuffer :"),Serial.println(replybuffer);
 		traite_sms(99);//	traitement SMS en mode test local
   }
-
-  // demande = "";
 }
 //---------------------------------------------------------------------------
