@@ -41,11 +41,10 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  992074 75%, 46940 14%
+  991662 75%, 46804 14%
 
 */
 
-#include <credentials_home.h>
 #include <Battpct.h>
 
 #include <Sim800l.h>              //my SIM800 modifié
@@ -1802,14 +1801,20 @@ void MajLog(String Id, String Raison) { // mise à jour fichier log en SPIFFS
     message += F("Fichier log presque plein\n");
     message += String(f.size());
     message += F("\nFichier sera efface à 300000");
-    EnvoyerSms(myTel, true);
+		String number = Sim800.getPhoneBookNumber(1); // envoyé au premier num seulement
+		char num[13];
+		number.toCharArray(num, 13);
+    EnvoyerSms(num, true);
   }
   else if (f.size() > 300000 && once) { // 292Ko 75000 lignes
     message = Id;
     message += F("Fichier log plein\n");
     message += String(f.size());
     message += F("\nFichier efface");
-    EnvoyerSms(myTel, true);
+    String number = Sim800.getPhoneBookNumber(1); // envoyé au premier num seulement
+		char num[13];
+		number.toCharArray(num, 13);
+    EnvoyerSms(num, true);
     SPIFFS.remove(filelog);
     once = false;
   }
