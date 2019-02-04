@@ -132,9 +132,9 @@ RTC_DATA_ATTR bool WupAlarme   = false; // declenchement alarme externe
 RTC_DATA_ATTR bool flagCircule = false; // circule demandé -> inverse le calendrier, valable 1 seul jour
 
 byte anticip = 60;						// temps anticipation du reveille au lancement s
-bool LastWupAlarme             = false;
+bool LastWupAlarme = false;   // memo etat Alarme par Wakeup
 
-int    slot = 0;            			 //this will be the slot number of the SMS
+int    slot = 0;              //this will be the slot number of the SMS
 char   receivedChar;
 bool   newData = false;
 String demande;
@@ -146,7 +146,7 @@ String catalog[2][10]; // liste des fichiers en SPIFFS nom/taille 10 lignes max
 WebServer server(80);
 File UploadFile;
 
-typedef struct											// declaration structure  pour les log
+typedef struct										// declaration structure  pour les log
 {
   char 		dt[10];									//	DateTime 0610-1702 9+1
   char 		Act[2];									//	Action A/D/S/s 1+1
@@ -331,12 +331,7 @@ void setup() {
   OuvrirFichierCalibration(); // ouvre fichier calibration en SPIFFS
   // Serial.print(F("temps =")),Serial.println(millis());
   Sim800.reset(SIMPIN);					// lancer SIM800
-  // Sim800.getRSSI();
-  // Alarm.delay(1000);
-  // Serial.print(F("temps =")),Serial.println(millis());
   MajHeure();
-  // Serial.print(F("temps =")),Serial.println(millis());
-  // OneH = Alarm.timerRepeat(3600,test);
 
   loopPrincipale = Alarm.timerRepeat(10, Acquisition); // boucle principale 10s
   Alarm.enable(loopPrincipale);
@@ -476,9 +471,6 @@ void Acquisition() {
   Serial.print(F(" Freemem = ")), Serial.println(ESP.getFreeHeap());
   static byte nalaTension = 0;
   static byte nRetourTension = 0;
-  /* test */
-  // TensionBatterie = 1250;
-  // VUSB = 5000;
   TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension[0]);
   VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension[1]);
   VUSB            = map(moyenneAnalogique(PinBattUSB) , 0, 4095, 0, CoeffTension[2]);
@@ -515,8 +507,6 @@ void Acquisition() {
   message += ("V");
   message += fl;
   Serial.print(message);
-
-  // alarme cable a terminer
 
   static byte nalaPIR1 = 0;
   static byte nalaPIR2 = 0;
@@ -610,20 +600,7 @@ void Acquisition() {
   Serial.println();
 
 }
-//---------------------------------------------------------------------------
-void test() {
-  // pour test seulement
-  // static int cpt = 0;
-  // cpt ++;
-  // if(cpt == 3)Sim800.dateNet();
-  // if(cpt > 360){ // toute les heures
-  // Sim800.ModeText();
-  // Sim800.dateNet();
-  MajHeure();
-  // cpt = 0;
-  EnvoyerSms(myTel, true);
-  // }
-}
+
 //---------------------------------------------------------------------------
 void traite_sms(byte slot) {
   // Alarm.disable(loopPrincipale);
@@ -1573,18 +1550,6 @@ void MajHeure() {
   }
   displayTime(0);
   AIntru_HeureActuelle();
-
-  /* test */
-  // char dateheure[20];
-  // sprintf(dateheure,"%02d/%02d/%d %02d:%02d:%02d",Nday,Nmonth,Nyear,Nhour,Nminute,Nsecond);
-  // message = Id;
-  // message += ecart;
-  // message += fl;
-  // message += String(dateheure);
-  // message += fl;
-  // message += displayTime(0);
-  // message += fl;
-  // Serial.println(message);
 
 }
 //---------------------------------------------------------------------------
