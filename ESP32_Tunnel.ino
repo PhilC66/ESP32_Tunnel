@@ -27,6 +27,13 @@
   declenchement Alarme
 
   Surveillance Batterie solaire
+	
+	Circulation = CalendrierCircule ^ flagCircule
+	CalCircule	|	flagCircule | Circulation
+				1			|			0				|			1
+				0			|			1				|			1
+				0			|			0				|			0
+				1			|			1				|			0
 
 	Librairie TimeAlarms.h modifiée
 	#define dtNBR_ALARMS 10 (ne fonctionne pas avec 9)   6 à l'origine nombre d'alarmes RAM*11 max is 255
@@ -41,7 +48,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  991910 75%, 46804 14%
+  991146 75%, 46804 14%
 
 */
 
@@ -1172,12 +1179,11 @@ fin_i:
         if (!(calendrier[month()][day()] ^ flagCircule)) {
           // calendrier[month()][day()] = 1;
           message += F("OK, Circule");
-					flagCircule = true;
+					flagCircule = !flagCircule;
           ok = true;
         }
         else {
           message += F("Jour deja Circule");
-					flagCircule = false;
         }
         message += fl;
         EnvoyerSms(number, sms);
@@ -1193,12 +1199,11 @@ fin_i:
         if (calendrier[month()][day()] ^ flagCircule) {
           // calendrier[month()][day()] = 0;
           message += F("OK, NonCircule");					
-          flagCircule = true;
+          flagCircule = !flagCircule;
           ok = true;
         }
         else {
           message += F("Jour deja NonCircule");
-					flagCircule = false;
         }
         message += fl;
         EnvoyerSms(number, sms);
@@ -1820,7 +1825,7 @@ void MajLog(String Id, String Raison) { // mise à jour fichier log en SPIFFS
   }
   f.close();
   /* preparation de la ligne */
-  char Cbidon[101]; //19 + 2 + 14 + 10 + 1
+  char Cbidon[101]; // 100 char maxi
   sprintf(Cbidon, "%02d/%02d/%4d %02d:%02d:%02d", day(), month(), year(), hour(), minute(), second());
   Id = ";" + Id + ";";
   Raison += "\n";
