@@ -1298,7 +1298,7 @@ fin_i:
         		FlagCalibration true cal en cours, false par defaut
         		Static P pin d'entrée
         		static int tensionmemo memorisation de la premiere tension mesurée en calibration
-        		int CoeffTension = CoeffTensionDefaut 6600 par défaut
+        		int CoeffTension = CoeffTensionDefaut 7000 par défaut
         */
         Sbidon = textesms.substring(12, 16); // texte apres =
         //Serial.print(F("Sbidon=")),Serial.print(Sbidon),Serial.print(char(44)),Serial.println(Sbidon.length());
@@ -2672,13 +2672,14 @@ void printDirectory(const char * dirname, uint8_t levels) {
     {
       webpage += "<tr><td>" + String(file.name()) + "</td>";
       webpage += "<td>" + String(file.isDirectory() ? "Dir" : "File") + "</td>";
-      int bytes = file.size();
-      String fsize = "";
-      if (bytes < 1024)                     fsize = String(bytes) + " B";
-      else if (bytes < (1024 * 1024))        fsize = String(bytes / 1024.0, 3) + " KB";
-      else if (bytes < (1024 * 1024 * 1024)) fsize = String(bytes / 1024.0 / 1024.0, 3) + " MB";
-      else                                  fsize = String(bytes / 1024.0 / 1024.0 / 1024.0, 3) + " GB";
-      webpage += "<td>" + fsize + "</td></tr>";
+      // int bytes = file.size();
+      // String fsize = "";
+      // if (bytes < 1024)                     fsize = String(bytes) + " B";
+      // else if (bytes < (1024 * 1024))        fsize = String(bytes / 1024.0, 3) + " KB";
+      // else if (bytes < (1024 * 1024 * 1024)) fsize = String(bytes / 1024.0 / 1024.0, 3) + " MB";
+      // else                                  fsize = String(bytes / 1024.0 / 1024.0 / 1024.0, 3) + " GB";
+      // webpage += "<td>" + fsize + "</td></tr>";
+			webpage += "<td>" + file_size(file.size()) + "</td></tr>";
     }
     file = root.openNextFile();
   }
@@ -2777,10 +2778,10 @@ void ReportCouldNotCreateFile(String target) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 String file_size(int bytes) {
   String fsize = "";
-  if (bytes < 1024)                 fsize = String(bytes) + " B";
-  else if (bytes < (1024 * 1024))      fsize = String(bytes / 1024.0, 3) + " KB";
+  if (bytes < 1024)                      fsize = String(bytes) + " B";
+  else if (bytes < (1024 * 1024))        fsize = String(bytes / 1024.0, 3) + " KB";
   else if (bytes < (1024 * 1024 * 1024)) fsize = String(bytes / 1024.0 / 1024.0, 3) + " MB";
-  else                              fsize = String(bytes / 1024.0 / 1024.0 / 1024.0, 3) + " GB";
+  else                                   fsize = String(bytes / 1024.0 / 1024.0 / 1024.0, 3) + " GB";
   return fsize;
 }
 //---------------------------------------------------------------------------
