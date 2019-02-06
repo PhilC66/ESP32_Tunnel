@@ -48,7 +48,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  991146 75%, 46804 14%
+  991174 75%, 46804 14%
 
 */
 
@@ -2327,7 +2327,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
         Serial.println(F("Jour noncirculé"));
         Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
-        if (TIME_TO_SLEEP < 60) { // on continue sans sleep
+        if (TIME_TO_SLEEP <= anticip) { // on continue sans sleep
           Serial.println("on continue sans sleep");
         }
         else {
@@ -2347,9 +2347,15 @@ void calculTimeSleep() {
   AIntru_HeureActuelle(); // determine si jour/nuit
 
   if (jour && (HActuelledec() + config.RepeatWakeUp) > config.FinJour) {
-    TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
-    Serial.print(F("time sleep calcul 1 : ")), print_uint64_t(TIME_TO_SLEEP);
-    Serial.println("");
+    if(HActuelledec() >(config.FinJour - anticip)){
+			/* eviter de reporter 24H si on est à moins de anticip de FinJour */
+			TIME_TO_SLEEP = 1; // si 1 pas de sleep
+		}
+		else{
+			TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
+			Serial.print(F("time sleep calcul 1 : ")), print_uint64_t(TIME_TO_SLEEP);
+			Serial.println("");
+		}
   }
   else if (!jour) {
     if (HActuelledec() < (config.DebutJour - anticip)) {
