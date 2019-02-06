@@ -48,7 +48,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  991174 75%, 46804 14%
+  991162 75%, 46804 14%
 
 */
 
@@ -2328,7 +2328,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
         Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
         if (TIME_TO_SLEEP <= anticip) { // on continue sans sleep
-          Serial.println("on continue sans sleep");
+          Serial.println(F("on continue sans sleep"));
         }
         else {
           DebutSleep();
