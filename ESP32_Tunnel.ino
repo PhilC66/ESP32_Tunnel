@@ -27,6 +27,8 @@
   declenchement Alarme
 
   Surveillance Batterie solaire
+	Adc interne instable 2 à 3.5% erreurs!
+	utilisation Adc externe ADS1105 I2C
 	
 	Circulation = CalendrierCircule ^ flagCircule
 	CalCircule	|	flagCircule | Circulation
@@ -78,7 +80,7 @@ bool    SPIFFS_present = false;
 #define PinPedale1		32   // Entrée Pedale1 Wake up EXT1
 #define PinPedale2		33   // Entrée Pedale2 Wake up EXT1
 #define PinPorte   		34   // Entrée Porte Coffret Wake up EXT1 
-#define PinEclairage 	21   // Sortie Commande eclairage
+#define PinEclairage 	19   // Sortie Commande eclairage
 #define PinSirene			15   // Sortie Commande Sirene (#0 en sleep 2.3V?)
 #define RX_PIN				16   // TX Sim800
 #define TX_PIN				17   // RX Sim800
