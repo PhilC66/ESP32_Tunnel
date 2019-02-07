@@ -87,6 +87,10 @@ bool    SPIFFS_present = false;
 #define SIMPIN				1234 // Code PIN carte SIM
 
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
+#define Nbits 4
+#define nSample (1<<Nbits) // Du coup, nSample est une puissance de 2, ici 16
+int adc_hist[3][nSample];  // tableau stockage mesure adc, 0 Batt, 1 Proc, 2 USB
+int adc_mm[3]; //stockage pour la moyenne mobile, doit être une var globale
 
 uint64_t TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
 unsigned long debut    = millis(); // pour decompteur temps wifi
@@ -246,6 +250,7 @@ void setup() {
   adcAttachPin(PinBattProc);
   adcAttachPin(PinBattSol);
   adcAttachPin(PinBattUSB);
+	init_adc_mm();// initilaisation tableau pour adc Moyenne Mobile
 
   /* Lecture configuration en EEPROM	 */
   EEPROM.begin(512);
@@ -380,7 +385,7 @@ void setup() {
 }
 //---------------------------------------------------------------------------
 void loop() {
-
+	static byte nboucle = 0;
   recvOneChar();
   showNewData();
 
@@ -445,6 +450,13 @@ void loop() {
 
   ArduinoOTA.handle();
   Alarm.delay(1);
+	if(nboucle>10){
+		read_adc(PinBattSol,PinBattProc,PinBattUSB);
+		nboucle = 0;
+	}
+	nboucle ++;
+	// Serial.print("tboucle"),Serial.println(millis() - debut);
+	// debut = millis();
 
 }	//fin loop
 //---------------------------------------------------------------------------
@@ -474,14 +486,16 @@ void Acquisition() {
   }
 
   if (!Sim800.getetatSIM())Sim800.reset(SIMPIN); // verification SIM
-  Serial.print(displayTime(0));
-  Serial.print(F(" Freemem = ")), Serial.println(ESP.getFreeHeap());
+  // Serial.print(displayTime(0));
+  // Serial.print(F(" Freemem = ")), Serial.println(ESP.getFreeHeap());
   static byte nalaTension = 0;
   static byte nRetourTension = 0;
-  TensionBatterie = map(moyenneAnalogique(PinBattSol) , 0, 4095, 0, CoeffTension[0]);
-  VBatterieProc   = map(moyenneAnalogique(PinBattProc), 0, 4095, 0, CoeffTension[1]);
-  VUSB            = map(moyenneAnalogique(PinBattUSB) , 0, 4095, 0, CoeffTension[2]);
-
+  TensionBatterie = map(adc_mm[0]/nSample, 0, 4095, 0, CoeffTension[0]);
+  VBatterieProc   = map(adc_mm[1]/nSample, 0, 4095, 0, CoeffTension[1]);
+  VUSB            = map(adc_mm[2]/nSample, 0, 4095, 0, CoeffTension[2]);
+	
+	read_adc(PinBattSol,PinBattProc,PinBattUSB);
+Serial.println(adc_mm[0]/nSample);
   if (BattPBpct(TensionBatterie) < 25 || VUSB < 4000) { // || VUSB > 6000
     nalaTension ++;
     if (nalaTension == 4) {
@@ -513,7 +527,7 @@ void Acquisition() {
   message += (float(VUSB / 1000.0));
   message += ("V");
   message += fl;
-  Serial.print(message);
+  // Serial.print(message);
 
   static byte nalaPIR1 = 0;
   static byte nalaPIR2 = 0;
@@ -557,9 +571,9 @@ void Acquisition() {
       if (nalaPIR2 > 0) nalaPIR2 --;		//	efface progressivement le compteur
     }
 
-    Serial.print(F("Pedale 1:")), Serial.print(nalaPIR1);
-    Serial.print(F(" Pedale 2:")), Serial.print(nalaPIR2);
-    Serial.print(F(" Flag Porte:")), Serial.println(FlagAlarmePorte);
+    // Serial.print(F("Pedale 1:")), Serial.print(nalaPIR1);
+    // Serial.print(F(" Pedale 2:")), Serial.print(nalaPIR2);
+    // Serial.print(F(" Flag Porte:")), Serial.println(FlagAlarmePorte);
 
     if (FlagAlarmePorte || FlagAlarmePorte) {
       ActivationSonnerie();		// activation Sonnerie
@@ -586,7 +600,7 @@ void Acquisition() {
   	 traitement des sms en memeoire un par un,
   	 pas de traitement en serie par commande 51, traitement beaucoup trop long */
   nsms = Sim800.getNumSms(); // nombre de SMS en attente (1s)
-  Serial.print(F("Sms en attente = ")), Serial.println(nsms);
+  // Serial.print(F("Sms en attente = ")), Serial.println(nsms);
 
   if (nsms > 0) {	// nombre de SMS en attente
     // il faut les traiter
@@ -2117,7 +2131,7 @@ String ExtraireSms(String msgbrut) { //Extraction du contenu du SMS
 int moyenneAnalogique(int Pin) {	// calcul moyenne 10 mesures consécutives
   int moyenne = 0;
   for (int j = 0; j < 10; j++) {
-    Alarm.delay(10);
+    // Alarm.delay(1);
     moyenne += analogRead(Pin);
   }
   moyenne /= 10;
@@ -2446,6 +2460,42 @@ void print_uint64_t(uint64_t num) {
   while (p > rev) {
     Serial.print(*p--);
   }
+}
+//---------------------------------------------------------------------------
+void init_adc_mm(void) {
+	//initialisation des tableaux
+	/* valeur par defaut facultative, 
+		permet d'avoir une moyenne proche du resulat plus rapidement */
+	for(int plus_ancien=0;plus_ancien<nSample;plus_ancien++) {
+		adc_hist[0][plus_ancien] = 0;// val defaut adc 1
+		adc_hist[1][plus_ancien] = 0;// val defaut adc 2
+		adc_hist[2][plus_ancien] = 0;// val defaut adc 3
+	}
+	//on commencera à stocker à cet offset
+	adc_mm[0] = 0;// val defaut adc 1
+	adc_mm[1] = 0;// val defaut adc 2
+	adc_mm[2] = 0;// val defaut adc 3
+}
+//---------------------------------------------------------------------------
+void read_adc(int pin1,int pin2,int pin3) {
+	static int plus_ancien = 0;
+	//acquisition
+	int sample[3];
+	for(byte i = 0; i<3;i++){
+		if(i==0)sample[i] = moyenneAnalogique(pin1);
+		if(i==1)sample[i] = moyenneAnalogique(pin2);
+		if(i==2)sample[i] = moyenneAnalogique(pin3);
+
+		//calcul MoyenneMobile
+		adc_mm[i] = adc_mm[i] + sample[i] - adc_hist[i][plus_ancien];
+	
+		//cette plus ancienne valeur n'est plus utile, on y stocke la plus récente
+		adc_hist[i][plus_ancien] = sample[i];
+	}
+	plus_ancien ++;
+	if(plus_ancien==nSample) { //gestion du buffer circulaire
+		plus_ancien=0;
+	}
 }
 //---------------------------------------------------------------------------
 void HomePage() {
