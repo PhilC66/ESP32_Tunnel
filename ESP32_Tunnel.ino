@@ -2261,6 +2261,14 @@ void DebutSleep() {
 		/* pas de wakeup sur pin */
 	}
 	
+	/* Garde fou si TIME_TO_SLEEP > 20H00 c'est une erreur, on impose 1H00 */
+	if(TIME_TO_SLEEP > 72000){
+		TIME_TO_SLEEP = 3600;
+		Sbidon = F("Attention erreur Sleep>20H00 ");
+		Sbidon += Hdectohhmm(TIME_TO_SLEEP);
+		MajLog(F("Auto"), Sbidon);
+	}
+	
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.print(F("Setup ESP32 to sleep for "));
   print_uint64_t(TIME_TO_SLEEP);
