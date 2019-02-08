@@ -450,8 +450,8 @@ void loop() {
 
   ArduinoOTA.handle();
   Alarm.delay(1);
-	if(nboucle>10){
-		read_adc(PinBattSol,PinBattProc,PinBattUSB);
+	if(nboucle>10){ // tous les 10 passages
+		read_adc(PinBattSol,PinBattProc,PinBattUSB);// lecture des adc
 		nboucle = 0;
 	}
 	nboucle ++;
@@ -465,8 +465,8 @@ void Acquisition() {
   static int cpt = 0; // compte le nombre de passage boucle
   static bool firstdecision = false;
 
-  if (cpt > 5 && nsms == 0 && !firstdecision) {
-    /* une seule fois au demarrage attendre au moins 60s et plus de sms en attente */
+  if (cpt > 6 && nsms == 0 && !firstdecision) {
+    /* une seule fois au demarrage attendre au moins 70s et plus de sms en attente */
     action_wakeup_reason(get_wakeup_reason());
     firstdecision = true;
   }
@@ -494,8 +494,12 @@ void Acquisition() {
   VBatterieProc   = map(adc_mm[1]/nSample, 0, 4095, 0, CoeffTension[1]);
   VUSB            = map(adc_mm[2]/nSample, 0, 4095, 0, CoeffTension[2]);
 	
-	read_adc(PinBattSol,PinBattProc,PinBattUSB);
-Serial.println(adc_mm[0]/nSample);
+Serial.print(TensionBatterie),Serial.print(";");
+Serial.print(String(BattPBpct(TensionBatterie))),Serial.print(";");
+Serial.print(VBatterieProc),Serial.print(";");
+Serial.print(String(BattLipopct(VBatterieProc))),Serial.print(";");
+Serial.println(VUSB);
+
   if (BattPBpct(TensionBatterie) < 25 || VUSB < 4000) { // || VUSB > 6000
     nalaTension ++;
     if (nalaTension == 4) {
@@ -2278,6 +2282,13 @@ void DebutSleep() {
 	/* Garde fou si TIME_TO_SLEEP > 20H00 c'est une erreur, on impose 1H00 */
 	if(TIME_TO_SLEEP > 72000){
 		TIME_TO_SLEEP = 3600;
+		Sbidon = F("jour ");
+		Sbidon += jour;
+		Sbidon = F(", Calendrier ");
+		Sbidon += calendrier[month()][day()];
+		Sbidon = F(", flagCirc ");
+		Sbidon += flagCircule;
+		MajLog(F("Auto"), Sbidon);
 		Sbidon = F("Attention erreur Sleep>20H00 ");
 		Sbidon += Hdectohhmm(TIME_TO_SLEEP);
 		MajLog(F("Auto"), Sbidon);
@@ -2465,16 +2476,21 @@ void print_uint64_t(uint64_t num) {
 void init_adc_mm(void) {
 	//initialisation des tableaux
 	/* valeur par defaut facultative, 
-		permet d'avoir une moyenne proche du resulat plus rapidement */
+		permet d'avoir une moyenne proche
+		du resulat plus rapidement
+		val defaut = valdefaut*nSample */
+	int ini_adc1 = 0;// val defaut adc 1
+	int ini_adc2 = 0;// val defaut adc 2
+	int ini_adc3 = 0;// val defaut adc 3
 	for(int plus_ancien=0;plus_ancien<nSample;plus_ancien++) {
-		adc_hist[0][plus_ancien] = 0;// val defaut adc 1
-		adc_hist[1][plus_ancien] = 0;// val defaut adc 2
-		adc_hist[2][plus_ancien] = 0;// val defaut adc 3
+		adc_hist[0][plus_ancien] = ini_adc1;
+		adc_hist[1][plus_ancien] = ini_adc2;
+		adc_hist[2][plus_ancien] = ini_adc3;
 	}
 	//on commencera à stocker à cet offset
-	adc_mm[0] = 0;// val defaut adc 1
-	adc_mm[1] = 0;// val defaut adc 2
-	adc_mm[2] = 0;// val defaut adc 3
+	adc_mm[0] = ini_adc1;
+	adc_mm[1] = ini_adc2;
+	adc_mm[2] = ini_adc3;
 }
 //---------------------------------------------------------------------------
 void read_adc(int pin1,int pin2,int pin3) {
