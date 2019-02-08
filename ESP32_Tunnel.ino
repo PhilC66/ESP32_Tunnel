@@ -588,7 +588,7 @@ void Acquisition() {
     FlagAlarmeCable2 = false;
     FlagAlarmePorte = false;
   }
-  Serial.printf("Nala Porte = %d ,",nalaPorte);
+  Serial.printf("Nala Porte = %d ,",FlagAlarmePorte);
   Serial.printf("Nala Ped 1 = %d ,",nalaPIR1);
   Serial.printf("Nala Ped 2 = %d\n",nalaPIR2);
 
@@ -615,6 +615,7 @@ void Acquisition() {
   Alarm.delay(50);
   digitalWrite(LED_PIN, 1);
 
+	Serial.println();
 }
 //---------------------------------------------------------------------------
 void traite_sms(byte slot) {
