@@ -28,9 +28,9 @@
 
   Surveillance Batterie solaire
 	Adc interne instable 2 à 3.5% erreurs!
-	utilisation Adc externe ADS1105 I2C
+	mise en place moyenne mobile sur les adc precision <1%
 	
-	Circulation = CalendrierCircule ^ flagCircule
+	Circulation = CalendrierCircule ^ flagCircule (OU exclusif)
 	CalCircule	|	flagCircule | Circulation
 				1			|			0				|			1
 				0			|			1				|			1
@@ -44,13 +44,13 @@
 
 
   version prod
-  mytel a changer
+  
   Tension batterie
   parametres par defaut
 
 
   Compilation LOLIN D32,default,80MHz
-  991162 75%, 46804 14%
+  991922 75%, 47020 14%
 
 */
 
@@ -87,10 +87,10 @@ bool    SPIFFS_present = false;
 #define SIMPIN				1234 // Code PIN carte SIM
 
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
-#define Nbits 4
-#define nSample (1<<Nbits) // Du coup, nSample est une puissance de 2, ici 16
-int adc_hist[3][nSample];  // tableau stockage mesure adc, 0 Batt, 1 Proc, 2 USB
-int adc_mm[3]; //stockage pour la moyenne mobile, doit être une var globale
+
+#define nSample (1<<4)    // nSample est une puissance de 2, ici 16
+int adc_hist[3][nSample]; // tableau stockage mesure adc, 0 Batt, 1 Proc, 2 USB
+int adc_mm[3];            // stockage pour la moyenne mobile
 
 uint64_t TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
 unsigned long debut    = millis(); // pour decompteur temps wifi
@@ -250,6 +250,7 @@ void setup() {
   adcAttachPin(PinBattProc);
   adcAttachPin(PinBattSol);
   adcAttachPin(PinBattUSB);
+	
 	init_adc_mm();// initilaisation tableau pour adc Moyenne Mobile
 
   /* Lecture configuration en EEPROM	 */
@@ -450,13 +451,12 @@ void loop() {
 
   ArduinoOTA.handle();
   Alarm.delay(1);
+	
 	if(nboucle>10){ // tous les 10 passages
 		read_adc(PinBattSol,PinBattProc,PinBattUSB);// lecture des adc
 		nboucle = 0;
 	}
 	nboucle ++;
-	// Serial.print("tboucle"),Serial.println(millis() - debut);
-	// debut = millis();
 
 }	//fin loop
 //---------------------------------------------------------------------------
@@ -478,7 +478,6 @@ void Acquisition() {
     Serial.println(F("Fin TempoAnalyse"));
     calculTimeSleep();
     DebutSleep();
-    // }
   }
 
   if (CoeffTension[0] == 0 || CoeffTension[1] == 0 || CoeffTension[2] == 0) {
@@ -486,19 +485,17 @@ void Acquisition() {
   }
 
   if (!Sim800.getetatSIM())Sim800.reset(SIMPIN); // verification SIM
-  // Serial.print(displayTime(0));
-  // Serial.print(F(" Freemem = ")), Serial.println(ESP.getFreeHeap());
+  Serial.print(displayTime(0));
+  Serial.print(F(" Freemem = ")), Serial.println(ESP.getFreeHeap());
   static byte nalaTension = 0;
   static byte nRetourTension = 0;
   TensionBatterie = map(adc_mm[0]/nSample, 0, 4095, 0, CoeffTension[0]);
   VBatterieProc   = map(adc_mm[1]/nSample, 0, 4095, 0, CoeffTension[1]);
   VUSB            = map(adc_mm[2]/nSample, 0, 4095, 0, CoeffTension[2]);
 	
-Serial.print(TensionBatterie),Serial.print(";");
-Serial.print(String(BattPBpct(TensionBatterie))),Serial.print(";");
-Serial.print(VBatterieProc),Serial.print(";");
-Serial.print(String(BattLipopct(VBatterieProc))),Serial.print(";");
-Serial.println(VUSB);
+	// Serial.print(adc_mm[0]),Serial.print(";");
+	// Serial.print(adc_mm[1]),Serial.print(";");
+	// Serial.println(adc_mm[2]);
 
   if (BattPBpct(TensionBatterie) < 25 || VUSB < 4000) { // || VUSB > 6000
     nalaTension ++;
@@ -531,7 +528,7 @@ Serial.println(VUSB);
   message += (float(VUSB / 1000.0));
   message += ("V");
   message += fl;
-  // Serial.print(message);
+  Serial.print(message);
 
   static byte nalaPIR1 = 0;
   static byte nalaPIR2 = 0;
@@ -575,10 +572,6 @@ Serial.println(VUSB);
       if (nalaPIR2 > 0) nalaPIR2 --;		//	efface progressivement le compteur
     }
 
-    // Serial.print(F("Pedale 1:")), Serial.print(nalaPIR1);
-    // Serial.print(F(" Pedale 2:")), Serial.print(nalaPIR2);
-    // Serial.print(F(" Flag Porte:")), Serial.println(FlagAlarmePorte);
-
     if (FlagAlarmePorte || FlagAlarmePorte) {
       ActivationSonnerie();		// activation Sonnerie
       if (FlagAlarmePorte) {
@@ -595,16 +588,16 @@ Serial.println(VUSB);
     FlagAlarmeCable2 = false;
     FlagAlarmePorte = false;
   }
-  // Serial.printf("Nala Porte = %d ,",nalaPorte);
-  // Serial.printf("Nala Ped 1 = %d ,",nalaPIR1);
-  // Serial.printf("Nala Ped 2 = %d\n",nalaPIR2);
+  Serial.printf("Nala Porte = %d ,",nalaPorte);
+  Serial.printf("Nala Ped 1 = %d ,",nalaPIR1);
+  Serial.printf("Nala Ped 2 = %d\n",nalaPIR2);
 
 
   /* verification nombre SMS en attente(raté en lecture directe)
   	 traitement des sms en memeoire un par un,
   	 pas de traitement en serie par commande 51, traitement beaucoup trop long */
   nsms = Sim800.getNumSms(); // nombre de SMS en attente (1s)
-  // Serial.print(F("Sms en attente = ")), Serial.println(nsms);
+  Serial.print(F("Sms en attente = ")), Serial.println(nsms);
 
   if (nsms > 0) {	// nombre de SMS en attente
     // il faut les traiter
@@ -622,10 +615,7 @@ Serial.println(VUSB);
   Alarm.delay(50);
   digitalWrite(LED_PIN, 1);
 
-  Serial.println();
-
 }
-
 //---------------------------------------------------------------------------
 void traite_sms(byte slot) {
   // Alarm.disable(loopPrincipale);
@@ -2482,7 +2472,7 @@ void init_adc_mm(void) {
 	int ini_adc1 = 0;// val defaut adc 1
 	int ini_adc2 = 0;// val defaut adc 2
 	int ini_adc3 = 0;// val defaut adc 3
-	for(int plus_ancien=0;plus_ancien<nSample;plus_ancien++) {
+	for(int plus_ancien = 0;plus_ancien<nSample;plus_ancien++) {
 		adc_hist[0][plus_ancien] = ini_adc1;
 		adc_hist[1][plus_ancien] = ini_adc2;
 		adc_hist[2][plus_ancien] = ini_adc3;
@@ -2494,6 +2484,7 @@ void init_adc_mm(void) {
 }
 //---------------------------------------------------------------------------
 void read_adc(int pin1,int pin2,int pin3) {
+	// http://www.f4grx.net/algo-comment-calculer-une-moyenne-glissante-sur-un-microcontroleur-a-faibles-ressources/
 	static int plus_ancien = 0;
 	//acquisition
 	int sample[3];
@@ -2509,8 +2500,8 @@ void read_adc(int pin1,int pin2,int pin3) {
 		adc_hist[i][plus_ancien] = sample[i];
 	}
 	plus_ancien ++;
-	if(plus_ancien==nSample) { //gestion du buffer circulaire
-		plus_ancien=0;
+	if(plus_ancien == nSample) { //gestion du buffer circulaire
+		plus_ancien = 0;
 	}
 }
 //---------------------------------------------------------------------------
