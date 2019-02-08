@@ -28,7 +28,7 @@
 
   Surveillance Batterie solaire
 	Adc interne instable 2 à 3.5% erreurs!
-	mise en place moyenne mobile sur les adc precision <1%
+	mise en place moyenne mobile sur les adc precision <1% avec 4bits
 	
 	Circulation = CalendrierCircule ^ flagCircule (OU exclusif)
 	CalCircule	|	flagCircule | Circulation
@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  991922 75%, 47020 14%
+  991846 75%, 47020 14%
 
 */
 
@@ -88,9 +88,9 @@ bool    SPIFFS_present = false;
 
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
 
-#define nSample (1<<4)    // nSample est une puissance de 2, ici 16
-int adc_hist[3][nSample]; // tableau stockage mesure adc, 0 Batt, 1 Proc, 2 USB
-int adc_mm[3];            // stockage pour la moyenne mobile
+#define nSample (1<<4)    // nSample est une puissance de 2, ici 16 (4bits)
+unsigned int adc_hist[3][nSample]; // tableau stockage mesure adc, 0 Batt, 1 Proc, 2 USB
+unsigned int adc_mm[3];            // stockage pour la moyenne mobile
 
 uint64_t TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
 unsigned long debut    = millis(); // pour decompteur temps wifi
@@ -712,8 +712,8 @@ void traite_sms(byte slot) {
         ConnexionWifi(ssid, pwd, number, sms); // message généré par routine
       }
       else if (textesms.indexOf(F("TEL")) == 0
-               || textesms.indexOf(F("Tel")) == 0
-               || textesms.indexOf(F("tel")) == 0) { // entrer nouveau num
+            || textesms.indexOf(F("Tel")) == 0
+            || textesms.indexOf(F("tel")) == 0) { // entrer nouveau num
         bool FlagOK = true;
         byte j = 0;
         String Send	= "AT+CPBW=";// message ecriture dans le phone book
@@ -726,7 +726,7 @@ void traite_sms(byte slot) {
           j = 5;
           // on efface la ligne sauf la 1 pour toujours garder au moins un numéro
           if ( (i != 1) && (textesms.indexOf(F("efface")) == 5
-                            || textesms.indexOf(F("EFFACE")) == 5 )) goto fin_tel;
+                         || textesms.indexOf(F("EFFACE")) == 5 )) goto fin_tel;
         }
         else if (textesms.indexOf(char(61)) == 3) { // TEL= nouveau numero
           j = 4;
@@ -874,7 +874,6 @@ fin_i:
           ActiveInterrupt();
           if (!sms) {
             nom = F("console");
-            // Sbidon.toCharArray(nom,8);//	si commande locale
           }
           logRecord(nom, "A"); // renseigne le log
           MajLog(nom, "A");
@@ -900,7 +899,6 @@ fin_i:
           // FlagPIR = false;
           if (!sms) {
             nom = F("console");
-            // Sbidon.toCharArray(nom,8);//	si commande locale
           }
           logRecord(nom, "D");				// renseigne le log
           MajLog(nom, "D");
@@ -2470,9 +2468,9 @@ void init_adc_mm(void) {
 		permet d'avoir une moyenne proche
 		du resulat plus rapidement
 		val defaut = valdefaut*nSample */
-	int ini_adc1 = 0;// val defaut adc 1
-	int ini_adc2 = 0;// val defaut adc 2
-	int ini_adc3 = 0;// val defaut adc 3
+	unsigned int ini_adc1 = 0;// val defaut adc 1
+	unsigned int ini_adc2 = 0;// val defaut adc 2
+	unsigned int ini_adc3 = 0;// val defaut adc 3
 	for(int plus_ancien = 0;plus_ancien<nSample;plus_ancien++) {
 		adc_hist[0][plus_ancien] = ini_adc1;
 		adc_hist[1][plus_ancien] = ini_adc2;

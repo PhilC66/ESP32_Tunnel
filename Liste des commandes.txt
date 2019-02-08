@@ -4,7 +4,7 @@ ID=abcdefghij  10 car max
 timeoutwifi														durée du timeout wifi avant retour fonctionnement normale
 timeoutwifi=300												durée en secondes 10-3600 (norm=600)
 Wifi,ssid,password										connexion wifi case sensitive
-lst?																	Liste le Phone Book
+LST? ou LST1													Liste le Phone Book
 tel=+331234567890,Nom									crestion nouveau numero dans le Phone Book
 telX=efface														supprime l'entrée X du Phone Book impossible sur X=1
 telX=+331234567890,Nom								modification d'une entree du Phone Book
