@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  991846 75%, 47020 14%
+  991938 75%, 47020 14%
 
 */
 
@@ -1438,6 +1438,13 @@ void generationMessage() {
     message += F("-------OK-------");
   }
   message += fl;
+	if((calendrier[month()][day()] ^ flagCircule)){
+		message += F("Jour Circule");
+	}
+	else{
+		message += F("Jour Non Circule");
+	}
+	message += fl;
   message += F("Batterie : ");			//"Alarme Batterie : "
   if (FlagAlarmeTension) {
     message += F("Alarme, ");
@@ -1907,7 +1914,7 @@ void FinJournee() {
   // fin de journée retour deep sleep
   jour = false;
   flagCircule = false;
-  Serial.println(F("Fin de journée retour sleep"));
+  Serial.println(F("Fin de journee retour sleep"));
   TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);// 1.5mn avant
   Sbidon  = F("FinJour ");
   Sbidon += Hdectohhmm(TIME_TO_SLEEP);
@@ -2345,10 +2352,10 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
       if ((calendrier[month()][day()] ^ flagCircule) && jour) { // jour circulé
         /*  ne rien faire  */
         Nmax = config.Jour_Nmax; // parametre jour
-        Serial.println(F("Jour circulé ou demande circulation"));
+        Serial.println(F("Jour circule ou demande circulation"));
       }
 			else { //if ((calendrier[month()][day()] == 0 || !Circule)) { // non circulé
-        Serial.println(F("Jour noncirculé"));
+        Serial.println(F("Jour noncircule"));
         Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
         if (TIME_TO_SLEEP <= anticip) { // on continue sans sleep
