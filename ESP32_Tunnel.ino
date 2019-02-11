@@ -127,7 +127,7 @@ bool FlagAlarmePorte         = false; // Alamre Porte Coffret
 bool FlagLastAlarmeIntrusion = false;
 bool FirstSonn = false;				// Premier appel sonnerie
 bool SonnMax   = false;				// temps de sonnerie maxi atteint
-bool FlagReset = false;
+bool FlagReset = false;       // Reset demandé
 bool jour      = false;				// jour = true, nuit = false
 int  Nmax      = 0;						// comptage alarme cable avant alarme different Jour/Nuit
 byte DbounceTime = 20;				// antirebond
@@ -2154,9 +2154,9 @@ void OuvrirFichierCalibration() { // Lecture fichier calibration
   }
   else {
     Serial.print(F("Creating Data File:")), Serial.println(filecalibration); // valeur par defaut
-    CoeffTension[0] = 6600;
-    CoeffTension[1] = 6600;
-    CoeffTension[2] = 6600;
+    CoeffTension[0] = CoeffTensionDefaut;
+    CoeffTension[1] = CoeffTensionDefaut;
+    CoeffTension[2] = CoeffTensionDefaut;
     Recordcalib();
   }
   Serial.print(F("Coeff T Batterie = ")), Serial.print(CoeffTension[0]);
