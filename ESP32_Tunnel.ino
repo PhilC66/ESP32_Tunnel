@@ -630,7 +630,6 @@ void traite_sms(byte slot) {
   */
 
   char number[13];													// numero expediteur SMS
-  bool error;
   String textesms;													// texte du SMS reçu
   textesms.reserve(140);
   String numero;
