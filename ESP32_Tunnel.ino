@@ -117,6 +117,7 @@ volatile unsigned long rebond1 = 0;		//	antirebond IRQ
 volatile unsigned long rebond2 = 0;
 byte confign = 0;					// Num enregistrement EEPROM
 bool Allume = false;
+bool FlagPIR                 = false; // 
 bool FlagAlarmeTension       = false; // Alarme tension Batterie
 bool FlagLastAlarmeTension   = false;
 bool FlagAlarmeIntrusion     = false; // Alarme Defaut Cable detectée
@@ -539,8 +540,8 @@ void Acquisition() {
     if (digitalRead(PinPorte) && config.Porte) {
       nalaPorte ++;
       if (nalaPorte > 1) {
-        FlagAlarmeIntrusion = true;
         FlagAlarmePorte = true;
+				FlagPIR = true;
         nalaPorte = 0;
       }
     }
@@ -551,8 +552,8 @@ void Acquisition() {
     if (digitalRead(PinPedale1) && config.Pedale1) {
       nalaPIR1 ++;
       if (nalaPIR1 > Nmax) {
-        FlagAlarmeIntrusion = true;
         FlagAlarmeCable1 = true;
+				FlagPIR = true;
         nalaPIR1 = 0;
       }
     }
@@ -563,8 +564,8 @@ void Acquisition() {
     if (digitalRead(PinPedale2) && config.Pedale2) {
       nalaPIR2 ++;
       if (nalaPIR2 > Nmax) {
-        FlagAlarmeIntrusion = true;
         FlagAlarmeCable2 = true;
+				FlagPIR = true;
         nalaPIR2 = 0;
       }
     }
@@ -572,7 +573,9 @@ void Acquisition() {
       if (nalaPIR2 > 0) nalaPIR2 --;		//	efface progressivement le compteur
     }
 
-    if (FlagAlarmePorte || FlagAlarmeCable1 || FlagAlarmeCable2) {
+    if (FlagPIR) {
+			FlagAlarmeIntrusion = true;
+			FlagPIR = false;
       ActivationSonnerie();		// activation Sonnerie
       if (FlagAlarmePorte) {
         Serial.println(F("Alarme Porte"));
@@ -583,6 +586,7 @@ void Acquisition() {
     }
   }
   else {
+		FlagPIR = false;
     FlagAlarmeIntrusion = false; // efface alarme
     FlagAlarmeCable1 = false;
     FlagAlarmeCable2 = false;
@@ -896,7 +900,7 @@ fin_i:
           FlagAlarmeCable1 = false;
           FlagAlarmeCable2 = false;
           FlagAlarmePorte = false;
-          // FlagPIR = false;
+          FlagPIR = false;
           if (!sms) {
             nom = F("console");
           }
@@ -1609,7 +1613,7 @@ void ArretSonnerie() {
   FlagAlarmeCable1 = false;
   FlagAlarmeCable2 = false;
   FlagAlarmePorte = false;
-  // FlagPIR = false;
+  FlagPIR = false;
 }
 //---------------------------------------------------------------------------
 void SonnerieMax() {
