@@ -1105,10 +1105,10 @@ fin_i:
         message += fl;
         EnvoyerSms(number, sms);
       }
-      else if (textesms.indexOf(F("MAJHEURE")) == 0) {	//	forcer mise a l'heure V2-19
+      else if (textesms.indexOf(F("MAJHEURE")) == 0) {	//	forcer mise a l'heure
         message += F("Mise a l'heure");
         Sim800.reset(SIMPIN);// lancer SIM800
-        MajHeure();		// mise a l'heure
+        MajHeure(); // mise a l'heure
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("IMEI")) > -1) {
@@ -1449,18 +1449,20 @@ void generationMessage() {
 		message += F("Jour Non Circule");
 	}
 	message += fl;
-  message += F("Batterie : ");			//"Alarme Batterie : "
-  if (FlagAlarmeTension) {
-    message += F("Alarme, ");
+  message += F("Batterie : ");
+  if (!FlagAlarmeTension) {
+		message += F("OK, ");
+		message += String(BattPBpct(TensionBatterie));
+		message += "%";
   }
   else {
-    message += F("OK, ");
-  }
-  message += String(BattPBpct(TensionBatterie));
-  message += "%";
-  message += fl;
-  message += F("V USB =");
-  message += String(float(VUSB / 1000.0)) + fl;
+    message += F("Alarme, ");
+		message += String(BattPBpct(TensionBatterie));
+		message += "%";
+		message += fl;
+		message += F("V USB =");
+		message += String(float(VUSB / 1000.0)) + fl;
+	}
   message += F("Nbr Allumage = ");
   message += String(CptAllumage);
   message += fl ;
@@ -1482,7 +1484,7 @@ void generationMessage() {
     }
   }
   if (config.Intru) {
-    message += F("Alarme Active ");// ajouter capteur actif futur V2-20
+    message += F("Alarme Active ");
     message += fl;
   }
   else {
@@ -1702,8 +1704,7 @@ void logRecord(String nom, String action) { // renseigne log et enregistre EEPRO
     temp =  "0" + String(month());
   }
   else {
-    // temp =  "0";//V2-18
-    temp = String(month());//V2-18
+    temp = String(month());
   }
   if (day() < 10 ) {
     temp += "0" + String(day());
