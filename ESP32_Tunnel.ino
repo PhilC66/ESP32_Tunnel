@@ -572,7 +572,7 @@ void Acquisition() {
       if (nalaPIR2 > 0) nalaPIR2 --;		//	efface progressivement le compteur
     }
 
-    if (FlagAlarmePorte || FlagAlarmePorte) {
+    if (FlagAlarmePorte || FlagAlarmeCable1 || FlagAlarmeCable2) {
       ActivationSonnerie();		// activation Sonnerie
       if (FlagAlarmePorte) {
         Serial.println(F("Alarme Porte"));
@@ -1934,8 +1934,8 @@ void PrintEEPROM() {
   Serial.print(F("Fin jour = "))								, Serial.println(config.FinJour);
   Serial.print(F("Tempo repetition Wake up (s)= ")), Serial.println(config.RepeatWakeUp);
   Serial.print(F("Tempo Analyse apres Wake up (s)= ")) , Serial.println(config.Tanalyse);
-  Serial.print(F("TimeOut Alarme Jour (s)= "))  , Serial.println(config.Jour_Nmax);
-  Serial.print(F("TimeOut Alarme Nuit (s)= "))	, Serial.println(config.Nuit_Nmax);
+  Serial.print(F("TimeOut Alarme Jour (s)= "))  , Serial.println(config.Jour_Nmax*10);
+  Serial.print(F("TimeOut Alarme Nuit (s)= "))	, Serial.println(config.Nuit_Nmax*10);
   Serial.print(F("Tempo Sortie (s)= "))				  , Serial.println(config.tempoSortie);
   Serial.print(F("Time Out Eclairage (s)= "))   , Serial.println(config.timeOutS);
   Serial.print(F("Time Out Wifi (s)= "))				, Serial.println(config.timeoutWifi);
