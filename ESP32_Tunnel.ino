@@ -8,11 +8,11 @@
   apres 5 min de fonctionnement (ex: 2mn pour reception/suppression 8 SMS, 4mn 14SMS)
   envoie sms signal vie
   analyse calendrier sauvegardé en SPIFFS
-  
+
 	si jour circulé
   on continue normalement
   en fin de journée retour sleep jusqu'a 06h59
-  
+
   si non circulé,
   retour SIM800 et ESP32 en sleep reveil toute les heures
   au reveil attendre au moins 30s pour que les SMS arrivent,
@@ -29,7 +29,7 @@
   Surveillance Batterie solaire
 	Adc interne instable 2 à 3.5% erreurs!
 	mise en place moyenne mobile sur les adc precision <1% avec 4bits
-	
+
 	Circulation = CalendrierCircule ^ flagCircule (OU exclusif)
 	CalCircule	|	flagCircule | Circulation
 				1			|			0				|			1
@@ -44,13 +44,13 @@
 
 
   version prod
-  
+
   Tension batterie
   parametres par defaut
 
 
   Compilation LOLIN D32,default,80MHz
-  991938 75%, 47020 14%
+  992058 75%, 47020 14%
 
 */
 
@@ -117,7 +117,7 @@ volatile unsigned long rebond1 = 0;		//	antirebond IRQ
 volatile unsigned long rebond2 = 0;
 byte confign = 0;					// Num enregistrement EEPROM
 bool Allume = false;
-bool FlagPIR                 = false; // 
+bool FlagPIR                 = false; //
 bool FlagAlarmeTension       = false; // Alarme tension Batterie
 bool FlagLastAlarmeTension   = false;
 bool FlagAlarmeIntrusion     = false; // Alarme Defaut Cable detectée
@@ -251,8 +251,8 @@ void setup() {
   adcAttachPin(PinBattProc);
   adcAttachPin(PinBattSol);
   adcAttachPin(PinBattUSB);
-	
-	init_adc_mm();// initilaisation tableau pour adc Moyenne Mobile
+
+  init_adc_mm();// initilaisation tableau pour adc Moyenne Mobile
 
   /* Lecture configuration en EEPROM	 */
   EEPROM.begin(512);
@@ -283,7 +283,7 @@ void setup() {
     config.Porte         = true;
     config.Jour_Nmax     = 3 * 60 / 10; // 3mn /10 temps de boucle Acquisition
     config.Nuit_Nmax     = 30 / 10; // 30s /10 temps de boucle Acquisition
-		for (int i = 0; i < 10; i++) {// initialise liste PhoneBook liste restreinte
+    for (int i = 0; i < 10; i++) {// initialise liste PhoneBook liste restreinte
       config.Pos_Pn_PB[i] = 0;
     }
     // config.Pos_Pn_PB[1]  = 1;	// le premier numero du PB par defaut
@@ -378,16 +378,16 @@ void setup() {
 
   // Serial.print(F("temps =")),Serial.println(millis());
   Serial.print(F("flag Circule :")), Serial.println(flagCircule);
-	
-	if(get_wakeup_reason() == PinPorte && config.Intru){ // Alarme Porte
-		FlagAlarmePorte = true;
-		FlagAlarmeIntrusion = true;
-	}
-	
+
+  if (get_wakeup_reason() == PinPorte && config.Intru) { // Alarme Porte
+    FlagAlarmePorte = true;
+    FlagAlarmeIntrusion = true;
+  }
+
 }
 //---------------------------------------------------------------------------
 void loop() {
-	static byte nboucle = 0;
+  static byte nboucle = 0;
   recvOneChar();
   showNewData();
 
@@ -452,12 +452,12 @@ void loop() {
 
   ArduinoOTA.handle();
   Alarm.delay(1);
-	
-	if(nboucle>10){ // tous les 10 passages
-		read_adc(PinBattSol,PinBattProc,PinBattUSB);// lecture des adc
-		nboucle = 0;
-	}
-	nboucle ++;
+
+  if (nboucle > 10) { // tous les 10 passages
+    read_adc(PinBattSol, PinBattProc, PinBattUSB); // lecture des adc
+    nboucle = 0;
+  }
+  nboucle ++;
 
 }	//fin loop
 //---------------------------------------------------------------------------
@@ -490,13 +490,13 @@ void Acquisition() {
   Serial.print(F(" Freemem = ")), Serial.println(ESP.getFreeHeap());
   static byte nalaTension = 0;
   static byte nRetourTension = 0;
-  TensionBatterie = map(adc_mm[0]/nSample, 0, 4095, 0, CoeffTension[0]);
-  VBatterieProc   = map(adc_mm[1]/nSample, 0, 4095, 0, CoeffTension[1]);
-  VUSB            = map(adc_mm[2]/nSample, 0, 4095, 0, CoeffTension[2]);
-	
-	// Serial.print(adc_mm[0]),Serial.print(";");
-	// Serial.print(adc_mm[1]),Serial.print(";");
-	// Serial.println(adc_mm[2]);
+  TensionBatterie = map(adc_mm[0] / nSample, 0, 4095, 0, CoeffTension[0]);
+  VBatterieProc   = map(adc_mm[1] / nSample, 0, 4095, 0, CoeffTension[1]);
+  VUSB            = map(adc_mm[2] / nSample, 0, 4095, 0, CoeffTension[2]);
+
+  // Serial.print(adc_mm[0]),Serial.print(";");
+  // Serial.print(adc_mm[1]),Serial.print(";");
+  // Serial.println(adc_mm[2]);
 
   if (BattPBpct(TensionBatterie) < 25 || VUSB < 4000) { // || VUSB > 6000
     nalaTension ++;
@@ -541,7 +541,7 @@ void Acquisition() {
       nalaPorte ++;
       if (nalaPorte > 1) {
         FlagAlarmePorte = true;
-				FlagPIR = true;
+        FlagPIR = true;
         nalaPorte = 0;
       }
     }
@@ -553,7 +553,7 @@ void Acquisition() {
       nalaPIR1 ++;
       if (nalaPIR1 > Nmax) {
         FlagAlarmeCable1 = true;
-				FlagPIR = true;
+        FlagPIR = true;
         nalaPIR1 = 0;
       }
     }
@@ -565,7 +565,7 @@ void Acquisition() {
       nalaPIR2 ++;
       if (nalaPIR2 > Nmax) {
         FlagAlarmeCable2 = true;
-				FlagPIR = true;
+        FlagPIR = true;
         nalaPIR2 = 0;
       }
     }
@@ -574,8 +574,8 @@ void Acquisition() {
     }
 
     if (FlagPIR) {
-			FlagAlarmeIntrusion = true;
-			FlagPIR = false;
+      FlagAlarmeIntrusion = true;
+      FlagPIR = false;
       ActivationSonnerie();		// activation Sonnerie
       if (FlagAlarmePorte) {
         Serial.println(F("Alarme Porte"));
@@ -586,15 +586,15 @@ void Acquisition() {
     }
   }
   else {
-		FlagPIR = false;
+    FlagPIR = false;
     FlagAlarmeIntrusion = false; // efface alarme
     FlagAlarmeCable1 = false;
     FlagAlarmeCable2 = false;
     FlagAlarmePorte = false;
   }
-  Serial.printf("Nala Porte = %d ,",FlagAlarmePorte);
-  Serial.printf("Nala Ped 1 = %d ,",nalaPIR1);
-  Serial.printf("Nala Ped 2 = %d\n",nalaPIR2);
+  Serial.printf("Nala Porte = %d ,", FlagAlarmePorte);
+  Serial.printf("Nala Ped 1 = %d ,", nalaPIR1);
+  Serial.printf("Nala Ped 2 = %d\n", nalaPIR2);
 
 
   /* verification nombre SMS en attente(raté en lecture directe)
@@ -619,7 +619,7 @@ void Acquisition() {
   Alarm.delay(50);
   digitalWrite(LED_PIN, 1);
 
-	Serial.println();
+  Serial.println();
 }
 //---------------------------------------------------------------------------
 void traite_sms(byte slot) {
@@ -716,8 +716,8 @@ void traite_sms(byte slot) {
         ConnexionWifi(ssid, pwd, number, sms); // message généré par routine
       }
       else if (textesms.indexOf(F("TEL")) == 0
-            || textesms.indexOf(F("Tel")) == 0
-            || textesms.indexOf(F("tel")) == 0) { // entrer nouveau num
+               || textesms.indexOf(F("Tel")) == 0
+               || textesms.indexOf(F("tel")) == 0) { // entrer nouveau num
         bool FlagOK = true;
         byte j = 0;
         String Send	= "AT+CPBW=";// message ecriture dans le phone book
@@ -730,7 +730,7 @@ void traite_sms(byte slot) {
           j = 5;
           // on efface la ligne sauf la 1 pour toujours garder au moins un numéro
           if ( (i != 1) && (textesms.indexOf(F("efface")) == 5
-                         || textesms.indexOf(F("EFFACE")) == 5 )) goto fin_tel;
+                            || textesms.indexOf(F("EFFACE")) == 5 )) goto fin_tel;
         }
         else if (textesms.indexOf(char(61)) == 3) { // TEL= nouveau numero
           j = 4;
@@ -870,7 +870,7 @@ fin_i:
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("INTRUON")) == 0
-            || textesms.indexOf(("A" + Id.substring(6, 10))) == 0) {	//	Armement Alarme
+               || textesms.indexOf(("A" + Id.substring(6, 10))) == 0) {	//	Armement Alarme
         // conserver INTRUON en depannage si ID non conforme
         if (!config.Intru) {
           config.Intru = !config.Intru;
@@ -886,7 +886,7 @@ fin_i:
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("INTRUOFF")) == 0
-            || textesms.indexOf(("D" + Id.substring(6, 10))) == 0) { //	Desarmement
+               || textesms.indexOf(("D" + Id.substring(6, 10))) == 0) { //	Desarmement
         if (config.Intru) {
           config.Intru = !config.Intru;
           sauvConfig();														// sauvegarde en EEPROM
@@ -1192,7 +1192,7 @@ fin_i:
         if (!(calendrier[month()][day()] ^ flagCircule)) {
           // calendrier[month()][day()] = 1;
           message += F("OK, Circule");
-					flagCircule = !flagCircule;
+          flagCircule = !flagCircule;
           ok = true;
         }
         else {
@@ -1211,7 +1211,7 @@ fin_i:
           sans modification calendrier enregistré en SPIFFS */
         if (calendrier[month()][day()] ^ flagCircule) {
           // calendrier[month()][day()] = 0;
-          message += F("OK, NonCircule");					
+          message += F("OK, NonCircule");
           flagCircule = !flagCircule;
           ok = true;
         }
@@ -1249,47 +1249,47 @@ fin_i:
         message += config.Tanalyse;
         EnvoyerSms(number, sms);
       }
-			else if (textesms.indexOf(F("LST2")) >-1){ //	Liste restreinte	//  =LST2=0,0,0,0,0,0,0,0,0
-				bool flag = true; // validation du format
-				if (textesms.indexOf(char(61)) == 4) { // "="
-					byte Num[10];
-					Sbidon = textesms.substring(5,22);
-					// Serial.print("bidon="),Serial.print(Sbidon),Serial.print("="),Serial.println(Sbidon.length());
-					if (Sbidon.length() == 17){
-						int j=1;
-						for (int i = 0;i < 17; i +=2){
-							if(i == 16 && (Sbidon.substring(i,i+1) == "0"	|| Sbidon.substring(i,i+1) == "1")){
-								Num[j] = Sbidon.substring(i,i+1).toInt();
-							}
-							else if((Sbidon.substring(i+1,i+2)== ",") && (Sbidon.substring(i,i+1) == "0"	|| Sbidon.substring(i,i+1) == "1")){
-								//Serial.print(",="),Serial.println(bidon.substring(i+1,i+2));
-								//Serial.print("X="),Serial.println(bidon.substring(i,i+1));
-								Num[j] = Sbidon.substring(i,i+1).toInt();
-								//Serial.print(i),Serial.print(","),Serial.print(j),Serial.print(","),Serial.println(Num[j]);
-								j++;
-							}
-							else{
-								Serial.println(F("Format pas reconnu"));
-								flag = false;
-							}
-						}
-						if(flag){
-							//Serial.println("copie des num");
-							for (int i = 1; i < 10; i++){
-								config.Pos_Pn_PB[i] = Num[i];
-							}
-							sauvConfig();															// sauvegarde en EEPROM
-						}
-					}
-				}
-				message += F("Liste restreinte");
-				message += fl;
-				for (int i = 1; i < 10; i++){
-					message += config.Pos_Pn_PB[i];
-					if( i < 9) message += char(44); // ,
-				}
-				EnvoyerSms(number, sms);
-			}
+      else if (textesms.indexOf(F("LST2")) > -1) { //	Liste restreinte	//  =LST2=0,0,0,0,0,0,0,0,0
+        bool flag = true; // validation du format
+        if (textesms.indexOf(char(61)) == 4) { // "="
+          byte Num[10];
+          Sbidon = textesms.substring(5, 22);
+          // Serial.print("bidon="),Serial.print(Sbidon),Serial.print("="),Serial.println(Sbidon.length());
+          if (Sbidon.length() == 17) {
+            int j = 1;
+            for (int i = 0; i < 17; i += 2) {
+              if (i == 16 && (Sbidon.substring(i, i + 1) == "0"	|| Sbidon.substring(i, i + 1) == "1")) {
+                Num[j] = Sbidon.substring(i, i + 1).toInt();
+              }
+              else if ((Sbidon.substring(i + 1, i + 2) == ",") && (Sbidon.substring(i, i + 1) == "0"	|| Sbidon.substring(i, i + 1) == "1")) {
+                //Serial.print(",="),Serial.println(bidon.substring(i+1,i+2));
+                //Serial.print("X="),Serial.println(bidon.substring(i,i+1));
+                Num[j] = Sbidon.substring(i, i + 1).toInt();
+                //Serial.print(i),Serial.print(","),Serial.print(j),Serial.print(","),Serial.println(Num[j]);
+                j++;
+              }
+              else {
+                Serial.println(F("Format pas reconnu"));
+                flag = false;
+              }
+            }
+            if (flag) {
+              //Serial.println("copie des num");
+              for (int i = 1; i < 10; i++) {
+                config.Pos_Pn_PB[i] = Num[i];
+              }
+              sauvConfig();															// sauvegarde en EEPROM
+            }
+          }
+        }
+        message += F("Liste restreinte");
+        message += fl;
+        for (int i = 1; i < 10; i++) {
+          message += config.Pos_Pn_PB[i];
+          if ( i < 9) message += char(44); // ,
+        }
+        EnvoyerSms(number, sms);
+      }
       else if (textesms == F("RST")) {               // demande RESET
         message += F("Le systeme va etre relance");  // apres envoie du SMS!
         message += fl;
@@ -1416,20 +1416,20 @@ void envoie_alarme() {
 void envoieGroupeSMS(byte grp) {
   /* si grp = 0,
     envoie un SMS à tous les numero existant (9 max) du Phone Book
-		SAUF ceux de la liste restreinte
+  	SAUF ceux de la liste restreinte
     si grp = 1,
     envoie un SMS à tous les numero existant (9 max) du Phone Book
     de la liste restreinte config.Pos_Pn_PB[x]=1			*/
 
   byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
   for (byte Index = 1; Index < n + 1; Index++) { // Balayage des Num Tel dans Phone Book
-		if((grp == 0 && config.Pos_Pn_PB[Index] == 0) || (grp == 1 && config.Pos_Pn_PB[Index] == 1)){
-			String number = Sim800.getPhoneBookNumber(Index);
-			generationMessage();
-			char num[13];
-			number.toCharArray(num, 13);
-			EnvoyerSms(num, true);
-		}
+    if ((grp == 0 && config.Pos_Pn_PB[Index] == 0) || (grp == 1 && config.Pos_Pn_PB[Index] == 1)) {
+      String number = Sim800.getPhoneBookNumber(Index);
+      generationMessage();
+      char num[13];
+      number.toCharArray(num, 13);
+      EnvoyerSms(num, true);
+    }
   }
 }
 //---------------------------------------------------------------------------
@@ -1442,27 +1442,27 @@ void generationMessage() {
     message += F("-------OK-------");
   }
   message += fl;
-	if((calendrier[month()][day()] ^ flagCircule)){
-		message += F("Jour Circule");
-	}
-	else{
-		message += F("Jour Non Circule");
-	}
-	message += fl;
+  if ((calendrier[month()][day()] ^ flagCircule)) {
+    message += F("Jour Circule");
+  }
+  else {
+    message += F("Jour Non Circule");
+  }
+  message += fl;
   message += F("Batterie : ");
   if (!FlagAlarmeTension) {
-		message += F("OK, ");
-		message += String(BattPBpct(TensionBatterie));
-		message += "%";
+    message += F("OK, ");
+    message += String(BattPBpct(TensionBatterie));
+    message += "%";
   }
   else {
     message += F("Alarme, ");
-		message += String(BattPBpct(TensionBatterie));
-		message += "%";
-		message += fl;
-		message += F("V USB =");
-		message += String(float(VUSB / 1000.0)) + fl;
-	}
+    message += String(BattPBpct(TensionBatterie));
+    message += "%";
+    message += fl;
+    message += F("V USB =");
+    message += String(float(VUSB / 1000.0)) + fl;
+  }
   message += F("Nbr Allumage = ");
   message += String(CptAllumage);
   message += fl ;
@@ -1827,9 +1827,9 @@ void MajLog(String Id, String Raison) { // mise à jour fichier log en SPIFFS
     message += F("Fichier log presque plein\n");
     message += String(f.size());
     message += F("\nFichier sera efface à 300000");
-		String number = Sim800.getPhoneBookNumber(1); // envoyé au premier num seulement
-		char num[13];
-		number.toCharArray(num, 13);
+    String number = Sim800.getPhoneBookNumber(1); // envoyé au premier num seulement
+    char num[13];
+    number.toCharArray(num, 13);
     EnvoyerSms(num, true);
   }
   else if (f.size() > 300000 && once) { // 292Ko 75000 lignes
@@ -1838,8 +1838,8 @@ void MajLog(String Id, String Raison) { // mise à jour fichier log en SPIFFS
     message += String(f.size());
     message += F("\nFichier efface");
     String number = Sim800.getPhoneBookNumber(1); // envoyé au premier num seulement
-		char num[13];
-		number.toCharArray(num, 13);
+    char num[13];
+    number.toCharArray(num, 13);
     EnvoyerSms(num, true);
     SPIFFS.remove(filelog);
     once = false;
@@ -1924,9 +1924,9 @@ void FinJournee() {
   Sbidon  = F("FinJour ");
   Sbidon += Hdectohhmm(TIME_TO_SLEEP);
   MajLog(F("Auto"), Sbidon);
-	Sbidon  = F("nbr allum =");
-	Sbidon += CptAllumage;
-	MajLog(F("Auto"), Sbidon);
+  Sbidon  = F("nbr allum =");
+  Sbidon += CptAllumage;
+  MajLog(F("Auto"), Sbidon);
   DebutSleep();
 }
 //---------------------------------------------------------------------------
@@ -1939,24 +1939,24 @@ void PrintEEPROM() {
   Serial.print(F("Fin jour = "))								, Serial.println(config.FinJour);
   Serial.print(F("Tempo repetition Wake up (s)= ")), Serial.println(config.RepeatWakeUp);
   Serial.print(F("Tempo Analyse apres Wake up (s)= ")) , Serial.println(config.Tanalyse);
-  Serial.print(F("TimeOut Alarme Jour (s)= "))  , Serial.println(config.Jour_Nmax*10);
-  Serial.print(F("TimeOut Alarme Nuit (s)= "))	, Serial.println(config.Nuit_Nmax*10);
+  Serial.print(F("TimeOut Alarme Jour (s)= "))  , Serial.println(config.Jour_Nmax * 10);
+  Serial.print(F("TimeOut Alarme Nuit (s)= "))	, Serial.println(config.Nuit_Nmax * 10);
   Serial.print(F("Tempo Sortie (s)= "))				  , Serial.println(config.tempoSortie);
   Serial.print(F("Time Out Eclairage (s)= "))   , Serial.println(config.timeOutS);
   Serial.print(F("Time Out Wifi (s)= "))				, Serial.println(config.timeoutWifi);
   Serial.print(F("Alarme sur Pedale 1 = ")) 	  , Serial.println(config.Pedale1);
   Serial.print(F("Alarme sur Pedale 2 = ")) 	  , Serial.println(config.Pedale2);
   Serial.print(F("Alarme sur Porte = ")) 	      , Serial.println(config.Porte);
-	Serial.print(F("Liste Restreinte = "));
-	for (int i = 1; i < 10; i++) {
-		Serial.print(config.Pos_Pn_PB[i]);
-		if(i==9){
-			Serial.println();
-		}
-		else{
-			Serial.print(F(","));
-		}
-	}
+  Serial.print(F("Liste Restreinte = "));
+  for (int i = 1; i < 10; i++) {
+    Serial.print(config.Pos_Pn_PB[i]);
+    if (i == 9) {
+      Serial.println();
+    }
+    else {
+      Serial.print(F(","));
+    }
+  }
 }
 //---------------------------------------------------------------------------
 void Extinction() {
@@ -2000,23 +2000,23 @@ void Allumage(byte n) {
     if (n == 1)Al1 = 1;
     if (n == 2)Al2 = 1;
     Alarm.enable(TimeOut);
-		Sbidon  = F("Allumage ");
-		Sbidon += n;
+    Sbidon  = F("Allumage ");
+    Sbidon += n;
     MajLog(F("Auto"), Sbidon);
   }
   else {	// si Allumé
     if (n == 0) {
       digitalWrite(PinEclairage, LOW);
-      Allume = false;			
+      Allume = false;
     }
     else if (Al1 == Cd2 || Al2 == Cd1) {
       Serial.print(F("Extinction dans (s) ")), Serial.println(config.tempoSortie);
       Alarm.enable(TempoSortie);
       Serial.print(F("Nombre Allumage = ")), Serial.println(CptAllumage);
     }
-		Sbidon  = F("Extinction ");
-		Sbidon += n;			
-		MajLog(F("Auto"), Sbidon);
+    Sbidon  = F("Extinction ");
+    Sbidon += n;
+    MajLog(F("Auto"), Sbidon);
   }
 }
 //---------------------------------------------------------------------------
@@ -2257,44 +2257,44 @@ void IntruD() { // Charge parametre Alarme Intrusion Nuit
 //---------------------------------------------------------------------------
 void DebutSleep() {
   // selection du pin mask en fonction des capteurs actif
-	const uint64_t ext_wakeup_pin_1_mask = 1ULL << PinPedale1;
-	const uint64_t ext_wakeup_pin_2_mask = 1ULL << PinPedale2;
-	const uint64_t ext_wakeup_pin_3_mask = 1ULL << PinPorte;
-	
-	if(config.Porte && config.Pedale1 && config.Pedale2){
-		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-	}else if(config.Porte && config.Pedale1){
-		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-	}else if(config.Porte && config.Pedale2){
-		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-	}else if(config.Pedale1 && config.Pedale2){
-		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-	}else if(config.Porte){
-		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-	}else if(config.Pedale1){
-		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-	}else if(config.Pedale2){
-		esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-	}
-	else{
-		/* pas de wakeup sur pin */
-	}
-	
-	/* Garde fou si TIME_TO_SLEEP > 20H00 c'est une erreur, on impose 1H00 */
-	if(TIME_TO_SLEEP > 72000){
-		TIME_TO_SLEEP = 3600;
-		Sbidon = F("jour ");
-		Sbidon += jour;
-		Sbidon = F(", Calendrier ");
-		Sbidon += calendrier[month()][day()];
-		Sbidon = F(", flagCirc ");
-		Sbidon += flagCircule;
-		MajLog(F("Auto"), Sbidon);
-		Sbidon = F("Attention erreur Sleep>20H00 ");
-		Sbidon += Hdectohhmm(TIME_TO_SLEEP);
-		MajLog(F("Auto"), Sbidon);
-	}
-	
+  const uint64_t ext_wakeup_pin_1_mask = 1ULL << PinPedale1;
+  const uint64_t ext_wakeup_pin_2_mask = 1ULL << PinPedale2;
+  const uint64_t ext_wakeup_pin_3_mask = 1ULL << PinPorte;
+
+  if (config.Porte && config.Pedale1 && config.Pedale2) {
+    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+  } else if (config.Porte && config.Pedale1) {
+    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+  } else if (config.Porte && config.Pedale2) {
+    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+  } else if (config.Pedale1 && config.Pedale2) {
+    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+  } else if (config.Porte) {
+    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+  } else if (config.Pedale1) {
+    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+  } else if (config.Pedale2) {
+    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+  }
+  else {
+    /* pas de wakeup sur pin */
+  }
+
+  /* Garde fou si TIME_TO_SLEEP > 20H00 c'est une erreur, on impose 1H00 */
+  if (TIME_TO_SLEEP > 72000) {
+    TIME_TO_SLEEP = 3600;
+    Sbidon = F("jour ");
+    Sbidon += jour;
+    Sbidon = F(", Calendrier ");
+    Sbidon += calendrier[month()][day()];
+    Sbidon = F(", flagCirc ");
+    Sbidon += flagCircule;
+    MajLog(F("Auto"), Sbidon);
+    Sbidon = F("Attention erreur Sleep>20H00 ");
+    Sbidon += Hdectohhmm(TIME_TO_SLEEP);
+    MajLog(F("Auto"), Sbidon);
+  }
+
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.print(F("Setup ESP32 to sleep for "));
   print_uint64_t(TIME_TO_SLEEP);
@@ -2325,7 +2325,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
   Serial.print(F(" ,Calendrier :")), Serial.print(calendrier[month()][day()]);
   Serial.print(F(" ,flagCircule :")), Serial.println(flagCircule);
   byte pin = 0;
-	Serial.println(F("***********************************"));
+  Serial.println(F("***********************************"));
   if (wr == 99 || wr == 32 || wr == 33 || wr == 34) {
     pin = wr;
     wr = 3;
@@ -2349,7 +2349,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
       Sbidon += String(pin);
       MajLog(F("Alarme"), Sbidon);
       // }
-		break;
+      break;
 
     case 4: // SP_SLEEP_WAKEUP_TIMER
       /* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00
@@ -2359,7 +2359,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
         Nmax = config.Jour_Nmax; // parametre jour
         Serial.println(F("Jour circule ou demande circulation"));
       }
-			else { //if ((calendrier[month()][day()] == 0 || !Circule)) { // non circulé
+      else { //if ((calendrier[month()][day()] == 0 || !Circule)) { // non circulé
         Serial.println(F("Jour noncircule"));
         Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
@@ -2370,7 +2370,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
           DebutSleep();
         }
       }
-		break;
+      break;
 
     case 5: break;  // ne rien faire ESP_SLEEP_WAKEUP_TOUCHPAD
     case 6: break;  // ne rien faire ESP_SLEEP_WAKEUP_ULP
@@ -2383,15 +2383,15 @@ void calculTimeSleep() {
   AIntru_HeureActuelle(); // determine si jour/nuit
 
   if (jour && (HActuelledec() + config.RepeatWakeUp) > config.FinJour) {
-    if(HActuelledec() >(config.FinJour - anticip)){
-			/* eviter de reporter 24H si on est à moins de anticip de FinJour */
-			TIME_TO_SLEEP = 1; // si 1 pas de sleep
-		}
-		else{
-			TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
-			Serial.print(F("time sleep calcul 1 : ")), print_uint64_t(TIME_TO_SLEEP);
-			Serial.println("");
-		}
+    if (HActuelledec() > (config.FinJour - anticip)) {
+      /* eviter de reporter 24H si on est à moins de anticip de FinJour */
+      TIME_TO_SLEEP = 1; // si 1 pas de sleep
+    }
+    else {
+      TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
+      Serial.print(F("time sleep calcul 1 : ")), print_uint64_t(TIME_TO_SLEEP);
+      Serial.println("");
+    }
   }
   else if (!jour) {
     if (HActuelledec() < (config.DebutJour - anticip)) {
@@ -2420,21 +2420,21 @@ int get_wakeup_reason() {
   esp_sleep_wakeup_cause_t wakeup_reason;
 
   wakeup_reason = esp_sleep_get_wakeup_cause();
-	uint64_t wakeup_pin_mask;
+  uint64_t wakeup_pin_mask;
   switch (wakeup_reason) {
     case ESP_SLEEP_WAKEUP_EXT0  : return ESP_SLEEP_WAKEUP_EXT0; // 2
     case ESP_SLEEP_WAKEUP_EXT1: //{// 3
-			wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
-			if (wakeup_pin_mask != 0) {
-				int pin = __builtin_ffsll(wakeup_pin_mask) - 1;
-				Serial.print(F("Wake up from GPIO ")); Serial.println(String(pin));
-				return pin; // pin
-			} else {
-				Serial.println(F(" Wake up from GPIO ?"));
-				return 99; // 99
-			}
-		break;
-		// }
+      wakeup_pin_mask = esp_sleep_get_ext1_wakeup_status();
+      if (wakeup_pin_mask != 0) {
+        int pin = __builtin_ffsll(wakeup_pin_mask) - 1;
+        Serial.print(F("Wake up from GPIO ")); Serial.println(String(pin));
+        return pin; // pin
+      } else {
+        Serial.println(F(" Wake up from GPIO ?"));
+        return 99; // 99
+      }
+      break;
+    // }
     case ESP_SLEEP_WAKEUP_TIMER    : return ESP_SLEEP_WAKEUP_TIMER; // 4
     case ESP_SLEEP_WAKEUP_TOUCHPAD : return ESP_SLEEP_WAKEUP_TOUCHPAD; // 5
     case ESP_SLEEP_WAKEUP_ULP      : return ESP_SLEEP_WAKEUP_ULP; // 6
@@ -2475,45 +2475,45 @@ void print_uint64_t(uint64_t num) {
 }
 //---------------------------------------------------------------------------
 void init_adc_mm(void) {
-	//initialisation des tableaux
-	/* valeur par defaut facultative, 
-		permet d'avoir une moyenne proche
-		du resulat plus rapidement
-		val defaut = valdefaut*nSample */
-	unsigned int ini_adc1 = 0;// val defaut adc 1
-	unsigned int ini_adc2 = 0;// val defaut adc 2
-	unsigned int ini_adc3 = 0;// val defaut adc 3
-	for(int plus_ancien = 0;plus_ancien<nSample;plus_ancien++) {
-		adc_hist[0][plus_ancien] = ini_adc1;
-		adc_hist[1][plus_ancien] = ini_adc2;
-		adc_hist[2][plus_ancien] = ini_adc3;
-	}
-	//on commencera à stocker à cet offset
-	adc_mm[0] = ini_adc1;
-	adc_mm[1] = ini_adc2;
-	adc_mm[2] = ini_adc3;
+  //initialisation des tableaux
+  /* valeur par defaut facultative,
+  	permet d'avoir une moyenne proche
+  	du resulat plus rapidement
+  	val defaut = valdefaut*nSample */
+  unsigned int ini_adc1 = 0;// val defaut adc 1
+  unsigned int ini_adc2 = 0;// val defaut adc 2
+  unsigned int ini_adc3 = 0;// val defaut adc 3
+  for (int plus_ancien = 0; plus_ancien < nSample; plus_ancien++) {
+    adc_hist[0][plus_ancien] = ini_adc1;
+    adc_hist[1][plus_ancien] = ini_adc2;
+    adc_hist[2][plus_ancien] = ini_adc3;
+  }
+  //on commencera à stocker à cet offset
+  adc_mm[0] = ini_adc1;
+  adc_mm[1] = ini_adc2;
+  adc_mm[2] = ini_adc3;
 }
 //---------------------------------------------------------------------------
-void read_adc(int pin1,int pin2,int pin3) {
-	// http://www.f4grx.net/algo-comment-calculer-une-moyenne-glissante-sur-un-microcontroleur-a-faibles-ressources/
-	static int plus_ancien = 0;
-	//acquisition
-	int sample[3];
-	for(byte i = 0; i<3;i++){
-		if(i==0)sample[i] = moyenneAnalogique(pin1);
-		if(i==1)sample[i] = moyenneAnalogique(pin2);
-		if(i==2)sample[i] = moyenneAnalogique(pin3);
+void read_adc(int pin1, int pin2, int pin3) {
+  // http://www.f4grx.net/algo-comment-calculer-une-moyenne-glissante-sur-un-microcontroleur-a-faibles-ressources/
+  static int plus_ancien = 0;
+  //acquisition
+  int sample[3];
+  for (byte i = 0; i < 3; i++) {
+    if (i == 0)sample[i] = moyenneAnalogique(pin1);
+    if (i == 1)sample[i] = moyenneAnalogique(pin2);
+    if (i == 2)sample[i] = moyenneAnalogique(pin3);
 
-		//calcul MoyenneMobile
-		adc_mm[i] = adc_mm[i] + sample[i] - adc_hist[i][plus_ancien];
-	
-		//cette plus ancienne valeur n'est plus utile, on y stocke la plus récente
-		adc_hist[i][plus_ancien] = sample[i];
-	}
-	plus_ancien ++;
-	if(plus_ancien == nSample) { //gestion du buffer circulaire
-		plus_ancien = 0;
-	}
+    //calcul MoyenneMobile
+    adc_mm[i] = adc_mm[i] + sample[i] - adc_hist[i][plus_ancien];
+
+    //cette plus ancienne valeur n'est plus utile, on y stocke la plus récente
+    adc_hist[i][plus_ancien] = sample[i];
+  }
+  plus_ancien ++;
+  if (plus_ancien == nSample) { //gestion du buffer circulaire
+    plus_ancien = 0;
+  }
 }
 //---------------------------------------------------------------------------
 void HomePage() {
@@ -2524,27 +2524,27 @@ void HomePage() {
   webpage += F("<td>Version</td>");
   webpage += F("<td>");	webpage += ver;	webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Id</td>");
   webpage += F("<td>");	webpage += String(config.Idchar);	webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Debut Jour</td>");
   webpage += F("<td>");	webpage += Hdectohhmm(config.DebutJour);	webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Fin Jour</td>");
   webpage += F("<td>");	webpage += Hdectohhmm(config.FinJour);	webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Nmax Jour (s)</td>");
   webpage += F("<td>");	webpage += String(config.Jour_Nmax * 10);	webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Nmax Nuit (s)</td>");
   webpage += F("<td>");	webpage += String(config.Nuit_Nmax * 10);	webpage += F("</td>");
@@ -2553,27 +2553,27 @@ void HomePage() {
   webpage += F("<td>Tempo Analyse apr&egrave;s Wake up (s)</td>");
   webpage += F("<td>");	webpage += String(config.Tanalyse);	webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Tempo r&eacute;p&eacute;tition Wake up Jour Circul&eacute; (s)</td>");
   webpage += F("<td>");	webpage += String(config.RepeatWakeUp);	webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Tempo Sortie (s)</td>");
   webpage += F("<td>");	webpage += String(config.tempoSortie);	webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>TimeOut Eclairage (s)</td>");
   webpage += F("<td>");	webpage += String(config.timeOutS);	webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>TimeOut Wifi (s)</td>");
   webpage += F("<td>");	webpage += String(config.timeoutWifi);	webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Alarme</td>");
   webpage += F("<td>");
@@ -2583,7 +2583,7 @@ void HomePage() {
     webpage += F("Inactive");
   } webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Silence</td>");
   webpage += F("<td>");
@@ -2593,7 +2593,7 @@ void HomePage() {
     webpage += F("OFF");
   } webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Alarme sur Pedale 1</td>");
   webpage += F("<td>");
@@ -2603,7 +2603,7 @@ void HomePage() {
     webpage += F("Inactive");
   } webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Alarme sur Pedale 2</td>");
   webpage += F("<td>");
@@ -2613,7 +2613,7 @@ void HomePage() {
     webpage += F("Inactive");
   } webpage += F("</td>");
   webpage += F("</tr>");
-	
+
   webpage += F("<tr>");
   webpage += F("<td>Alarme sur Porte</td>");
   webpage += F("<td>");
@@ -2623,18 +2623,18 @@ void HomePage() {
     webpage += F("Inactive");
   } webpage += F("</td>");
   webpage += F("</tr>");
-	
-	webpage += F("<tr>");
+
+  webpage += F("<tr>");
   webpage += F("<td>Liste Restreinte</td>");
-  webpage += F("<td>");	
-	for (int i = 1; i < 10; i++) {
-		webpage += String(config.Pos_Pn_PB[i]);
-		if(i<9){
-			webpage +=(F(","));
-		}
-	}	
-	webpage += F("</td>");
-	webpage += F("</tr>");
+  webpage += F("<td>");
+  for (int i = 1; i < 10; i++) {
+    webpage += String(config.Pos_Pn_PB[i]);
+    if (i < 9) {
+      webpage += (F(","));
+    }
+  }
+  webpage += F("</td>");
+  webpage += F("</tr>");
 
   webpage += F("</table><br>");
 
@@ -2768,7 +2768,7 @@ void printDirectory(const char * dirname, uint8_t levels) {
       // else if (bytes < (1024 * 1024 * 1024)) fsize = String(bytes / 1024.0 / 1024.0, 3) + " MB";
       // else                                  fsize = String(bytes / 1024.0 / 1024.0 / 1024.0, 3) + " GB";
       // webpage += "<td>" + fsize + "</td></tr>";
-			webpage += "<td>" + file_size(file.size()) + "</td></tr>";
+      webpage += "<td>" + file_size(file.size()) + "</td></tr>";
     }
     file = root.openNextFile();
   }
@@ -2896,15 +2896,15 @@ void handleTime() { // getion temps page web
 
 /* --------------------  test local serial seulement ----------------------*/
 void recvOneChar() {
-	if (Serial.available() > 0) {
+  if (Serial.available() > 0) {
     receivedChar = Serial.read();
-		if(receivedChar != 10 && receivedChar != 13){
-			demande += receivedChar;
-		}
-		else{
-			newData = true;
-			return;
-		}
+    if (receivedChar != 10 && receivedChar != 13) {
+      demande += receivedChar;
+    }
+    else {
+      newData = true;
+      return;
+    }
   }
 }
 
@@ -2913,7 +2913,7 @@ void showNewData() {
     Serial.println(demande);
     interpretemessage();
     newData = false;
-		demande = "";
+    demande = "";
   }
 }
 void interpretemessage() {
@@ -2922,9 +2922,9 @@ void interpretemessage() {
   if (demande.indexOf(char(61)) == 0) {
     bidons = demande.substring(1); //(demande.indexOf(char(61))+1);
     int lon0 = bidons.length();
-    bidons.toCharArray(replybuffer, lon0+1);
+    bidons.toCharArray(replybuffer, lon0 + 1);
     // Serial.print("reblybuffer :"),Serial.println(replybuffer);
-		traite_sms(99);//	traitement SMS en mode test local
+    traite_sms(99);//	traitement SMS en mode test local
   }
 }
 //---------------------------------------------------------------------------
