@@ -376,7 +376,6 @@ void setup() {
 
   ActiveInterrupt();
 
-  // Serial.print(F("temps =")),Serial.println(millis());
   Serial.print(F("flag Circule :")), Serial.println(flagCircule);
 
   if (get_wakeup_reason() == PinPorte && config.Intru) { // Alarme Porte
@@ -1568,22 +1567,21 @@ void MajHeure() {
     if (abs(ecart) > 5) {
       ArretSonnerie();	// Arret Sonnerie propre
       Alarm.disable(loopPrincipale);
-      Alarm.disable(TSonnRepos);
-      Alarm.disable(Svie);
+      Alarm.disable(TempoAnalyse);
       Alarm.disable(TempoSortie);
       Alarm.disable(TimeOut);
+      Alarm.disable(Svie);
       Alarm.disable(FinJour);
-      Alarm.disable(TempoAnalyse);
+      Alarm.disable(TSonnRepos);
 
       setTime(Nhour, Nminute, Nsecond, Nday, Nmonth, Nyear);
 
       Alarm.enable(loopPrincipale);
-      Alarm.enable(Svie);
+      Alarm.enable(TempoAnalyse);
       Alarm.enable(TempoSortie);
       Alarm.enable(TimeOut);
+      Alarm.enable(Svie);
       Alarm.enable(FinJour);
-      Alarm.enable(TempoAnalyse);
-
     }
   }
   displayTime(0);
