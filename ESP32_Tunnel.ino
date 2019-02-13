@@ -77,7 +77,7 @@ bool    SPIFFS_present = false;
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		39   // Batterie générale 12V adc VN
 #define PinBattUSB		36   // V USB 5V adc VP 36, 25 ADC2 pas utilisable avec Wifi 
-#define Pin24V				12   // Mesure Tension 24V
+#define Pin24V				26   // Mesure Tension 24V
 #define PinPedale1		32   // Entrée Pedale1 Wake up EXT1
 #define PinPedale2		33   // Entrée Pedale2 Wake up EXT1
 #define PinPorte   		34   // Entrée Porte Coffret Wake up EXT1 
