@@ -1393,6 +1393,29 @@ fin_i:
         message += fl;
         EnvoyerSms(number, sms);
       }
+			else if (textesms.indexOf(F("ALLUME")) == 0) {
+				if(!Allume){
+					Allumage(1);
+					message += F("Allumage");
+				}
+				else{
+					message += F("Deja Allume");
+				}
+				message += fl;
+        EnvoyerSms(number, sms);
+			}
+			else if (textesms.indexOf(F("ETEINDRE")) == 0) {
+				if(Allume){
+					Allumage(0);
+					message += F("Exctinction");
+				}
+				else{
+					message += F("Deja Eteint");
+				}
+				message += fl;
+        EnvoyerSms(number, sms);
+			}
+			//**************************************
       else {
         message += F("message non reconnu !");
         message += fl;

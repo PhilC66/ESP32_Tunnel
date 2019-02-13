@@ -43,3 +43,5 @@ TEMPOWAKEUP=n													Tempo repetition Wake up en s 59 à 36000 (norm=3600)
 TEMPOANALYSE=n												Tempo Analyse apres Wake up en s 59 à 1800 (norm=15*60)
 LST2	     														Liste Phone Book restreinte qte9, 0/1 0 liste defaut, 1 liste restreinte
 LST2=0,1,0,0,0,0,0,0,0
+ALLUMAGE															Allumage jusqu'a Eteindre ou timeout
+ETEINDRE															Extinction apres TempoSortie
