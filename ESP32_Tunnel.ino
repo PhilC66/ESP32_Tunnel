@@ -77,7 +77,7 @@ bool    SPIFFS_present = false;
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		39   // Batterie générale 12V adc VN
 #define PinBattUSB		36   // V USB 5V adc VP 36, 25 ADC2 pas utilisable avec Wifi 
-#define Pin24V				35   // Mesure Tension 24V
+#define Pin24V				12   // Mesure Tension 24V
 #define PinPedale1		32   // Entrée Pedale1 Wake up EXT1
 #define PinPedale2		33   // Entrée Pedale2 Wake up EXT1
 #define PinPorte   		34   // Entrée Porte Coffret Wake up EXT1 
@@ -102,7 +102,7 @@ char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le lo
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
-int Magique       = 3421;
+int Magique       = 4213;
 
 String Sbidon 		= "";
 String message;
@@ -506,7 +506,7 @@ void Acquisition() {
 
 	if(Allume){
 		cptallume ++;
-		Serial.print(F("Tension 24V :")),Serial.print(float(Tension24 / 100.0));
+		Serial.print(F("Tension 24V :")),Serial.print(float(Tension24 / 100.0)),Serial.print(F(" "));
 		if(cptallume > 2 && Tension24 < 2200){ // on attend 2 passages pour mesurer 24V
 			FlagAlarme24V = true;
 		}
@@ -661,7 +661,7 @@ void traite_sms(byte slot) {
   static int tensionmemo = 0;//	memorisation tension batterie lors de la calibration
   int coef = 0; // coeff temporaire
   static byte P = 0; // Pin entrée a utiliser pour calibration
-  static byte M = 0; // Mode calibration 1,2,3
+  static byte M = 0; // Mode calibration 1,2,3,4
   static bool FlagCalibration = false;	// Calibration Tension en cours
 
   if (slot == 99) sms = false;
@@ -1379,6 +1379,10 @@ fin_i:
           CoeffTension[M - 1] = coef;
           FlagCalibration = false;
           Recordcalib();														// sauvegarde en SPIFFS
+					
+					if (M == 4){
+						Extinction(); // eteindre
+					}
         }
         else {
           message += F("message non reconnu");
@@ -1398,9 +1402,7 @@ fin_i:
           message += String(BattPBpct(tension));
           message += "%";
         }
-				if (M == 4){
-					Allumage(0); // eteindre
-				}
+
         message += fl;
         EnvoyerSms(number, sms);
       }
@@ -1417,7 +1419,7 @@ fin_i:
 			}
 			else if (textesms.indexOf(F("ETEINDRE")) == 0) {
 				if(Allume){
-					Allumage(0);
+					Extinction();
 					message += F("Exctinction");
 				}
 				else{
@@ -1508,7 +1510,7 @@ void generationMessage() {
   if (!FlagAlarmeTension) {
     message += F("OK, ");
     message += String(BattPBpct(TensionBatterie));
-    message += "%";
+    message += "%" + fl;
   }
   else {
     message += F("Alarme, ");
@@ -1519,8 +1521,8 @@ void generationMessage() {
     message += String(float(VUSB / 1000.0)) + fl;
   }
 	if(FlagAlarme24V){
-		message += F("Alarme 24V ");
-		message +=String(float(Tension24 / 1000.0)) + fl;
+		message += F("Alarme 24V = ");
+		message +=String(float(Tension24 / 1000.0)) + "V" + fl;
 	}
   message += F("Nbr Allumage = ");
   message += String(CptAllumage);
