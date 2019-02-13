@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  992058 75%, 47020 14%
+  992530 75%, 47092 14%
 
 */
 
@@ -77,6 +77,7 @@ bool    SPIFFS_present = false;
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		39   // Batterie générale 12V adc VN
 #define PinBattUSB		36   // V USB 5V adc VP 36, 25 ADC2 pas utilisable avec Wifi 
+#define Pin24V				4    // Mesure Tension 24V
 #define PinPedale1		32   // Entrée Pedale1 Wake up EXT1
 #define PinPedale2		33   // Entrée Pedale2 Wake up EXT1
 #define PinPorte   		34   // Entrée Porte Coffret Wake up EXT1 
@@ -89,8 +90,8 @@ bool    SPIFFS_present = false;
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
 
 #define nSample (1<<4)    // nSample est une puissance de 2, ici 16 (4bits)
-unsigned int adc_hist[3][nSample]; // tableau stockage mesure adc, 0 Batt, 1 Proc, 2 USB
-unsigned int adc_mm[3];            // stockage pour la moyenne mobile
+unsigned int adc_hist[4][nSample]; // tableau stockage mesure adc, 0 Batt, 1 Proc, 2 USB
+unsigned int adc_mm[4];            // stockage pour la moyenne mobile
 
 uint64_t TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
 unsigned long debut    = millis(); // pour decompteur temps wifi
@@ -120,6 +121,8 @@ bool Allume = false;
 bool FlagPIR                 = false; //
 bool FlagAlarmeTension       = false; // Alarme tension Batterie
 bool FlagLastAlarmeTension   = false;
+bool FlagAlarme24V           = false; // Alarme tension 24V Allumage
+bool FlagLastAlarme24V       = false;
 bool FlagAlarmeIntrusion     = false; // Alarme Defaut Cable detectée
 bool FlagAlarmeCable1        = false; // Alamre Cable Pedale1
 bool FlagAlarmeCable2        = false; // Alamre Cable Pedale2
@@ -131,7 +134,7 @@ bool FlagReset = false;       // Reset demandé
 bool jour      = false;				// jour = true, nuit = false
 int  Nmax      = 0;						// comptage alarme cable avant alarme different Jour/Nuit
 byte DbounceTime = 20;				// antirebond
-int CoeffTension[3];          // Coeff calibration Tension
+int CoeffTension[4];          // Coeff calibration Tension
 int CoeffTensionDefaut = 7000;// Coefficient par defaut
 
 RTC_DATA_ATTR int CptAllumage  = 0; // Nombre Allumage par jour en memoire RTC
@@ -148,6 +151,7 @@ String demande;
 long   TensionBatterie  = 0; // Tension Batterie solaire
 long   VBatterieProc    = 0; // Tension Batterie Processeur
 long   VUSB             = 0; // Tension USB
+long   Tension24        = 0; // Tension 24V Allumage
 String catalog[2][10]; // liste des fichiers en SPIFFS nom/taille 10 lignes max
 
 WebServer server(80);
@@ -251,6 +255,7 @@ void setup() {
   adcAttachPin(PinBattProc);
   adcAttachPin(PinBattSol);
   adcAttachPin(PinBattUSB);
+  adcAttachPin(Pin24V);
 
   init_adc_mm();// initilaisation tableau pour adc Moyenne Mobile
 
@@ -453,7 +458,7 @@ void loop() {
   Alarm.delay(1);
 
   if (nboucle > 10) { // tous les 10 passages
-    read_adc(PinBattSol, PinBattProc, PinBattUSB); // lecture des adc
+    read_adc(PinBattSol, PinBattProc, PinBattUSB, Pin24V); // lecture des adc
     nboucle = 0;
   }
   nboucle ++;
@@ -464,6 +469,7 @@ void Acquisition() {
   static int8_t nsms;
   static int cpt = 0; // compte le nombre de passage boucle
   static bool firstdecision = false;
+	static byte cptallume = 0; // compte le nombre de passage avec Allume
 
   if (cpt > 6 && nsms == 0 && !firstdecision) {
     /* une seule fois au demarrage attendre au moins 70s et plus de sms en attente */
@@ -480,7 +486,7 @@ void Acquisition() {
     DebutSleep();
   }
 
-  if (CoeffTension[0] == 0 || CoeffTension[1] == 0 || CoeffTension[2] == 0) {
+  if (CoeffTension[0] == 0 || CoeffTension[1] == 0 || CoeffTension[2] == 0 || CoeffTension[3] == 0) {
     OuvrirFichierCalibration(); // patch relecture des coeff perdu
   }
 
@@ -492,11 +498,23 @@ void Acquisition() {
   TensionBatterie = map(adc_mm[0] / nSample, 0, 4095, 0, CoeffTension[0]);
   VBatterieProc   = map(adc_mm[1] / nSample, 0, 4095, 0, CoeffTension[1]);
   VUSB            = map(adc_mm[2] / nSample, 0, 4095, 0, CoeffTension[2]);
+  Tension24       = map(adc_mm[3] / nSample, 0, 4095, 0, CoeffTension[3]);
 
   // Serial.print(adc_mm[0]),Serial.print(";");
   // Serial.print(adc_mm[1]),Serial.print(";");
   // Serial.println(adc_mm[2]);
 
+	if(Allume){
+		cptallume ++;
+		if(cptallume > 2 && Tension24 < 2200){ // on attend 2 passages pour mesurer 24V
+			FlagAlarme24V = true;
+		}
+	}
+	else{
+		cptallume = 0;
+		FlagAlarme24V = false;
+	}
+	
   if (BattPBpct(TensionBatterie) < 25 || VUSB < 4000) { // || VUSB > 6000
     nalaTension ++;
     if (nalaTension == 4) {
@@ -1395,7 +1413,12 @@ void envoie_alarme() {
   /* determine si un SMS appartition/disparition Alarme doit etre envoyé */
   bool SendEtat = false;
 
-  if (FlagAlarmeTension != FlagLastAlarmeTension) {
+  if (FlagAlarme24V != FlagLastAlarme24V) {
+    SendEtat = true;
+    MajLog(F("Auto"), F("Alarme24V"));
+    FlagLastAlarme24V = FlagAlarme24V;
+  }
+	if (FlagAlarmeTension != FlagLastAlarmeTension) {
     SendEtat = true;
     MajLog(F("Auto"), F("AlarmeTension"));
     FlagLastAlarmeTension = FlagAlarmeTension;
@@ -1433,7 +1456,7 @@ void envoieGroupeSMS(byte grp) {
 //---------------------------------------------------------------------------
 void generationMessage() {
   message = Id;
-  if (FlagAlarmeTension || FlagLastAlarmeTension || FlagAlarmeIntrusion) {
+  if (FlagAlarmeTension || FlagLastAlarmeTension || FlagAlarmeIntrusion || FlagAlarme24V) {
     message += F("--KO--------KO--");
   }
   else {
@@ -1461,6 +1484,10 @@ void generationMessage() {
     message += F("V USB =");
     message += String(float(VUSB / 1000.0)) + fl;
   }
+	if(FlagAlarme24V){
+		message += F("Alarme 24V ");
+		message +=String(float(Tension24 / 1000.0)) + fl;
+	}
   message += F("Nbr Allumage = ");
   message += String(CptAllumage);
   message += fl ;
@@ -2144,7 +2171,7 @@ void OuvrirFichierCalibration() { // Lecture fichier calibration
 
   if (SPIFFS.exists(filecalibration)) {
     File f = SPIFFS.open(filecalibration, "r");
-    for (int i = 0; i < 3; i++) { //Read
+    for (int i = 0; i < 4; i++) { //Read
       String s = f.readStringUntil('\n');
       CoeffTension[i] = s.toFloat();
     }
@@ -2155,11 +2182,13 @@ void OuvrirFichierCalibration() { // Lecture fichier calibration
     CoeffTension[0] = CoeffTensionDefaut;
     CoeffTension[1] = CoeffTensionDefaut;
     CoeffTension[2] = CoeffTensionDefaut;
+		CoeffTension[3] = CoeffTensionDefaut;
     Recordcalib();
   }
   Serial.print(F("Coeff T Batterie = ")), Serial.print(CoeffTension[0]);
   Serial.print(F(" Coeff T Proc = "))	  , Serial.print(CoeffTension[1]);
-  Serial.print(F(" Coeff T VUSB = "))		, Serial.println(CoeffTension[2]);
+  Serial.print(F(" Coeff T VUSB = "))		, Serial.print(CoeffTension[2]);
+	Serial.print(F(" Coeff T 24V = "))		, Serial.println(CoeffTension[3]);
 
 }
 //---------------------------------------------------------------------------
@@ -2172,6 +2201,7 @@ void Recordcalib() { // enregistrer fichier calibration en SPIFFS
   f.println(CoeffTension[0]);
   f.println(CoeffTension[1]);
   f.println(CoeffTension[2]);
+	f.println(CoeffTension[3]);
   f.close();
 
 }
@@ -2480,26 +2510,30 @@ void init_adc_mm(void) {
   unsigned int ini_adc1 = 0;// val defaut adc 1
   unsigned int ini_adc2 = 0;// val defaut adc 2
   unsigned int ini_adc3 = 0;// val defaut adc 3
+	unsigned int ini_adc4 = 0;// val defaut adc 4
   for (int plus_ancien = 0; plus_ancien < nSample; plus_ancien++) {
     adc_hist[0][plus_ancien] = ini_adc1;
     adc_hist[1][plus_ancien] = ini_adc2;
     adc_hist[2][plus_ancien] = ini_adc3;
+		adc_hist[3][plus_ancien] = ini_adc4;
   }
   //on commencera à stocker à cet offset
   adc_mm[0] = ini_adc1;
   adc_mm[1] = ini_adc2;
   adc_mm[2] = ini_adc3;
+	adc_mm[3] = ini_adc4;
 }
 //---------------------------------------------------------------------------
-void read_adc(int pin1, int pin2, int pin3) {
+void read_adc(int pin1, int pin2, int pin3, int pin4) {
   // http://www.f4grx.net/algo-comment-calculer-une-moyenne-glissante-sur-un-microcontroleur-a-faibles-ressources/
   static int plus_ancien = 0;
   //acquisition
-  int sample[3];
-  for (byte i = 0; i < 3; i++) {
+  int sample[4];
+  for (byte i = 0; i < 4; i++) {
     if (i == 0)sample[i] = moyenneAnalogique(pin1);
     if (i == 1)sample[i] = moyenneAnalogique(pin2);
     if (i == 2)sample[i] = moyenneAnalogique(pin3);
+		if (i == 3)sample[i] = moyenneAnalogique(pin4);
 
     //calcul MoyenneMobile
     adc_mm[i] = adc_mm[i] + sample[i] - adc_hist[i][plus_ancien];
