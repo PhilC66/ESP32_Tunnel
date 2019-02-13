@@ -506,6 +506,7 @@ void Acquisition() {
 
 	if(Allume){
 		cptallume ++;
+		Serial.print(F("Tension 24V :")),Serial.print(float(Tension24 / 100.0));
 		if(cptallume > 2 && Tension24 < 2200){ // on attend 2 passages pour mesurer 24V
 			FlagAlarme24V = true;
 		}
@@ -1321,6 +1322,7 @@ fin_i:
         		X = 1 TensionBatterie : PinBattSol : CoeffTension1
         		X = 2 VBatterieProc : PinBattProc : CoeffTension2
         		X = 3 VUSB : PinBattUSB : CoeffTension3
+						X = 4 Tension24 : Pin24V : CoeffTension4
         		effectue mesure tension avec CoeffTensionDefaut retourne et stock resultat
         		recoit message "CALIBRATION=1250" mesure réelle en V*100
         		calcul nouveau coeff = mesure reelle/resultat stocké * CoeffTensionDefaut
@@ -1352,6 +1354,12 @@ fin_i:
             M = 3;
             P = PinBattUSB;
             coef = CoeffTension[2];
+          }
+					if (Sbidon.substring(1, 2) == "4" ) {
+            M = 4;
+            P = Pin24V;
+            coef = CoeffTension[3];
+						Allumage(1); // Allumage
           }
           // Serial.print("mode = "),Serial.print(M),Serial.println(Sbidon.substring(1,2));
           FlagCalibration = true;
@@ -1390,6 +1398,9 @@ fin_i:
           message += String(BattPBpct(tension));
           message += "%";
         }
+				if (M == 4){
+					Allumage(0); // eteindre
+				}
         message += fl;
         EnvoyerSms(number, sms);
       }
