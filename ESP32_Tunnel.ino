@@ -435,19 +435,19 @@ void loop() {
     }
   }
 
-  if (IRQ_Cpt_PDL1 > 0 || IRQ_Cpt_PDL2 > 0) {
+  if (IRQ_Cpt_PDL1 > 1 || IRQ_Cpt_PDL2 > 1) {
     Serial.print(F("Interruption : "));
     Serial.print(IRQ_Cpt_PDL1);
     Serial.print(" ");
     Serial.println(IRQ_Cpt_PDL2);
   }
-  if (IRQ_Cpt_PDL1 > 0) {
+  if (IRQ_Cpt_PDL1 > 1) {
     Allumage(1);
     portENTER_CRITICAL(&mux);
     IRQ_Cpt_PDL1 = 0;
     portEXIT_CRITICAL(&mux);
   }
-  if (IRQ_Cpt_PDL2 > 0) {
+  if (IRQ_Cpt_PDL2 > 1) {
     Allumage(2);
     portENTER_CRITICAL(&mux);
     IRQ_Cpt_PDL2 = 0;
