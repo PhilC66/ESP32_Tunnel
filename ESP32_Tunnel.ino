@@ -2073,9 +2073,10 @@ void Allumage(byte n) {
 			MajLog(F("Auto"), Sbidon);
     }
     else if (Al1 == Cd2 || Al2 == Cd1) {
-      Serial.print(F("Extinction dans (s) ")), Serial.println(config.tempoSortie);
-      Alarm.enable(TempoSortie);
-      Serial.print(F("Nombre Allumage = ")), Serial.println(CptAllumage);
+			Serial.print(F("Extinction dans (s) ")), Serial.println(config.tempoSortie);
+			Alarm.disable(TempoSortie);
+			Alarm.enable(TempoSortie);
+			Serial.print(F("Nombre Allumage = ")), Serial.println(CptAllumage);
     }
   }
 }
