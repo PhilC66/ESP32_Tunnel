@@ -2323,24 +2323,26 @@ void DebutSleep() {
   const uint64_t ext_wakeup_pin_1_mask = 1ULL << PinPedale1;
   const uint64_t ext_wakeup_pin_2_mask = 1ULL << PinPedale2;
   const uint64_t ext_wakeup_pin_3_mask = 1ULL << PinPorte;
-
-  if (config.Porte && config.Pedale1 && config.Pedale2) {
-    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-  } else if (config.Porte && config.Pedale1) {
-    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-  } else if (config.Porte && config.Pedale2) {
-    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-  } else if (config.Pedale1 && config.Pedale2) {
-    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-  } else if (config.Porte) {
-    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-  } else if (config.Pedale1) {
-    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-  } else if (config.Pedale2) {
-    esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-  }
+	if(config.Intru){
+		if (config.Porte && config.Pedale1 && config.Pedale2) {
+			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+		} else if (config.Porte && config.Pedale1) {
+			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+		} else if (config.Porte && config.Pedale2) {
+			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+		} else if (config.Pedale1 && config.Pedale2) {
+			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+		} else if (config.Porte) {
+			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+		} else if (config.Pedale1) {
+			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+		} else if (config.Pedale2) {
+			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+		}
+	}
   else {
     /* pas de wakeup sur pin */
+		Serial.println(F("pas de pin selectionne pour wakeup!"));
   }
 
   /* Garde fou si TIME_TO_SLEEP > 20H00 c'est une erreur, on impose 1H00 */
