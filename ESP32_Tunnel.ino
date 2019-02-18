@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  993818 75%, 47092 14%
+  993538 75%, 46852 14%
 
 */
 
@@ -152,7 +152,6 @@ long   TensionBatterie  = 0; // Tension Batterie solaire
 long   VBatterieProc    = 0; // Tension Batterie Processeur
 long   VUSB             = 0; // Tension USB
 long   Tension24        = 0; // Tension 24V Allumage
-String catalog[2][10]; // liste des fichiers en SPIFFS nom/taille 10 lignes max
 
 WebServer server(80);
 File UploadFile;
@@ -1063,16 +1062,16 @@ fin_i:
         message += fl;
         EnvoyerSms(number, sms);
       }
-      else if (textesms.indexOf(F("VIE")) == 0) {       //	Heure Message Vie
-        if (textesms.indexOf(char(61)) == 3) {
-          long i = atol(textesms.substring(4).c_str()); //	Heure message Vie
+      else if (textesms.indexOf(F("DEBUT")) == 0) {     //	Heure Message Vie/debutJour
+        if (textesms.indexOf(char(61)) == 5) {
+          long i = atol(textesms.substring(6).c_str()); //	Heure message Vie
           if (i > 0 && i <= 86340) {                    //	ok si entre 0 et 86340(23h59)
             config.DebutJour = i;
             sauvConfig();                               // sauvegarde en EEPROM
             Svie = Alarm.alarmRepeat(config.DebutJour, SignalVie);// init tempo
           }
         }
-        message += F("Heure Vie = ");
+        message += F("Debut Journee = ");
         message += Hdectohhmm(config.DebutJour);
         message += F("(hh:mm)");
         message += fl;
@@ -2831,13 +2830,6 @@ void printDirectory(const char * dirname, uint8_t levels) {
     {
       webpage += "<tr><td>" + String(file.name()) + "</td>";
       webpage += "<td>" + String(file.isDirectory() ? "Dir" : "File") + "</td>";
-      // int bytes = file.size();
-      // String fsize = "";
-      // if (bytes < 1024)                     fsize = String(bytes) + " B";
-      // else if (bytes < (1024 * 1024))        fsize = String(bytes / 1024.0, 3) + " KB";
-      // else if (bytes < (1024 * 1024 * 1024)) fsize = String(bytes / 1024.0 / 1024.0, 3) + " MB";
-      // else                                  fsize = String(bytes / 1024.0 / 1024.0 / 1024.0, 3) + " GB";
-      // webpage += "<td>" + fsize + "</td></tr>";
       webpage += "<td>" + file_size(file.size()) + "</td></tr>";
     }
     file = root.openNextFile();

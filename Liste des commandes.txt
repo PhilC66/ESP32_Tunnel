@@ -8,30 +8,29 @@ LST? ou LST1													Liste le Phone Book
 tel=+331234567890,Nom									creation nouveau numero dans le Phone Book
 telX=+331234567890,Nom								modification d'une entree du Phone Book
 telX=efface														supprime l'entrée X du Phone Book impossible sur X=1
+LST2	     														Liste Phone Book restreinte qte9, 0/1 0 liste defaut, 1 liste restreinte
+LST2=0,0,0,0,1,0,0,0,0
 ETAT ou  ST														demande l'etat de l'installation
 SYS                                   demande l'etat du systeme
 LOG                                   log des commandes
 INTRUON																Armement de l'alarme
 INTRUOFF															Desarmement de l'alarme
 SILENCE																Demande etat Alarme Silencieuse
-SILENCEON															Alarme Silencieuse activé
-SILENCEOFF														Alarme Silencieuse desactivé
+SILENCEON/OFF													Alarme Silencieuse activé/desactivé
 SIRENE																Active la Sirene pour durée sirene
 CAPTEUR																Capteur activé pour l'alarme
 CAPTEUR=1,1,0													Pedale1, Pedale2, Coffret
-VIE																		Heure du signal de vie
-VIE=25200															Heure en seconde = 7H00
-SONN																	Demande parametre Sirene 60:90:120(s)durée,tmax,latence
+DEBUT																	Heure du signal de vie/débutJour
+DEBUT=25200														Heure en seconde = 7H00
+FIN																		Demande l'heure de fin Jour
+FIN=72000															Heure en seconde = 20H00
+SONN																	Demande parametre Sirene 
+SONN=60:90:120												60:90:120(s)durée,tmax,latence
 TIME																	Demande Heure Systeme
 MAJHEURE															Force une remise à l'heure réseau GSM
 IEMEI																	Demande le IEMEI de la carte GSM
-FIN																		Demande l'heure de fin de service
-FIN=72000															Heure en seconde = 20H00
 MOIS=mm?															Demande le calendrier de circulation pour le mois mm
 MOIS=mm,31 fois 0/1										Etabli un mois mm de circulation, tous les mois ont obligatoirement 31 jours
-RST																		Reset du systeme
-CALIBRATION														Calibration des mesures de tension cde locale uniquement
-CALIBRATION=.X												X entrée 1 2 3, 1=Batterie Solaire,2=Batterie Proc,3=Tension USB
 TIMEOUTECL														Time out extinction eclairage secours (s) defaut  1H
 TIMEOUTECL=n													60-7200
 TEMPOSORTIE														Temporisation Eclairage à la Sortie (s)
@@ -41,7 +40,8 @@ CIRCULE																Demande passer en mode Circulé pour jour courant, sans m
 NONCIRCULE														Demande passer en mode non circulé
 TEMPOWAKEUP=n													Tempo repetition Wake up en s 59 à 36000 (norm=3600)
 TEMPOANALYSE=n												Tempo Analyse apres Wake up en s 59 à 1800 (norm=15*60)
-LST2	     														Liste Phone Book restreinte qte9, 0/1 0 liste defaut, 1 liste restreinte
-LST2=0,1,0,0,0,0,0,0,0
-ALLUMAGE															Allumage jusqu'a Eteindre ou timeout
+ALLUME																Allumage jusqu'a Eteindre ou timeout
 ETEINDRE															Extinction
+RST																		Reset du systeme
+CALIBRATION														Calibration des mesures de tension cde locale uniquement
+CALIBRATION=.X												X entrée 1 2 3 4, 1=Batterie Solaire,2=Batterie Proc,3=Tension USB,4=Tension24V
