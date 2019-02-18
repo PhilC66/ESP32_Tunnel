@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  993538 75%, 46852 14%
+  993614 75%, 46852 14%
 
 */
 
@@ -996,7 +996,7 @@ fin_i:
               DesActiveInterrupt(); // desactive tous
               config.Pedale1 = Num[0];
               config.Pedale2 = Num[1];
-              config.Coffret   = Num[2];
+              config.Coffret = Num[2];
               sauvConfig();											// sauvegarde en EEPROM
               ActiveInterrupt();
             }
@@ -1545,6 +1545,24 @@ void generationMessage() {
   }
   if (config.Intru) {
     message += F("Alarme Active ");
+		if(config.Pedale1){
+			message += "1";
+		}
+		else{
+			message += "0";
+		}
+		if(config.Pedale2){
+			message += "1";
+		}
+		else{
+			message += "0";
+		}
+		if(config.Coffret){
+			message += "1";
+		}
+		else{
+			message += "0";
+		}
     message += fl;
   }
   else {

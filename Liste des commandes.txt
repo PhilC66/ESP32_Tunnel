@@ -1,18 +1,8 @@
 Liste des commandes
-ID
-ID=abcdefghij  10 car max
-timeoutwifi														durée du timeout wifi avant retour fonctionnement normale
-timeoutwifi=300												durée en secondes 10-3600 (norm=600)
-Wifi,ssid,password										connexion wifi case sensitive
-LST? ou LST1													Liste le Phone Book
-tel=+331234567890,Nom									creation nouveau numero dans le Phone Book
-telX=+331234567890,Nom								modification d'une entree du Phone Book
-telX=efface														supprime l'entrée X du Phone Book impossible sur X=1
-LST2	     														Liste Phone Book restreinte qte9, 0/1 0 liste defaut, 1 liste restreinte
-LST2=0,0,0,0,1,0,0,0,0
-ETAT ou  ST														demande l'etat de l'installation
+ID																		Identifiant du site
+ID=abcdefghij													10 caractères max
+ST ou ETAT														demande l'etat de l'installation
 SYS                                   demande l'etat du systeme
-LOG                                   log des commandes
 INTRUON																Armement de l'alarme
 INTRUOFF															Desarmement de l'alarme
 SILENCE																Demande etat Alarme Silencieuse
@@ -28,7 +18,7 @@ SONN																	Demande parametre Sirene
 SONN=60:90:120												60:90:120(s)durée,tmax,latence
 TIME																	Demande Heure Systeme
 MAJHEURE															Force une remise à l'heure réseau GSM
-IEMEI																	Demande le IEMEI de la carte GSM
+IMEI																	Demande le IMEI de la carte GSM
 MOIS=mm?															Demande le calendrier de circulation pour le mois mm
 MOIS=mm,31 fois 0/1										Etabli un mois mm de circulation, tous les mois ont obligatoirement 31 jours
 TIMEOUTECL														Time out extinction eclairage secours (s) defaut  1H
@@ -39,9 +29,19 @@ PARAM=n,m															Parametre compteur pour alarme cable Jour/Nuit en s mult
 CIRCULE																Demande passer en mode Circulé pour jour courant, sans modification du calendrier enregistré
 NONCIRCULE														Demande passer en mode non circulé
 TEMPOWAKEUP=n													Tempo repetition Wake up en s 59 à 36000 (norm=3600)
-TEMPOANALYSE=n												Tempo Analyse apres Wake up en s 59 à 1800 (norm=15*60)
-ALLUME																Allumage jusqu'a Eteindre ou timeout
+TEMPOANALYSE=n												Tempo Analyse apres Wake up en s 59 à 1800 (norm=600)
+ALLUME																Allumage jusqu'à Eteindre ou timeout
 ETEINDRE															Extinction
+LST? ou LST1													Liste le Phone Book
+tel=+331234567890,Nom									creation nouveau numero dans le Phone Book
+telX=+331234567890,Nom								modification d'une entree du Phone Book
+telX=efface														supprime l'entrée X du Phone Book impossible sur X=1
+LST2	     														Liste Phone Book restreinte qte9, 0/1 0 liste defaut, 1 liste restreinte
+LST2=0,0,0,0,1,0,0,0,0
+TIMEOUTWIFI														durée du timeout wifi avant retour fonctionnement normale
+TIMEOUTWIFI=300												durée en secondes 10-3600 (norm=600)
+Wifi,ssid,password										connexion wifi case sensitive
+LOG                                   log des commandes Alarme seulement
 RST																		Reset du systeme
 CALIBRATION														Calibration des mesures de tension cde locale uniquement
 CALIBRATION=.X												X entrée 1 2 3 4, 1=Batterie Solaire,2=Batterie Proc,3=Tension USB,4=Tension24V
