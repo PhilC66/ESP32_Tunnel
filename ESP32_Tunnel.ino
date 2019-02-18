@@ -20,7 +20,7 @@
 
   mode normal
   SIM800 en reception
-  entrees porte, pedale 1 et 2 sur interruption ESP32
+  entrees coffret, pedale 1 et 2 sur interruption ESP32
   allumage /extinction avec time out de 1 heure
 
   Si coupure cable(equiv pedale enfoncée en permanence), ou Porte coffret ouverte
@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  992530 75%, 47092 14%
+  993818 75%, 47092 14%
 
 */
 
@@ -80,7 +80,7 @@ bool    SPIFFS_present = false;
 #define Pin24V				26   // Mesure Tension 24V
 #define PinPedale1		32   // Entrée Pedale1 Wake up EXT1
 #define PinPedale2		33   // Entrée Pedale2 Wake up EXT1
-#define PinPorte   		34   // Entrée Porte Coffret Wake up EXT1 
+#define PinCoffret 		34   // Entrée Porte Coffret Wake up EXT1 
 #define PinEclairage 	19   // Sortie Commande eclairage
 #define PinSirene			15   // Sortie Commande Sirene (#0 en sleep 2.3V?)
 #define RX_PIN				16   // TX Sim800
@@ -113,7 +113,7 @@ char   SIM800InBuffer[64];          //  for notifications from the SIM800
 char   replybuffer[255];            //  Buffer de reponse SIM800
 volatile int IRQ_Cpt_PDL1  = 0;
 volatile int IRQ_Cpt_PDL2  = 0;
-volatile int IRQ_Cpt_Porte = 0;
+volatile int IRQ_Cpt_Coffret = 0;
 volatile unsigned long rebond1 = 0;		//	antirebond IRQ
 volatile unsigned long rebond2 = 0;
 byte confign = 0;					// Num enregistrement EEPROM
@@ -124,9 +124,9 @@ bool FlagLastAlarmeTension   = false;
 bool FlagAlarme24V           = false; // Alarme tension 24V Allumage
 bool FlagLastAlarme24V       = false;
 bool FlagAlarmeIntrusion     = false; // Alarme Defaut Cable detectée
-bool FlagAlarmeCable1        = false; // Alamre Cable Pedale1
-bool FlagAlarmeCable2        = false; // Alamre Cable Pedale2
-bool FlagAlarmePorte         = false; // Alamre Porte Coffret
+bool FlagAlarmeCable1        = false; // Alarme Cable Pedale1
+bool FlagAlarmeCable2        = false; // Alarme Cable Pedale2
+bool FlagAlarmeCoffret       = false; // Alarme Porte Coffret
 bool FlagLastAlarmeIntrusion = false;
 bool FirstSonn = false;				// Premier appel sonnerie
 bool SonnMax   = false;				// temps de sonnerie maxi atteint
@@ -184,7 +184,7 @@ struct  config_t 								// Structure configuration sauvée en EEPROM
   bool    Silence ;							// Mode Silencieux = true false par defaut
   bool    Pedale1;              // Alarme Pedale1 Active
   bool    Pedale2;              // Alarme Pedale2 Active
-  bool    Porte;                // Alarme Porte Active
+  bool    Coffret;              // Alarme Porte Coffret Active
   long    Jour_Nmax;            // Comptage Alarme Jour
   long    Nuit_Nmax;            // Comptage Alarme Nuit
   bool    Pos_Pn_PB[10];        // numero du Phone Book (1-9) à qui envoyer 0/1 0 par defaut
@@ -229,9 +229,9 @@ void IRAM_ATTR handleInterruptP2() { // Pedale 2
   portEXIT_CRITICAL_ISR(&mux);
 
 }
-void IRAM_ATTR handleInterruptPo() { // Porte
+void IRAM_ATTR handleInterruptPo() { // Coffret
   portENTER_CRITICAL_ISR(&mux);
-  IRQ_Cpt_Porte++;
+  IRQ_Cpt_Coffret++;
   portEXIT_CRITICAL_ISR(&mux);
 }
 //---------------------------------------------------------------------------
@@ -248,7 +248,7 @@ void setup() {
   pinMode(PinEclairage, OUTPUT);
   pinMode(PinPedale1  , INPUT_PULLUP);
   pinMode(PinPedale2  , INPUT_PULLUP);
-  pinMode(PinPorte    , INPUT); // no sw pull up
+  pinMode(PinCoffret  , INPUT); // no sw pull up
   pinMode(PinSirene   , OUTPUT);
   digitalWrite(PinEclairage, LOW);
   digitalWrite(PinSirene, LOW);
@@ -285,7 +285,7 @@ void setup() {
     config.timeoutWifi   = 10 * 60;
     config.Pedale1       = true;
     config.Pedale2       = true;
-    config.Porte         = true;
+    config.Coffret         = true;
     config.Jour_Nmax     = 3 * 60 / 10; // 3mn /10 temps de boucle Acquisition
     config.Nuit_Nmax     = 30 / 10; // 30s /10 temps de boucle Acquisition
     for (int i = 0; i < 10; i++) {// initialise liste PhoneBook liste restreinte
@@ -383,8 +383,8 @@ void setup() {
 
   Serial.print(F("flag Circule :")), Serial.println(flagCircule);
 
-  if (get_wakeup_reason() == PinPorte && config.Intru) { // Alarme Porte
-    FlagAlarmePorte = true;
+  if (get_wakeup_reason() == PinCoffret && config.Intru) { // Alarme Coffret
+    FlagAlarmeCoffret = true;
     FlagAlarmeIntrusion = true;
   }
 
@@ -425,11 +425,11 @@ void loop() {
     }
   }
 
-  if (IRQ_Cpt_Porte > 0) { // Alarme porte
-    if (config.Intru && config.Porte) {
-      FlagAlarmePorte = true;
+  if (IRQ_Cpt_Coffret > 0) { // Alarme Coffret
+    if (config.Intru && config.Coffret) {
+      FlagAlarmeCoffret = true;
       portENTER_CRITICAL(&mux);
-      if (IRQ_Cpt_Porte > 0)IRQ_Cpt_Porte = 0;
+      if (IRQ_Cpt_Coffret > 0)IRQ_Cpt_Coffret = 0;
       portEXIT_CRITICAL(&mux);
       Acquisition();
     }
@@ -551,20 +551,20 @@ void Acquisition() {
 
   static byte nalaPIR1 = 0;
   static byte nalaPIR2 = 0;
-  static byte nalaPorte = 0;
+  static byte nalaCoffret = 0;
   if (config.Intru) {
     // gestion des capteurs coupé ou en alarme permanente
     // verif sur plusieurs passages consecutifs
-    if (digitalRead(PinPorte) && config.Porte) {
-      nalaPorte ++;
-      if (nalaPorte > 1) {
-        FlagAlarmePorte = true;
+    if (digitalRead(PinCoffret) && config.Coffret) {
+      nalaCoffret ++;
+      if (nalaCoffret > 1) {
+        FlagAlarmeCoffret = true;
         FlagPIR = true;
-        nalaPorte = 0;
+        nalaCoffret = 0;
       }
     }
     else {
-      if (nalaPorte > 0) nalaPorte --;		//	efface progressivement le compteur
+      if (nalaCoffret > 0) nalaCoffret --;		//	efface progressivement le compteur
     }
 
     if (digitalRead(PinPedale1) && config.Pedale1) {
@@ -595,8 +595,8 @@ void Acquisition() {
       FlagAlarmeIntrusion = true;
       FlagPIR = false;
       ActivationSonnerie();		// activation Sonnerie
-      if (FlagAlarmePorte) {
-        Serial.println(F("Alarme Porte"));
+      if (FlagAlarmeCoffret) {
+        Serial.println(F("Alarme Coffret"));
       }
       else if (FlagAlarmeCable1 || FlagAlarmeCable2) {
         Serial.println(F("Alarme Cable"));
@@ -608,9 +608,9 @@ void Acquisition() {
     FlagAlarmeIntrusion = false; // efface alarme
     FlagAlarmeCable1 = false;
     FlagAlarmeCable2 = false;
-    FlagAlarmePorte = false;
+    FlagAlarmeCoffret = false;
   }
-  Serial.printf("Nala Porte = %d ,", FlagAlarmePorte);
+  Serial.printf("Nala Coffret = %d ,", FlagAlarmeCoffret);
   Serial.printf("Nala Ped 1 = %d ,", nalaPIR1);
   Serial.printf("Nala Ped 2 = %d\n", nalaPIR2);
 
@@ -916,7 +916,7 @@ fin_i:
           FlagAlarmeIntrusion = false;
           FlagAlarmeCable1 = false;
           FlagAlarmeCable2 = false;
-          FlagAlarmePorte = false;
+          FlagAlarmeCoffret = false;
           FlagPIR = false;
           if (!sms) {
             nom = F("console");
@@ -972,7 +972,7 @@ fin_i:
         message += Nmax * 10 + fl;
         EnvoyerSms(number, sms);
       }
-      else if (textesms.indexOf(F("CAPTEUR")) == 0) {	// Capteurs actif CAPTEUR=1,0,1 (Pedale1,Pedale2,Porte)
+      else if (textesms.indexOf(F("CAPTEUR")) == 0) {	// Capteurs actif CAPTEUR=1,0,1 (Pedale1,Pedale2,Coffret)
         bool flag = true; // validation du format
         if (textesms.indexOf(char(61)) == 7) { //char(61) "="	liste capteur actif
           byte Num[3];
@@ -997,7 +997,7 @@ fin_i:
               DesActiveInterrupt(); // desactive tous
               config.Pedale1 = Num[0];
               config.Pedale2 = Num[1];
-              config.Porte   = Num[2];
+              config.Coffret   = Num[2];
               sauvConfig();											// sauvegarde en EEPROM
               ActiveInterrupt();
             }
@@ -1020,8 +1020,8 @@ fin_i:
             message += 0;
           }
           message += fl;
-          message += F("Porte = ");
-          if (config.Porte) {
+          message += F("Coffret = ");
+          if (config.Coffret) {
             message += 1;
           }
           else {
@@ -1539,8 +1539,8 @@ void generationMessage() {
       message += F("Pedale 2");
       message += fl;
     }
-    if (FlagAlarmePorte) {
-      message += F("Porte");
+    if (FlagAlarmeCoffret) {
+      message += F("Coffret");
       message += fl;
     }
   }
@@ -1674,7 +1674,7 @@ void ArretSonnerie() {
   FlagAlarmeIntrusion = false;
   FlagAlarmeCable1 = false;
   FlagAlarmeCable2 = false;
-  FlagAlarmePorte = false;
+  FlagAlarmeCoffret = false;
   FlagPIR = false;
 }
 //---------------------------------------------------------------------------
@@ -2006,7 +2006,7 @@ void PrintEEPROM() {
   Serial.print(F("Time Out Wifi (s)= "))				, Serial.println(config.timeoutWifi);
   Serial.print(F("Alarme sur Pedale 1 = ")) 	  , Serial.println(config.Pedale1);
   Serial.print(F("Alarme sur Pedale 2 = ")) 	  , Serial.println(config.Pedale2);
-  Serial.print(F("Alarme sur Porte = ")) 	      , Serial.println(config.Porte);
+  Serial.print(F("Alarme sur Coffret = ")) 	      , Serial.println(config.Coffret);
   Serial.print(F("Liste Restreinte = "));
   for (int i = 1; i < 10; i++) {
     Serial.print(config.Pos_Pn_PB[i]);
@@ -2264,8 +2264,8 @@ void DesActiveInterrupt() {
   if (config.Pedale2) {
     detachInterrupt(digitalPinToInterrupt(PinPedale2));
   }
-  if (config.Porte) {
-    detachInterrupt(digitalPinToInterrupt(PinPorte));
+  if (config.Coffret) {
+    detachInterrupt(digitalPinToInterrupt(PinCoffret));
   }
 }
 //---------------------------------------------------------------------------
@@ -2277,8 +2277,8 @@ void ActiveInterrupt() {
   if (config.Pedale2) {
     attachInterrupt(digitalPinToInterrupt(PinPedale2), handleInterruptP2, RISING);
   }
-  if (config.Porte) {
-    attachInterrupt(digitalPinToInterrupt(PinPorte)  , handleInterruptPo, RISING);
+  if (config.Coffret) {
+    attachInterrupt(digitalPinToInterrupt(PinCoffret)  , handleInterruptPo, RISING);
   }
 }
 //---------------------------------------------------------------------------
@@ -2323,17 +2323,17 @@ void DebutSleep() {
   // selection du pin mask en fonction des capteurs actif
   const uint64_t ext_wakeup_pin_1_mask = 1ULL << PinPedale1;
   const uint64_t ext_wakeup_pin_2_mask = 1ULL << PinPedale2;
-  const uint64_t ext_wakeup_pin_3_mask = 1ULL << PinPorte;
+  const uint64_t ext_wakeup_pin_3_mask = 1ULL << PinCoffret;
 	if(config.Intru){
-		if (config.Porte && config.Pedale1 && config.Pedale2) {
+		if (config.Coffret && config.Pedale1 && config.Pedale2) {
 			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-		} else if (config.Porte && config.Pedale1) {
+		} else if (config.Coffret && config.Pedale1) {
 			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-		} else if (config.Porte && config.Pedale2) {
+		} else if (config.Coffret && config.Pedale2) {
 			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
 		} else if (config.Pedale1 && config.Pedale2) {
 			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-		} else if (config.Porte) {
+		} else if (config.Coffret) {
 			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
 		} else if (config.Pedale1) {
 			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
@@ -2685,9 +2685,9 @@ void HomePage() {
   webpage += F("</tr>");
 
   webpage += F("<tr>");
-  webpage += F("<td>Alarme sur Porte</td>");
+  webpage += F("<td>Alarme sur Coffret</td>");
   webpage += F("<td>");
-  if (config.Porte) {
+  if (config.Coffret) {
     webpage += F("Active");
   } else {
     webpage += F("Inactive");

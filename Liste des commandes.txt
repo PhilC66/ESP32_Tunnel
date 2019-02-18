@@ -5,9 +5,9 @@ timeoutwifi														durée du timeout wifi avant retour fonctionnement norm
 timeoutwifi=300												durée en secondes 10-3600 (norm=600)
 Wifi,ssid,password										connexion wifi case sensitive
 LST? ou LST1													Liste le Phone Book
-tel=+331234567890,Nom									crestion nouveau numero dans le Phone Book
-telX=efface														supprime l'entrée X du Phone Book impossible sur X=1
+tel=+331234567890,Nom									creation nouveau numero dans le Phone Book
 telX=+331234567890,Nom								modification d'une entree du Phone Book
+telX=efface														supprime l'entrée X du Phone Book impossible sur X=1
 ETAT ou  ST														demande l'etat de l'installation
 SYS                                   demande l'etat du systeme
 LOG                                   log des commandes
@@ -18,10 +18,10 @@ SILENCEON															Alarme Silencieuse activé
 SILENCEOFF														Alarme Silencieuse desactivé
 SIRENE																Active la Sirene pour durée sirene
 CAPTEUR																Capteur activé pour l'alarme
-CAPTEUR=1,1,0													Pedale1, Pedale2, Porte
+CAPTEUR=1,1,0													Pedale1, Pedale2, Coffret
 VIE																		Heure du signal de vie
 VIE=25200															Heure en seconde = 7H00
-SONN																	Demende parametre Sirene 60:90:120(s)durée,tmax,latence
+SONN																	Demande parametre Sirene 60:90:120(s)durée,tmax,latence
 TIME																	Demande Heure Systeme
 MAJHEURE															Force une remise à l'heure réseau GSM
 IEMEI																	Demande le IEMEI de la carte GSM
