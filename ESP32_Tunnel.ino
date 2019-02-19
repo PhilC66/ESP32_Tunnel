@@ -383,8 +383,9 @@ void setup() {
   Serial.print(F("flag Circule :")), Serial.println(flagCircule);
 
   if (get_wakeup_reason() == PinCoffret && config.Intru) { // Alarme Coffret
-    FlagAlarmeCoffret = true;
-    FlagAlarmeIntrusion = true;
+		FlagAlarmeCoffret = true;
+		FlagAlarmeIntrusion = true;
+		FlagPIR = true;
   }
 
 }
