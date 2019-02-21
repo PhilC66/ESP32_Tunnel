@@ -383,9 +383,9 @@ void setup() {
   Serial.print(F("flag Circule :")), Serial.println(flagCircule);
 
   if (get_wakeup_reason() == PinCoffret && config.Intru) { // Alarme Coffret
-		FlagAlarmeCoffret = true;
-		FlagAlarmeIntrusion = true;
-		FlagPIR = true;
+    FlagAlarmeCoffret = true;
+    FlagAlarmeIntrusion = true;
+    FlagPIR = true;
   }
 
 }
@@ -469,7 +469,7 @@ void Acquisition() {
   static int8_t nsms;
   static int cpt = 0; // compte le nombre de passage boucle
   static bool firstdecision = false;
-	static byte cptallume = 0; // compte le nombre de passage avec Allume
+  static byte cptallume = 0; // compte le nombre de passage avec Allume
 
   if (cpt > 6 && nsms == 0 && !firstdecision) {
     /* une seule fois au demarrage attendre au moins 70s et plus de sms en attente */
@@ -504,18 +504,18 @@ void Acquisition() {
   // Serial.print(adc_mm[1]),Serial.print(";");
   // Serial.println(adc_mm[2]);
 
-	if(Allume){
-		cptallume ++;
-		Serial.print(F("Tension 24V :")),Serial.print(float(Tension24 / 100.0)),Serial.print(F(" "));
-		if(cptallume > 2 && Tension24 < 2200){ // on attend 2 passages pour mesurer 24V
-			FlagAlarme24V = true;
-		}
-	}
-	else{
-		cptallume = 0;
-		FlagAlarme24V = false;
-	}
-	
+  if (Allume) {
+    cptallume ++;
+    Serial.print(F("Tension 24V :")), Serial.print(float(Tension24 / 100.0)), Serial.print(F(" "));
+    if (cptallume > 2 && Tension24 < 2200) { // on attend 2 passages pour mesurer 24V
+      FlagAlarme24V = true;
+    }
+  }
+  else {
+    cptallume = 0;
+    FlagAlarme24V = false;
+  }
+
   if (BattPBpct(TensionBatterie) < 25 || VUSB < 4000) { // || VUSB > 6000
     nalaTension ++;
     if (nalaTension == 4) {
@@ -1322,7 +1322,7 @@ fin_i:
         		X = 1 TensionBatterie : PinBattSol : CoeffTension1
         		X = 2 VBatterieProc : PinBattProc : CoeffTension2
         		X = 3 VUSB : PinBattUSB : CoeffTension3
-						X = 4 Tension24 : Pin24V : CoeffTension4
+        		X = 4 Tension24 : Pin24V : CoeffTension4
         		effectue mesure tension avec CoeffTensionDefaut retourne et stock resultat
         		recoit message "CALIBRATION=1250" mesure réelle en V*100
         		calcul nouveau coeff = mesure reelle/resultat stocké * CoeffTensionDefaut
@@ -1355,11 +1355,11 @@ fin_i:
             P = PinBattUSB;
             coef = CoeffTension[2];
           }
-					if (Sbidon.substring(1, 2) == "4" ) {
+          if (Sbidon.substring(1, 2) == "4" ) {
             M = 4;
             P = Pin24V;
             coef = CoeffTension[3];
-						Allumage(1); // Allumage
+            Allumage(1); // Allumage
           }
           // Serial.print("mode = "),Serial.print(M),Serial.println(Sbidon.substring(1,2));
           FlagCalibration = true;
@@ -1379,10 +1379,10 @@ fin_i:
           CoeffTension[M - 1] = coef;
           FlagCalibration = false;
           Recordcalib();														// sauvegarde en SPIFFS
-					
-					if (M == 4){
-						Extinction(); // eteindre
-					}
+
+          if (M == 4) {
+            Extinction(); // eteindre
+          }
         }
         else {
           message += F("message non reconnu");
@@ -1406,29 +1406,29 @@ fin_i:
         message += fl;
         EnvoyerSms(number, sms);
       }
-			else if (textesms.indexOf(F("ALLUME")) == 0) {
-				if(!Allume){
-					Allumage(1);
-					message += F("Allumage");
-				}
-				else{
-					message += F("Deja Allume");
-				}
-				message += fl;
+      else if (textesms.indexOf(F("ALLUME")) == 0) {
+        if (!Allume) {
+          Allumage(1);
+          message += F("Allumage");
+        }
+        else {
+          message += F("Deja Allume");
+        }
+        message += fl;
         EnvoyerSms(number, sms);
-			}
-			else if (textesms.indexOf(F("ETEINDRE")) == 0) {
-				if(Allume){
-					Extinction();
-					message += F("Exctinction");
-				}
-				else{
-					message += F("Deja Eteint");
-				}
-				message += fl;
+      }
+      else if (textesms.indexOf(F("ETEINDRE")) == 0) {
+        if (Allume) {
+          Extinction();
+          message += F("Exctinction");
+        }
+        else {
+          message += F("Deja Eteint");
+        }
+        message += fl;
         EnvoyerSms(number, sms);
-			}
-			//**************************************
+      }
+      //**************************************
       else {
         message += F("message non reconnu !");
         message += fl;
@@ -1454,7 +1454,7 @@ void envoie_alarme() {
     MajLog(F("Auto"), F("Alarme24V"));
     FlagLastAlarme24V = FlagAlarme24V;
   }
-	if (FlagAlarmeTension != FlagLastAlarmeTension) {
+  if (FlagAlarmeTension != FlagLastAlarmeTension) {
     SendEtat = true;
     MajLog(F("Auto"), F("AlarmeTension"));
     FlagLastAlarmeTension = FlagAlarmeTension;
@@ -1520,10 +1520,10 @@ void generationMessage() {
     message += F("V USB =");
     message += String(float(VUSB / 1000.0)) + fl;
   }
-	if(FlagAlarme24V){
-		message += F("Alarme 24V = ");
-		message +=String(float(Tension24 / 1000.0)) + "V" + fl;
-	}
+  if (FlagAlarme24V) {
+    message += F("Alarme 24V = ");
+    message += String(float(Tension24 / 1000.0)) + "V" + fl;
+  }
   message += F("Nbr Allumage = ");
   message += String(CptAllumage);
   message += fl ;
@@ -1546,24 +1546,24 @@ void generationMessage() {
   }
   if (config.Intru) {
     message += F("Alarme Active ");
-		if(config.Pedale1){
-			message += "1";
-		}
-		else{
-			message += "0";
-		}
-		if(config.Pedale2){
-			message += "1";
-		}
-		else{
-			message += "0";
-		}
-		if(config.Coffret){
-			message += "1";
-		}
-		else{
-			message += "0";
-		}
+    if (config.Pedale1) {
+      message += "1";
+    }
+    else {
+      message += "0";
+    }
+    if (config.Pedale2) {
+      message += "1";
+    }
+    else {
+      message += "0";
+    }
+    if (config.Coffret) {
+      message += "1";
+    }
+    else {
+      message += "0";
+    }
     message += fl;
   }
   else {
@@ -2086,15 +2086,15 @@ void Allumage(byte n) {
     if (n == 0) {
       digitalWrite(PinEclairage, LOW);
       Allume = false;
-			Sbidon  = F("Extinction ");
-			Sbidon += n;
-			MajLog(F("Auto"), Sbidon);
+      Sbidon  = F("Extinction ");
+      Sbidon += n;
+      MajLog(F("Auto"), Sbidon);
     }
     else if (Al1 == Cd2 || Al2 == Cd1) {
-			Serial.print(F("Extinction dans (s) ")), Serial.println(config.tempoSortie);
-			Alarm.disable(TempoSortie);
-			Alarm.enable(TempoSortie);
-			Serial.print(F("Nombre Allumage = ")), Serial.println(CptAllumage);
+      Serial.print(F("Extinction dans (s) ")), Serial.println(config.tempoSortie);
+      Alarm.disable(TempoSortie);
+      Alarm.enable(TempoSortie);
+      Serial.print(F("Nombre Allumage = ")), Serial.println(CptAllumage);
     }
   }
 }
@@ -2237,13 +2237,13 @@ void OuvrirFichierCalibration() { // Lecture fichier calibration
     CoeffTension[0] = CoeffTensionDefaut;
     CoeffTension[1] = CoeffTensionDefaut;
     CoeffTension[2] = CoeffTensionDefaut;
-		CoeffTension[3] = CoeffTensionDefaut;
+    CoeffTension[3] = CoeffTensionDefaut;
     Recordcalib();
   }
   Serial.print(F("Coeff T Batterie = ")), Serial.print(CoeffTension[0]);
   Serial.print(F(" Coeff T Proc = "))	  , Serial.print(CoeffTension[1]);
   Serial.print(F(" Coeff T VUSB = "))		, Serial.print(CoeffTension[2]);
-	Serial.print(F(" Coeff T 24V = "))		, Serial.println(CoeffTension[3]);
+  Serial.print(F(" Coeff T 24V = "))		, Serial.println(CoeffTension[3]);
 
 }
 //---------------------------------------------------------------------------
@@ -2256,7 +2256,7 @@ void Recordcalib() { // enregistrer fichier calibration en SPIFFS
   f.println(CoeffTension[0]);
   f.println(CoeffTension[1]);
   f.println(CoeffTension[2]);
-	f.println(CoeffTension[3]);
+  f.println(CoeffTension[3]);
   f.close();
 
 }
@@ -2342,26 +2342,26 @@ void DebutSleep() {
   const uint64_t ext_wakeup_pin_1_mask = 1ULL << PinPedale1;
   const uint64_t ext_wakeup_pin_2_mask = 1ULL << PinPedale2;
   const uint64_t ext_wakeup_pin_3_mask = 1ULL << PinCoffret;
-	if(config.Intru){
-		if (config.Coffret && config.Pedale1 && config.Pedale2) {
-			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-		} else if (config.Coffret && config.Pedale1) {
-			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-		} else if (config.Coffret && config.Pedale2) {
-			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-		} else if (config.Pedale1 && config.Pedale2) {
-			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-		} else if (config.Coffret) {
-			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-		} else if (config.Pedale1) {
-			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-		} else if (config.Pedale2) {
-			esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
-		}
-	}
+  if (config.Intru) {
+    if (config.Coffret && config.Pedale1 && config.Pedale2) {
+      esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    } else if (config.Coffret && config.Pedale1) {
+      esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    } else if (config.Coffret && config.Pedale2) {
+      esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask | ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    } else if (config.Pedale1 && config.Pedale2) {
+      esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask  | ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    } else if (config.Coffret) {
+      esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_3_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    } else if (config.Pedale1) {
+      esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_1_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    } else if (config.Pedale2) {
+      esp_sleep_enable_ext1_wakeup(ext_wakeup_pin_2_mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+    }
+  }
   else {
     /* pas de wakeup sur pin */
-		Serial.println(F("pas de pin selectionne pour wakeup!"));
+    Serial.println(F("pas de pin selectionne pour wakeup!"));
   }
 
   /* Garde fou si TIME_TO_SLEEP > 20H00 c'est une erreur, on impose 1H00 */
@@ -2567,18 +2567,18 @@ void init_adc_mm(void) {
   unsigned int ini_adc1 = 0;// val defaut adc 1
   unsigned int ini_adc2 = 0;// val defaut adc 2
   unsigned int ini_adc3 = 0;// val defaut adc 3
-	unsigned int ini_adc4 = 0;// val defaut adc 4
+  unsigned int ini_adc4 = 0;// val defaut adc 4
   for (int plus_ancien = 0; plus_ancien < nSample; plus_ancien++) {
     adc_hist[0][plus_ancien] = ini_adc1;
     adc_hist[1][plus_ancien] = ini_adc2;
     adc_hist[2][plus_ancien] = ini_adc3;
-		adc_hist[3][plus_ancien] = ini_adc4;
+    adc_hist[3][plus_ancien] = ini_adc4;
   }
   //on commencera à stocker à cet offset
   adc_mm[0] = ini_adc1;
   adc_mm[1] = ini_adc2;
   adc_mm[2] = ini_adc3;
-	adc_mm[3] = ini_adc4;
+  adc_mm[3] = ini_adc4;
 }
 //---------------------------------------------------------------------------
 void read_adc(int pin1, int pin2, int pin3, int pin4) {
@@ -2590,7 +2590,7 @@ void read_adc(int pin1, int pin2, int pin3, int pin4) {
     if (i == 0)sample[i] = moyenneAnalogique(pin1);
     if (i == 1)sample[i] = moyenneAnalogique(pin2);
     if (i == 2)sample[i] = moyenneAnalogique(pin3);
-		if (i == 3)sample[i] = moyenneAnalogique(pin4);
+    if (i == 3)sample[i] = moyenneAnalogique(pin4);
 
     //calcul MoyenneMobile
     adc_mm[i] = adc_mm[i] + sample[i] - adc_hist[i][plus_ancien];
