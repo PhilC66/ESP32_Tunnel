@@ -3002,8 +3002,7 @@ void interpretemessage(String demande) {
   //demande.toUpperCase();
   if (demande.indexOf(char(61)) == 0) {
     bidons = demande.substring(1);
-    int lon0 = bidons.length();
-    bidons.toCharArray(replybuffer, lon0 + 1);
+    bidons.toCharArray(replybuffer, bidons.length() + 1);
     traite_sms(99);//	traitement SMS en mode test local
   }
 }
