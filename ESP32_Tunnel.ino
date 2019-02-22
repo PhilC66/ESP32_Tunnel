@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  993614 75%, 46852 14%
+  995262 75%, 46892 14%
 
 */
 
@@ -145,9 +145,7 @@ byte anticip = 60;						// temps anticipation du reveille au lancement s
 bool LastWupAlarme = false;   // memo etat Alarme par Wakeup
 
 int    slot = 0;              //this will be the slot number of the SMS
-char   receivedChar;
-bool   newData = false;
-String demande;
+
 long   TensionBatterie  = 0; // Tension Batterie solaire
 long   VBatterieProc    = 0; // Tension Batterie Processeur
 long   VUSB             = 0; // Tension USB
@@ -393,7 +391,6 @@ void setup() {
 void loop() {
   static byte nboucle = 0;
   recvOneChar();
-  showNewData();
 
   if (rebond1 > millis()) rebond1 = millis();
   if (rebond2 > millis()) rebond2 = millis();
@@ -2977,34 +2974,36 @@ void handleTime() { // getion temps page web
 
 /* --------------------  test local serial seulement ----------------------*/
 void recvOneChar() {
+
+  char   receivedChar;
+  static String serialmessage = "";
+  static bool   newData = false;
+
   if (Serial.available() > 0) {
     receivedChar = Serial.read();
     if (receivedChar != 10 && receivedChar != 13) {
-      demande += receivedChar;
+      serialmessage += receivedChar;
     }
     else {
       newData = true;
       return;
     }
   }
-}
-
-void showNewData() {
   if (newData == true) {
-    Serial.println(demande);
-    interpretemessage();
+    Serial.println(serialmessage);
+    interpretemessage(serialmessage);
     newData = false;
-    demande = "";
+    serialmessage = "";
   }
 }
-void interpretemessage() {
+
+void interpretemessage(String demande) {
   String bidons;
   //demande.toUpperCase();
   if (demande.indexOf(char(61)) == 0) {
-    bidons = demande.substring(1); //(demande.indexOf(char(61))+1);
+    bidons = demande.substring(1);
     int lon0 = bidons.length();
     bidons.toCharArray(replybuffer, lon0 + 1);
-    // Serial.print("reblybuffer :"),Serial.println(replybuffer);
     traite_sms(99);//	traitement SMS en mode test local
   }
 }
