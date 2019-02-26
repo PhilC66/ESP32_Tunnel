@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  995262 75%, 46892 14%
+  995378 75%, 46892 14%
 
 */
 
@@ -479,6 +479,7 @@ void Acquisition() {
     LastWupAlarme = false;
     WupAlarme     = false;
     Serial.println(F("Fin TempoAnalyse"));
+		envoieGroupeSMS(0,1);				// envoie groupé Etat avec fin analyse
     calculTimeSleep();
     DebutSleep();
   }
@@ -816,7 +817,7 @@ fin_i:
         if (message.length() > Id.length()) EnvoyerSms(number, sms);; // SMS final
       }
       else if (textesms.indexOf(F("ETAT")) == 0 || textesms.indexOf(F("ST")) == 0) {// "ETAT? de l'installation"
-        generationMessage();
+        generationMessage(0);
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("SYS")) > -1) {
@@ -896,7 +897,7 @@ fin_i:
           logRecord(nom, "A"); // renseigne le log
           MajLog(nom, "A");
         }
-        generationMessage();
+        generationMessage(0);
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("INTRUOFF")) == 0
@@ -921,7 +922,7 @@ fin_i:
           logRecord(nom, "D");				// renseigne le log
           MajLog(nom, "D");
         }
-        generationMessage();
+        generationMessage(0);
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("SILENCE")) == 0 ) {		//	Alarme Silencieuse
@@ -938,7 +939,7 @@ fin_i:
             sauvConfig();														// sauvegarde en EEPROM
           }
         }
-        generationMessage();
+        generationMessage(0);
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("PARAM")) == 0) { // parametre Jour/Nuit
@@ -1462,13 +1463,14 @@ void envoie_alarme() {
     FlagLastAlarmeIntrusion = FlagAlarmeIntrusion;
   }
   if (SendEtat) { 						// si envoie Etat demandé
-    envoieGroupeSMS(0);				// envoie groupé
+    envoieGroupeSMS(0,0);			// envoie groupé
     SendEtat = false;					// efface demande
   }
 }
 //---------------------------------------------------------------------------
-void envoieGroupeSMS(byte grp) {
-  /* si grp = 0,
+void envoieGroupeSMS(byte grp, bool m) {
+  /* m=0 message normal/finanalyse
+		si grp = 0,
     envoie un SMS à tous les numero existant (9 max) du Phone Book
   	SAUF ceux de la liste restreinte
     si grp = 1,
@@ -1479,7 +1481,7 @@ void envoieGroupeSMS(byte grp) {
   for (byte Index = 1; Index < n + 1; Index++) { // Balayage des Num Tel dans Phone Book
     if ((grp == 0 && config.Pos_Pn_PB[Index] == 0) || (grp == 1 && config.Pos_Pn_PB[Index] == 1)) {
       String number = Sim800.getPhoneBookNumber(Index);
-      generationMessage();
+      generationMessage(m);
       char num[13];
       number.toCharArray(num, 13);
       EnvoyerSms(num, true);
@@ -1487,7 +1489,9 @@ void envoieGroupeSMS(byte grp) {
   }
 }
 //---------------------------------------------------------------------------
-void generationMessage() {
+void generationMessage(bool n) {
+	// n = 0 message normal
+	// n = 1 message fin analyse
   message = Id;
   if (FlagAlarmeTension || FlagLastAlarmeTension || FlagAlarmeIntrusion || FlagAlarme24V) {
     message += F("--KO--------KO--");
@@ -1496,6 +1500,7 @@ void generationMessage() {
     message += F("-------OK-------");
   }
   message += fl;
+	if(n){message += F("Fin Analyse");message += fl;}
   if ((calendrier[month()][day()] ^ flagCircule)) {
     message += F("Jour Circule");
   }
@@ -1747,7 +1752,7 @@ long HActuelledec() {
 void SignalVie() {
   Serial.println(F("Signal vie"));
   MajHeure();
-  envoieGroupeSMS(0);
+  envoieGroupeSMS(0,0);
   Sim800.delAllSms();// au cas ou, efface tous les SMS envoyé/reçu
   CptAllumage = 0;
 
