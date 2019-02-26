@@ -2533,7 +2533,8 @@ void EffaceSMS(int s) {
     n ++;
     Serial.print(F("resultat del Sms "));	Serial.println(err);
     if (n > 10) { // on efface tous si echec
-      Sim800.delAllSms();
+      err = Sim800.delAllSms();
+      Serial.print(F("resultat delall Sms "));	Serial.println(err);
       break;
     }
   } while (!err);
