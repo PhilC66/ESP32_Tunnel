@@ -1685,7 +1685,7 @@ void ActivationSonnerie() {
 }
 //---------------------------------------------------------------------------
 void ArretSonnerie() {
-  Serial.print(F("Fin tempo Sonnerie : "));
+  Serial.print(F("Arret Sonnerie : "));
   Serial.println(Alarm.getTriggeredAlarmId());
   digitalWrite(PinSirene, LOW);// Arret Sonnerie
   Alarm.disable(TSonn);	// on arrete la tempo sonnerie
@@ -2340,6 +2340,8 @@ void IntruD() { // Charge parametre Alarme Intrusion Nuit
 }
 //---------------------------------------------------------------------------
 void DebutSleep() {
+	ArretSonnerie();
+	Extinction();
   // selection du pin mask en fonction des capteurs actif
   const uint64_t ext_wakeup_pin_1_mask = 1ULL << PinPedale1;
   const uint64_t ext_wakeup_pin_2_mask = 1ULL << PinPedale2;
