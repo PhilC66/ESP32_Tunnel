@@ -675,9 +675,9 @@ void traite_sms(byte slot) {
     slot = k;
     // /* Retrieve SMS sender address/phone number. */
     if (sms) {
-      numero = Sim800.getNumberSms(slot); 	// recupere le Numero appelant
-      nom = Sim800.getNameSms(slot);			// recupere le nom appelant
-      textesms = Sim800.readSms(slot);		// recupere le contenu
+      numero = Sim800.getNumberSms(slot); // recupere le Numero appelant
+      nom = Sim800.getNameSms(slot);      // recupere le nom appelant
+      textesms = Sim800.readSms(slot);    // recupere le contenu
       textesms = ExtraireSms(textesms);
       Serial.print(F("Nom appelant = ")), Serial.println(nom);
       Serial.print(F("Numero = ")), Serial.println(numero);
@@ -1635,6 +1635,10 @@ void MajHeure() {
         Alarm.delay(1000);
         Sim800.setPhoneFunctionality(1);
         Alarm.delay(1000);
+      }
+      if(millis() - debut > 15000){
+        Serial.println(F("Impossible de mettre à l'heure !"));
+        break;
       }
     }
     setTime(Nhour, Nminute, Nsecond, Nday, Nmonth, Nyear);
