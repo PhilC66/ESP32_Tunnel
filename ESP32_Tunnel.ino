@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  995378 75%, 46892 14%
+  997142 76%, 46892 14%
 
 */
 
