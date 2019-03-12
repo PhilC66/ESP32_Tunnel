@@ -347,7 +347,7 @@ void setup() {
   OuvrirFichierCalibration(); // ouvre fichier calibration en SPIFFS
   // Serial.print(F("temps =")),Serial.println(millis());
   Sim800.reset(SIMPIN);					// lancer SIM800
-  MajHeure();
+  MajHeure("");
 
   loopPrincipale = Alarm.timerRepeat(10, Acquisition); // boucle principale 10s
   Alarm.enable(loopPrincipale);
@@ -679,6 +679,11 @@ void traite_sms(byte slot) {
       nom = Sim800.getNameSms(slot);      // recupere le nom appelant
       textesms = Sim800.readSms(slot);    // recupere le contenu
       textesms = ExtraireSms(textesms);
+			if(nom.length()< 1){ // si nom vide, cherche si numero est num de la SIM
+				if(numero == Sim800.getNumTel()){
+					nom = F("Moi meme");
+				}
+			}
       Serial.print(F("Nom appelant = ")), Serial.println(nom);
       Serial.print(F("Numero = ")), Serial.println(numero);
     }
@@ -1122,9 +1127,9 @@ fin_i:
       }
       else if (textesms.indexOf(F("MAJHEURE")) == 0) {	//	forcer mise a l'heure
         message += F("Mise a l'heure");
-        Sim800.reset(SIMPIN);// lancer SIM800
-        MajHeure(); // mise a l'heure
-        EnvoyerSms(number, sms);
+        // Sim800.reset(SIMPIN);// lancer SIM800
+        MajHeure(Sim800.getTimeSms(slot)); // mise a l'heure du sms
+        if(nom != F("Moi meme")) EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("IMEI")) > -1) {
         message += F("IMEI = ");
@@ -1430,7 +1435,7 @@ fin_i:
       else {
         message += F("message non reconnu !");
         message += fl;
-        EnvoyerSms(number, sms);
+        if(nom != F("Moi meme")) EnvoyerSms(number, sms);
       }
     }
     else {
@@ -1613,8 +1618,10 @@ void read_RSSI() {	// lire valeur RSSI et remplir message
   message += fl;
 }
 //---------------------------------------------------------------------------
-void MajHeure() {
-
+void MajHeure(String smsdate) {
+	if(smsdate.length() > 1){ // si smsdate present mise a l'heure forcé
+		Sim800.SetTime(smsdate);
+	}
   static bool First = true;
   int ecart;
   Serial.print(F("Mise a l'heure reguliere !, "));
@@ -1630,14 +1637,20 @@ void MajHeure() {
       Sim800.RTCtime(&Nday, &Nmonth, &Nyear, &Nhour, &Nminute, &Nsecond);
       printf("%s %02d/%02d/%d %02d:%02d:%02d\n", "MajH2", Nday, Nmonth, Nyear, Nhour, Nminute, Nsecond);
       Alarm.delay(1000);
-      if (millis() - debut > 10000) {
-        Sim800.setPhoneFunctionality(0);
-        Alarm.delay(1000);
-        Sim800.setPhoneFunctionality(1);
-        Alarm.delay(1000);
-      }
+      // if (millis() - debut > 10000) {// supprimé risque de deconnexion reseau plus de redemarage
+        // Sim800.setPhoneFunctionality(0);
+        // Alarm.delay(1000);
+        // Sim800.setPhoneFunctionality(1);
+        // Alarm.delay(1000);
+      // }
       if(millis() - debut > 15000){
         Serial.println(F("Impossible de mettre à l'heure !"));
+        //on s'envoie à soi même un SMS "MAJHEURE"
+        message = F("MAJHEURE");
+        char numchar[13];
+        String numstring = Sim800.getNumTel();
+        numstring.toCharArray(numchar,13);
+        EnvoyerSms(numchar, true);
         break;
       }
     }
@@ -1755,7 +1768,7 @@ long HActuelledec() {
 //---------------------------------------------------------------------------
 void SignalVie() {
   Serial.println(F("Signal vie"));
-  MajHeure();
+  MajHeure("");
   envoieGroupeSMS(0,0);
   Sim800.delAllSms();// au cas ou, efface tous les SMS envoyé/reçu
   CptAllumage = 0;
