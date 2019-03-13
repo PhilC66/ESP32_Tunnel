@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  997142 76%, 46892 14%
+  997278 76%, 46884 14%
 
 */
 
@@ -389,7 +389,6 @@ void setup() {
 }
 //---------------------------------------------------------------------------
 void loop() {
-  static byte nboucle = 0;
   recvOneChar();
 
   if (rebond1 > millis()) rebond1 = millis();
@@ -454,11 +453,14 @@ void loop() {
   ArduinoOTA.handle();
   Alarm.delay(1);
 
-  if (nboucle > 10) { // tous les 10 passages
+  if (millis() % 100 == 0) { // toute les 100ms
     read_adc(PinBattSol, PinBattProc, PinBattUSB, Pin24V); // lecture des adc
-    nboucle = 0;
   }
-  nboucle ++;
+  
+  if (millis() % 1000 == 0) { // toute les 1s rearmement tempo sortie si pedale enfoncée tout le temps du passage
+    if(digitalRead(PinPedale1))Allumage(1);
+    if(digitalRead(PinPedale2))Allumage(2);
+  }
 
 }	//fin loop
 //---------------------------------------------------------------------------
@@ -1040,8 +1042,8 @@ fin_i:
       }
       else if (textesms.indexOf(F("TEMPOSORTIE")) == 0) { // Tempo Eclairage Sortie
         if (textesms.indexOf(char(61)) == 11) { // =
-          int i = textesms.substring(11).toInt();
-          // Serial.print("Cpt pedale = "),Serial.println(i);
+          int i = textesms.substring(12).toInt();
+          Serial.print("temposortie = "),Serial.println(i);
           if (i > 0 && i < 121) {
             config.tempoSortie = i;
             sauvConfig();                               // sauvegarde en EEPROM
