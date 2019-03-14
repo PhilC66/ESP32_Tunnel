@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  997278 76%, 46884 14%
+  997222 76%, 46884 14%
 
 */
 
@@ -119,8 +119,8 @@ volatile unsigned long rebond2 = 0;
 byte confign = 0;					// Num enregistrement EEPROM
 bool Allume = false;
 bool FlagPIR                 = false; //
-bool FlagAlarmeTension       = false; // Alarme tension Batterie
-bool FlagLastAlarmeTension   = false;
+RTC_DATA_ATTR bool FlagAlarmeTension       = false; // Alarme tension Batterie
+RTC_DATA_ATTR bool FlagLastAlarmeTension   = false;
 bool FlagAlarme24V           = false; // Alarme tension 24V Allumage
 bool FlagLastAlarme24V       = false;
 bool FlagAlarmeIntrusion     = false; // Alarme Defaut Cable detectée
@@ -1043,7 +1043,7 @@ fin_i:
       else if (textesms.indexOf(F("TEMPOSORTIE")) == 0) { // Tempo Eclairage Sortie
         if (textesms.indexOf(char(61)) == 11) { // =
           int i = textesms.substring(12).toInt();
-          Serial.print("temposortie = "),Serial.println(i);
+          // Serial.print(F("temposortie = ")),Serial.println(i);
           if (i > 0 && i < 121) {
             config.tempoSortie = i;
             sauvConfig();                               // sauvegarde en EEPROM
