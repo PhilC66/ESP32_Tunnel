@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  997222 76%, 46884 14%
+  997234 76%, 46884 14%
 
 */
 
@@ -2360,7 +2360,7 @@ void IntruD() { // Charge parametre Alarme Intrusion Nuit
 //---------------------------------------------------------------------------
 void DebutSleep() {
 	ArretSonnerie();
-	Extinction();
+	if(Allume)Extinction();
   // selection du pin mask en fonction des capteurs actif
   const uint64_t ext_wakeup_pin_1_mask = 1ULL << PinPedale1;
   const uint64_t ext_wakeup_pin_2_mask = 1ULL << PinPedale2;
