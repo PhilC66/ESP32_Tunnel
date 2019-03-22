@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  997910 76%, 46884 14%
+  999150 76%, 47044 14%
 
 */
 
@@ -97,13 +97,13 @@ uint64_t TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) 
 unsigned long debut    = millis(); // pour decompteur temps wifi
 byte calendrier[13][32]; // tableau calendrier ligne 0 et jour 0 non utilisé, 12*31
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
-char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant le calendrier de calibration
+char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les data de calibration
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
 int Magique       = 4213;
-
+const String Mois[13] = {"","Janvier","Fevrier","Mars","Avril","Mai","Juin","Juillet","Aout","Septembre","Octobre","Novembre","Decembre"};
 String Sbidon 		= "";
 String message;
 String bufferrcpt;
@@ -2153,6 +2153,7 @@ void ConnexionWifi(char* ssid, char* pwd, char* number, bool sms) {
   }, handleFileUpload);
   server.on("/delete",   File_Delete);
   server.on("/dir",      SPIFFS_dir);
+	server.on("/cal",      CalendarPage);
   server.on("/timeremaining", handleTime); // renvoie temps restant sur demande
 	server.on("/datetime", handleDateTime); // renvoie Date et Heure
   server.on("/wifioff",  WifiOff);
@@ -2755,8 +2756,30 @@ void HomePage() {
   webpage += F("<a href='/upload'><button>Upload</button></a>");
   webpage += F("<a href='/delete'><button>Delete</button></a>");
   webpage += F("<a href='/dir'><button>Directory</button></a>");
+	webpage += F("<a href='/cal'><button>Calendar</button></a>");
   webpage += F("<a href='/wifioff'><button>Wifi Off</button></a>");
   append_page_footer();
+  SendHTML_Content();
+  SendHTML_Stop(); // Stop is needed because no content length was sent
+}
+//---------------------------------------------------------------------------
+void CalendarPage() {
+	SendHTML_Header();
+	webpage += F("<h3 class='rcorners_m'>Calendrier</h3><br>");
+	webpage += F("<table align='center'>");
+
+	for(int m = 1; m < 13; m ++){
+		webpage += F("<tr>");
+		webpage += F("<td>"); webpage += Mois[m]; webpage += F("</td>");
+		for (int j = 1; j < 32; j++) {
+			webpage += F("<td>");	webpage += calendrier[m][j];	webpage += F("</td>");
+			if(j%5==0)webpage += F("<td> </td>");
+		}
+		webpage += F("</tr>");
+	}
+
+	webpage += F("</table><br>");
+	append_page_footer();
   SendHTML_Content();
   SendHTML_Stop(); // Stop is needed because no content length was sent
 }
@@ -2820,6 +2843,7 @@ void handleFileUpload() { // upload a new file to the Filing system
       webpage += F("<h2>File Size: "); webpage += file_size(uploadfile.totalSize) + "</h2><br>";
       append_page_footer();
       server.send(200, "text/html", webpage);
+      OuvrirCalendrier();
     }
     else
     {

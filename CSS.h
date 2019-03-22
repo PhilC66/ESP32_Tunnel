@@ -81,6 +81,7 @@ void append_page_footer(){ // Saves repeating many lines of code for HTML page f
   webpage += F("<li><a href='/upload'>Upload</a></li>");
 	webpage += F("<li><a href='/delete'>Delete</a></li>");
 	webpage += F("<li><a href='/dir'>Directory</a></li>");
+	webpage += F("<li><a href='/cal'>Calendar</a></li>");
   webpage += F("</ul>");
   webpage += F("<footer>&copy;");
 	webpage += String(char(byte(0x40>>1)))+String(char(byte(0x88>>1)))+String(char(byte(0x5c>>1)))+String(char(byte(0x98>>1)))+String(char(byte(0x5c>>1)));
