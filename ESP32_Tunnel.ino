@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  997234 76%, 46884 14%
+  997910 76%, 46884 14%
 
 */
 
@@ -2154,6 +2154,7 @@ void ConnexionWifi(char* ssid, char* pwd, char* number, bool sms) {
   server.on("/delete",   File_Delete);
   server.on("/dir",      SPIFFS_dir);
   server.on("/timeremaining", handleTime); // renvoie temps restant sur demande
+	server.on("/datetime", handleDateTime); // renvoie Date et Heure
   server.on("/wifioff",  WifiOff);
   ///////////////////////////// End of Request commands
   server.begin();
@@ -2979,7 +2980,7 @@ String file_size(int bytes) {
   return fsize;
 }
 //---------------------------------------------------------------------------
-void handleTime() { // getion temps page web
+void handleTime() { // getion temps restant page web
   char time_str[9];
   const uint32_t millis_in_day    = 1000 * 60 * 60 * 24;
   const uint32_t millis_in_hour   = 1000 * 60 * 60;
@@ -2998,7 +2999,12 @@ void handleTime() { // getion temps page web
   // Serial.println(time_str);
   server.send(200, "text/plane", String(time_str)); //Send Time value only to client ajax request
 }
-
+//---------------------------------------------------------------------------
+void handleDateTime() { // getion Date et heure page web
+	char time_str[20];
+	sprintf(time_str, "%02d/%02d/%4d %02d:%02d:%02d", day(), month(), year(), hour(), minute(), second());
+	server.send(200, "text/plane", String(time_str)); //Send Time value only to client ajax request
+}
 /* --------------------  test local serial seulement ----------------------*/
 void recvOneChar() {
 

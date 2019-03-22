@@ -1,13 +1,15 @@
 void append_page_header() {
 	/* https://circuits4you.com/2018/02/04/esp8266-ajax-update-part-of-web-page-without-refreshing/ */
 	const char subtemps[] PROGMEM = R"=====(
-		<h1> le Wifi sera coup&eacute; dans : <span id="Trestant">0</span><br> </h1>
+		<h1><span id="DateTime">0</span><br>
+		le Wifi sera coup&eacute; dans : <span id="Trestant">0</span><br> </h1>
 		<script>
 		setInterval(function() {
 			// Call a function repetatively with 2 Second interval
 			getData();
+			getData2();
 		}, 2000); //2000mSeconds update rate
-
+		
 		function getData() {
 			var xhttp = new XMLHttpRequest();
 			xhttp.onreadystatechange = function() {
@@ -17,6 +19,17 @@ void append_page_header() {
 				}
 			};
 			xhttp.open("GET", "timeremaining", true);
+			xhttp.send();
+		}
+		function getData2() {
+			var xhttp = new XMLHttpRequest();
+			xhttp.onreadystatechange = function() {
+				if (this.readyState == 4 && this.status == 200) {
+					document.getElementById("DateTime").innerHTML =
+					this.responseText;
+				}
+			};
+			xhttp.open("GET", "datetime", true);
 			xhttp.send();
 		}
 		</script>	
