@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  999150 76%, 47044 14%
+  999150 76%, 47052 14%
 
 */
 
@@ -94,7 +94,9 @@ unsigned int adc_hist[4][nSample]; // tableau stockage mesure adc, 0 Batt, 1 Pro
 unsigned int adc_mm[4];            // stockage pour la moyenne mobile
 
 uint64_t TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
-unsigned long debut    = millis(); // pour decompteur temps wifi
+unsigned long debut    = 0; // pour decompteur temps wifi
+unsigned long timer100 = 0; // pour timer 100ms adc
+unsigned long timer1000= 0; // pour timer 1s rearmement auto si pedale enffoncée en permanence
 byte calendrier[13][32]; // tableau calendrier ligne 0 et jour 0 non utilisé, 12*31
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
 char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les data de calibration
@@ -453,11 +455,13 @@ void loop() {
   ArduinoOTA.handle();
   Alarm.delay(1);
 
-  if (millis() % 100 == 0) { // toute les 100ms
+  if (millis()- timer100 > 100) { // toute les 100ms
+		timer100 = millis();
     read_adc(PinBattSol, PinBattProc, PinBattUSB, Pin24V); // lecture des adc
   }
-  
-  if (millis() % 1000 == 0) { // toute les 1s rearmement tempo sortie si pedale enfoncée tout le temps du passage
+
+  if (millis()- timer1000 > 1000) { // toute les 1s rearmement tempo sortie si pedale enfoncée tout le temps du passage
+	  timer1000 = millis();
     if(digitalRead(PinPedale1))Allumage(1);
     if(digitalRead(PinPedale2))Allumage(2);
   }
