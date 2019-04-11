@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  999150 76%, 47052 14%
+  999162 76%, 47052 14%
 
 */
 
@@ -426,6 +426,8 @@ void loop() {
   if (IRQ_Cpt_Coffret > 0) { // Alarme Coffret
     if (config.Intru && config.Coffret) {
       FlagAlarmeCoffret = true;
+      FlagAlarmeIntrusion = true;
+      FlagPIR = true;
       portENTER_CRITICAL(&mux);
       if (IRQ_Cpt_Coffret > 0)IRQ_Cpt_Coffret = 0;
       portEXIT_CRITICAL(&mux);
