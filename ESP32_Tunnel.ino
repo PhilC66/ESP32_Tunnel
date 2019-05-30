@@ -1367,10 +1367,12 @@ fin_i:
             coef = CoeffTension[2];
           }
           if (Sbidon.substring(1, 2) == "4" ) {
+            Allumage(1); // Allumage
+            Alarm.delay(500);
+            read_adc(PinBattSol, PinBattProc, PinBattUSB, Pin24V); // lecture des adc
             M = 4;
             P = Pin24V;
             coef = CoeffTension[3];
-            Allumage(1); // Allumage
           }
           // Serial.print("mode = "),Serial.print(M),Serial.println(Sbidon.substring(1,2));
           FlagCalibration = true;
@@ -1385,7 +1387,7 @@ fin_i:
           Serial.println(Sbidon.substring(0, 4));
           /* calcul nouveau coeff */
           coef = Sbidon.substring(0, 4).toFloat() / float(tensionmemo) * CoeffTensionDefaut;
-          // Serial.print("Coeff Tension = "),Serial.println(CoeffTension);
+          // Serial.print("Coeff Tension = "),Serial.println(coef);
           tension = map(moyenneAnalogique(P), 0, 4095, 0, coef);
           CoeffTension[M - 1] = coef;
           FlagCalibration = false;
@@ -1491,6 +1493,7 @@ void envoieGroupeSMS(byte grp, bool m) {
     de la liste restreinte config.Pos_Pn_PB[x]=1			*/
 
   byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
+	// Serial.print(F("Nombre de ligne PB=")),Serial.println(n);
   for (byte Index = 1; Index < n + 1; Index++) { // Balayage des Num Tel dans Phone Book
     if ((grp == 0 && config.Pos_Pn_PB[Index] == 0) || (grp == 1 && config.Pos_Pn_PB[Index] == 1)) {
       String number = Sim800.getPhoneBookNumber(Index);
