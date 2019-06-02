@@ -50,7 +50,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  999162 76%, 47052 14%
+  999254 76%, 47052 14%
 
 */
 
@@ -93,10 +93,10 @@ bool    SPIFFS_present = false;
 unsigned int adc_hist[4][nSample]; // tableau stockage mesure adc, 0 Batt, 1 Proc, 2 USB
 unsigned int adc_mm[4];            // stockage pour la moyenne mobile
 
-uint64_t TIME_TO_SLEEP = 15;        /* Time ESP32 will go to sleep (in seconds) */
-unsigned long debut    = 0; // pour decompteur temps wifi
-unsigned long timer100 = 0; // pour timer 100ms adc
-unsigned long timer1000= 0; // pour timer 1s rearmement auto si pedale enffoncée en permanence
+uint64_t TIME_TO_SLEEP  = 15;/* Time ESP32 will go to sleep (in seconds) */
+unsigned long debut     = 0; // pour decompteur temps wifi
+unsigned long timer100  = 0; // pour timer 100ms adc
+unsigned long timer1000 = 0; // pour timer 1s rearmement auto si pedale enffoncée en permanence
 byte calendrier[13][32]; // tableau calendrier ligne 0 et jour 0 non utilisé, 12*31
 char filecalendrier[13]  = "/filecal.csv";  // fichier en SPIFFS contenant le calendrier de circulation
 char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les data de calibration
@@ -105,7 +105,7 @@ char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le lo
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
 int Magique       = 4213;
-const String Mois[13] = {"","Janvier","Fevrier","Mars","Avril","Mai","Juin","Juillet","Aout","Septembre","Octobre","Novembre","Decembre"};
+const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= "";
 String message;
 String bufferrcpt;
@@ -118,6 +118,8 @@ volatile int IRQ_Cpt_PDL2  = 0;
 volatile int IRQ_Cpt_Coffret = 0;
 volatile unsigned long rebond1 = 0;		//	antirebond IRQ
 volatile unsigned long rebond2 = 0;
+volatile unsigned long rebond3 = 0;
+byte DbounceTime = 20;				// antirebond
 byte confign = 0;					// Num enregistrement EEPROM
 bool Allume = false;
 bool FlagPIR                 = false; //
@@ -135,7 +137,7 @@ bool SonnMax   = false;				// temps de sonnerie maxi atteint
 bool FlagReset = false;       // Reset demandé
 bool jour      = false;				// jour = true, nuit = false
 int  Nmax      = 0;						// comptage alarme cable avant alarme different Jour/Nuit
-byte DbounceTime = 20;				// antirebond
+
 int CoeffTension[4];          // Coeff calibration Tension
 int CoeffTensionDefaut = 7000;// Coefficient par defaut
 
@@ -230,7 +232,10 @@ void IRAM_ATTR handleInterruptP2() { // Pedale 2
 }
 void IRAM_ATTR handleInterruptPo() { // Coffret
   portENTER_CRITICAL_ISR(&mux);
-  IRQ_Cpt_Coffret++;
+  if (xTaskGetTickCount() - rebond3 > DbounceTime) {
+    IRQ_Cpt_Coffret++;
+    rebond3 = xTaskGetTickCount(); // equiv millis()
+  }
   portEXIT_CRITICAL_ISR(&mux);
 }
 //---------------------------------------------------------------------------
@@ -395,6 +400,7 @@ void loop() {
 
   if (rebond1 > millis()) rebond1 = millis();
   if (rebond2 > millis()) rebond2 = millis();
+  if (rebond3 > millis()) rebond3 = millis();
 
   char* bufPtr = SIM800InBuffer;	//buffer pointer
   if (Serial2.available()) {      	//any data available from the FONA?
@@ -424,14 +430,16 @@ void loop() {
   }
 
   if (IRQ_Cpt_Coffret > 0) { // Alarme Coffret
+    portENTER_CRITICAL(&mux);
+    IRQ_Cpt_Coffret = 0;
+    portEXIT_CRITICAL(&mux);
     if (config.Intru && config.Coffret) {
-      FlagAlarmeCoffret = true;
-      FlagAlarmeIntrusion = true;
-      FlagPIR = true;
-      portENTER_CRITICAL(&mux);
-      if (IRQ_Cpt_Coffret > 0)IRQ_Cpt_Coffret = 0;
-      portEXIT_CRITICAL(&mux);
-      Acquisition();
+      if (digitalRead(PinCoffret) && BattPBpct(TensionBatterie) > 25) {
+        FlagAlarmeCoffret = true;
+        FlagAlarmeIntrusion = true;
+        FlagPIR = true;
+        Acquisition();
+      }
     }
   }
 
@@ -457,15 +465,15 @@ void loop() {
   ArduinoOTA.handle();
   Alarm.delay(1);
 
-  if (millis()- timer100 > 100) { // toute les 100ms
-		timer100 = millis();
+  if (millis() - timer100 > 100) { // toute les 100ms
+    timer100 = millis();
     read_adc(PinBattSol, PinBattProc, PinBattUSB, Pin24V); // lecture des adc
   }
 
-  if (millis()- timer1000 > 1000) { // toute les 1s rearmement tempo sortie si pedale enfoncée tout le temps du passage
-	  timer1000 = millis();
-    if(digitalRead(PinPedale1))Allumage(1);
-    if(digitalRead(PinPedale2))Allumage(2);
+  if (millis() - timer1000 > 1000) { // toute les 1s rearmement tempo sortie si pedale enfoncée tout le temps du passage
+    timer1000 = millis();
+    if (digitalRead(PinPedale1))Allumage(1);
+    if (digitalRead(PinPedale2))Allumage(2);
   }
 
 }	//fin loop
@@ -487,7 +495,7 @@ void Acquisition() {
     LastWupAlarme = false;
     WupAlarme     = false;
     Serial.println(F("Fin TempoAnalyse"));
-		envoieGroupeSMS(0,1);				// envoie groupé Etat avec fin analyse
+    envoieGroupeSMS(0, 1);				// envoie groupé Etat avec fin analyse
     calculTimeSleep();
     DebutSleep();
   }
@@ -687,11 +695,11 @@ void traite_sms(byte slot) {
       nom = Sim800.getNameSms(slot);      // recupere le nom appelant
       textesms = Sim800.readSms(slot);    // recupere le contenu
       textesms = ExtraireSms(textesms);
-			if(nom.length()< 1){ // si nom vide, cherche si numero est num de la SIM
-				if(numero == Sim800.getNumTel()){
-					nom = F("Moi meme");
-				}
-			}
+      if (nom.length() < 1) { // si nom vide, cherche si numero est num de la SIM
+        if (numero == Sim800.getNumTel()) {
+          nom = F("Moi meme");
+        }
+      }
       Serial.print(F("Nom appelant = ")), Serial.println(nom);
       Serial.print(F("Numero = ")), Serial.println(numero);
     }
@@ -1137,7 +1145,7 @@ fin_i:
         message += F("Mise a l'heure");
         // Sim800.reset(SIMPIN);// lancer SIM800
         MajHeure(Sim800.getTimeSms(slot)); // mise a l'heure du sms
-        if(nom != F("Moi meme")) EnvoyerSms(number, sms);
+        if (nom != F("Moi meme")) EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("IMEI")) > -1) {
         message += F("IMEI = ");
@@ -1445,7 +1453,7 @@ fin_i:
       else {
         message += F("message non reconnu !");
         message += fl;
-        if(nom != F("Moi meme")) EnvoyerSms(number, sms);
+        if (nom != F("Moi meme")) EnvoyerSms(number, sms);
       }
     }
     else {
@@ -1478,14 +1486,14 @@ void envoie_alarme() {
     FlagLastAlarmeIntrusion = FlagAlarmeIntrusion;
   }
   if (SendEtat) { 						// si envoie Etat demandé
-    envoieGroupeSMS(0,0);			// envoie groupé
+    envoieGroupeSMS(0, 0);			// envoie groupé
     SendEtat = false;					// efface demande
   }
 }
 //---------------------------------------------------------------------------
 void envoieGroupeSMS(byte grp, bool m) {
   /* m=0 message normal/finanalyse
-		si grp = 0,
+  	si grp = 0,
     envoie un SMS à tous les numero existant (9 max) du Phone Book
   	SAUF ceux de la liste restreinte
     si grp = 1,
@@ -1493,7 +1501,7 @@ void envoieGroupeSMS(byte grp, bool m) {
     de la liste restreinte config.Pos_Pn_PB[x]=1			*/
 
   byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
-	// Serial.print(F("Nombre de ligne PB=")),Serial.println(n);
+  // Serial.print(F("Nombre de ligne PB=")),Serial.println(n);
   for (byte Index = 1; Index < n + 1; Index++) { // Balayage des Num Tel dans Phone Book
     if ((grp == 0 && config.Pos_Pn_PB[Index] == 0) || (grp == 1 && config.Pos_Pn_PB[Index] == 1)) {
       String number = Sim800.getPhoneBookNumber(Index);
@@ -1506,8 +1514,8 @@ void envoieGroupeSMS(byte grp, bool m) {
 }
 //---------------------------------------------------------------------------
 void generationMessage(bool n) {
-	// n = 0 message normal
-	// n = 1 message fin analyse
+  // n = 0 message normal
+  // n = 1 message fin analyse
   message = Id;
   if (FlagAlarmeTension || FlagLastAlarmeTension || FlagAlarmeIntrusion || FlagAlarme24V) {
     message += F("--KO--------KO--");
@@ -1516,7 +1524,10 @@ void generationMessage(bool n) {
     message += F("-------OK-------");
   }
   message += fl;
-	if(n){message += F("Fin Analyse");message += fl;}
+  if (n) {
+    message += F("Fin Analyse");
+    message += fl;
+  }
   if ((calendrier[month()][day()] ^ flagCircule)) {
     message += F("Jour Circule");
   }
@@ -1630,9 +1641,9 @@ void read_RSSI() {	// lire valeur RSSI et remplir message
 }
 //---------------------------------------------------------------------------
 void MajHeure(String smsdate) {
-	if(smsdate.length() > 1){ // si smsdate present mise a l'heure forcé
-		Sim800.SetTime(smsdate);
-	}
+  if (smsdate.length() > 1) { // si smsdate present mise a l'heure forcé
+    Sim800.SetTime(smsdate);
+  }
   static bool First = true;
   int ecart;
   Serial.print(F("Mise a l'heure reguliere !, "));
@@ -1649,18 +1660,18 @@ void MajHeure(String smsdate) {
       printf("%s %02d/%02d/%d %02d:%02d:%02d\n", "MajH2", Nday, Nmonth, Nyear, Nhour, Nminute, Nsecond);
       Alarm.delay(1000);
       // if (millis() - debut > 10000) {// supprimé risque de deconnexion reseau plus de redemarage
-        // Sim800.setPhoneFunctionality(0);
-        // Alarm.delay(1000);
-        // Sim800.setPhoneFunctionality(1);
-        // Alarm.delay(1000);
+      // Sim800.setPhoneFunctionality(0);
+      // Alarm.delay(1000);
+      // Sim800.setPhoneFunctionality(1);
+      // Alarm.delay(1000);
       // }
-      if(millis() - debut > 15000){
+      if (millis() - debut > 15000) {
         Serial.println(F("Impossible de mettre à l'heure !"));
         //on s'envoie à soi même un SMS "MAJHEURE"
         message = F("MAJHEURE");
         char numchar[13];
         String numstring = Sim800.getNumTel();
-        numstring.toCharArray(numchar,13);
+        numstring.toCharArray(numchar, 13);
         EnvoyerSms(numchar, true);
         break;
       }
@@ -1780,7 +1791,7 @@ long HActuelledec() {
 void SignalVie() {
   Serial.println(F("Signal vie"));
   MajHeure("");
-  envoieGroupeSMS(0,0);
+  envoieGroupeSMS(0, 0);
   Sim800.delAllSms();// au cas ou, efface tous les SMS envoyé/reçu
   CptAllumage = 0;
 
@@ -2162,9 +2173,9 @@ void ConnexionWifi(char* ssid, char* pwd, char* number, bool sms) {
   }, handleFileUpload);
   server.on("/delete",   File_Delete);
   server.on("/dir",      SPIFFS_dir);
-	server.on("/cal",      CalendarPage);
+  server.on("/cal",      CalendarPage);
   server.on("/timeremaining", handleTime); // renvoie temps restant sur demande
-	server.on("/datetime", handleDateTime); // renvoie Date et Heure
+  server.on("/datetime", handleDateTime); // renvoie Date et Heure
   server.on("/wifioff",  WifiOff);
   ///////////////////////////// End of Request commands
   server.begin();
@@ -2370,8 +2381,8 @@ void IntruD() { // Charge parametre Alarme Intrusion Nuit
 }
 //---------------------------------------------------------------------------
 void DebutSleep() {
-	ArretSonnerie();
-	if(Allume)Extinction();
+  ArretSonnerie();
+  if (Allume)Extinction();
   // selection du pin mask en fonction des capteurs actif
   const uint64_t ext_wakeup_pin_1_mask = 1ULL << PinPedale1;
   const uint64_t ext_wakeup_pin_2_mask = 1ULL << PinPedale2;
@@ -2765,7 +2776,7 @@ void HomePage() {
   webpage += F("<a href='/upload'><button>Upload</button></a>");
   webpage += F("<a href='/delete'><button>Delete</button></a>");
   webpage += F("<a href='/dir'><button>Directory</button></a>");
-	webpage += F("<a href='/cal'><button>Calendar</button></a>");
+  webpage += F("<a href='/cal'><button>Calendar</button></a>");
   webpage += F("<a href='/wifioff'><button>Wifi Off</button></a>");
   append_page_footer();
   SendHTML_Content();
@@ -2773,22 +2784,22 @@ void HomePage() {
 }
 //---------------------------------------------------------------------------
 void CalendarPage() {
-	SendHTML_Header();
-	webpage += F("<h3 class='rcorners_m'>Calendrier</h3><br>");
-	webpage += F("<table align='center'>");
+  SendHTML_Header();
+  webpage += F("<h3 class='rcorners_m'>Calendrier</h3><br>");
+  webpage += F("<table align='center'>");
 
-	for(int m = 1; m < 13; m ++){
-		webpage += F("<tr>");
-		webpage += F("<td>"); webpage += Mois[m]; webpage += F("</td>");
-		for (int j = 1; j < 32; j++) {
-			webpage += F("<td>");	webpage += calendrier[m][j];	webpage += F("</td>");
-			if(j%5==0)webpage += F("<td> </td>");
-		}
-		webpage += F("</tr>");
-	}
+  for (int m = 1; m < 13; m ++) {
+    webpage += F("<tr>");
+    webpage += F("<td>"); webpage += Mois[m]; webpage += F("</td>");
+    for (int j = 1; j < 32; j++) {
+      webpage += F("<td>");	webpage += calendrier[m][j];	webpage += F("</td>");
+      if (j % 5 == 0)webpage += F("<td> </td>");
+    }
+    webpage += F("</tr>");
+  }
 
-	webpage += F("</table><br>");
-	append_page_footer();
+  webpage += F("</table><br>");
+  append_page_footer();
   SendHTML_Content();
   SendHTML_Stop(); // Stop is needed because no content length was sent
 }
@@ -3034,9 +3045,9 @@ void handleTime() { // getion temps restant page web
 }
 //---------------------------------------------------------------------------
 void handleDateTime() { // getion Date et heure page web
-	char time_str[20];
-	sprintf(time_str, "%02d/%02d/%4d %02d:%02d:%02d", day(), month(), year(), hour(), minute(), second());
-	server.send(200, "text/plane", String(time_str)); //Send Time value only to client ajax request
+  char time_str[20];
+  sprintf(time_str, "%02d/%02d/%4d %02d:%02d:%02d", day(), month(), year(), hour(), minute(), second());
+  server.send(200, "text/plane", String(time_str)); //Send Time value only to client ajax request
 }
 /* --------------------  test local serial seulement ----------------------*/
 void recvOneChar() {
