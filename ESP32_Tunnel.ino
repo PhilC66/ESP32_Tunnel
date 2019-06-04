@@ -1061,6 +1061,8 @@ fin_i:
           if (i > 0 && i < 121) {
             config.tempoSortie = i;
             sauvConfig();                               // sauvegarde en EEPROM
+            TempoSortie = Alarm.timerRepeat(config.tempoSortie, Extinction); // tempo extinction a la sortie
+            Alarm.disable(TempoSortie);
           }
         }
         message += F("Tempo Sortie Eclairage (s) = ");
@@ -1075,6 +1077,8 @@ fin_i:
           if (i > 59 && i < 7201) {
             config.timeOutS = i;
             sauvConfig();                               // sauvegarde en EEPROM
+            TimeOut = Alarm.timerRepeat(config.timeOutS, Extinction); // tempo time out extinction
+            Alarm.disable(TimeOut);
           }
         }
         message += F("Time Out Eclairage (s) = ");
@@ -1113,6 +1117,14 @@ fin_i:
             config.DsonnMax 	= j;
             config.Dsonnrepos = k;
             sauvConfig();															// sauvegarde en EEPROM
+            TSonn = Alarm.timerRepeat(config.Dsonn, ArretSonnerie);	// tempo durée de la sonnerie
+            Alarm.disable(TSonn);
+
+            TSonnMax = Alarm.timerRepeat(config.DsonnMax, SonnerieMax); // tempo maximum de sonnerie
+            Alarm.disable(TSonnMax);
+
+            TSonnRepos = Alarm.timerRepeat(config.Dsonnrepos, ResetSonnerie); // tempo repos apres maxi
+            Alarm.disable(TSonnRepos);
           }
         }
         message += F("Param Sonnerie = ");
@@ -1279,6 +1291,8 @@ fin_i:
           if (i > 59 && i <= 1800) { // 1mn à 30mn
             config.Tanalyse = i;
             sauvConfig();															// sauvegarde en EEPROM
+            TempoAnalyse = Alarm.timerRepeat(config.Tanalyse, FinAnalyse); // Tempo Analyse Alarme sur interruption
+            Alarm.disable(TempoAnalyse);
           }
         }
         message += F("Tempo Analyse apres Wake up (s)=");
