@@ -571,7 +571,7 @@ void Acquisition() {
     // verif sur plusieurs passages consecutifs
     if (digitalRead(PinCoffret) && config.Coffret) {
       nalaCoffret ++;
-      if (nalaCoffret > 1) {
+      if (nalaCoffret > 0) {
         FlagAlarmeCoffret = true;
         FlagPIR = true;
         nalaCoffret = 0;
