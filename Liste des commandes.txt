@@ -23,13 +23,13 @@ MOIS=mm?															Demande le calendrier de circulation pour le mois mm
 MOIS=mm,31 fois 0/1										Etabli un mois mm de circulation, tous les mois ont obligatoirement 31 jours
 TIMEOUTECL														Time out extinction eclairage secours (s) defaut  1H
 TIMEOUTECL=n													60-7200
-TEMPOSORTIE														Temporisation Eclairage à la Sortie (s)
+TEMPOSORTIE														Temporisation Eclairage à la Sortie (s) defaut 10s
 TEMPOSORTIE=n													1-120
 PARAM=n,m															Parametre compteur pour alarme cable Jour/Nuit en s multiple de 10s
 CIRCULE																Demande passer en mode Circulé pour jour courant, sans modification du calendrier enregistré
 NONCIRCULE														Demande passer en mode non circulé
-TEMPOWAKEUP=n													Tempo repetition Wake up en s 59 à 36000 (norm=3600)
-TEMPOANALYSE=n												Tempo Analyse apres Wake up en s 59 à 1800 (norm=600)
+TEMPOWAKEUP=n													Tempo repetition Wake up en s 59 à 36000 (defaut=3600)
+TEMPOANALYSE=n												Tempo Analyse apres Wake up en s 59 à 1800 (defaut=600)
 ALLUME																Allumage jusqu'à Eteindre ou timeout
 ETEINDRE															Extinction
 LST? ou LST1													Liste le Phone Book
@@ -39,7 +39,7 @@ telX=efface														supprime l'entrée X du Phone Book impossible sur X=1
 LST2	     														Liste Phone Book restreinte qte9, 0/1 0 liste defaut, 1 liste restreinte
 LST2=0,0,0,0,1,0,0,0,0
 TIMEOUTWIFI														durée du timeout wifi avant retour fonctionnement normale
-TIMEOUTWIFI=300												durée en secondes 10-3600 (norm=600)
+TIMEOUTWIFI=300												durée en secondes 10-3600 (defaut=600)
 Wifi,ssid,password										connexion wifi case sensitive
 LOG                                   log des commandes Alarme seulement
 RST																		Reset du systeme
