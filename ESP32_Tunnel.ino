@@ -434,7 +434,7 @@ void loop() {
     IRQ_Cpt_Coffret = 0;
     portEXIT_CRITICAL(&mux);
     if (config.Intru && config.Coffret) {
-      if (digitalRead(PinCoffret) && BattPBpct(TensionBatterie) > 25) {
+      if (digitalRead(PinCoffret) && BattPBpct(TensionBatterie) > 20) {
         FlagAlarmeCoffret = true;
         FlagAlarmeIntrusion = true;
         FlagPIR = true;
@@ -571,7 +571,7 @@ void Acquisition() {
     // verif sur plusieurs passages consecutifs
     if (digitalRead(PinCoffret) && config.Coffret) {
       nalaCoffret ++;
-      if (nalaCoffret > 0) {
+      if (nalaCoffret > 1) {
         FlagAlarmeCoffret = true;
         FlagPIR = true;
         nalaCoffret = 0;
