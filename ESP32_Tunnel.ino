@@ -40,8 +40,17 @@
 	Librairie TimeAlarms.h modifiée
 	#define dtNBR_ALARMS 10 (ne fonctionne pas avec 9)   6 à l'origine nombre d'alarmes RAM*11 max is 255
 
-  to do
-
+  --- ATTENTION ---
+	l'utilisation de l'adc sur GPIO26 pour la mesure du 24V
+	est perturbé apres l'utilisation du WIFI
+	entrainant une erreur de mesure,
+	pouvant ne pas detecter une tension 24V trop basse
+	RST reset soft sans effet
+	
+	il faut trouver solution
+	
+	
+	to do
 
   version prod
 
@@ -50,7 +59,7 @@
 
 
   Compilation LOLIN D32,default,80MHz
-  999254 76%, 47052 14%
+  984682 75%, 47552 14%
 
 */
 
@@ -59,7 +68,7 @@
 #include <Sim800l.h>              //my SIM800 modifié
 #include <Time.h>
 #include <TimeAlarms.h>
-#include <sys/time.h>
+#include <sys/time.h>             //<sys/time.h>
 #include <WiFi.h>
 #include <EEPROM.h>               // variable en EEPROM
 #include <SPIFFS.h>
@@ -521,6 +530,7 @@ void Acquisition() {
   if (Allume) {
     cptallume ++;
     Serial.print(F("Tension 24V :")), Serial.print(float(Tension24 / 100.0)), Serial.print(F(" "));
+		Serial.print("coeff 24V="),Serial.println(CoeffTension[3]);
     if (cptallume > 2 && Tension24 < 2000) { // on attend 2 passages pour mesurer 24V
       FlagAlarme24V = true;
     }
@@ -731,14 +741,10 @@ void traite_sms(byte slot) {
         message += fl;
       }
       if (textesms.indexOf(F("WIFIOFF")) > -1) { // Arret Wifi
-        // WifiOff();
         message += F("Wifi off");
         message += fl;
         EnvoyerSms(number, sms);
-        WiFi.disconnect(true);
-        WiFi.mode(WIFI_OFF);
-        WiFi.mode(WIFI_MODE_NULL);
-        btStop();
+        WifiOff();
       }
       else if (textesms.indexOf(F("Wifi")) == 0) { // demande connexion Wifi
         byte pos1 = textesms.indexOf(char(44));//","
@@ -2229,17 +2235,17 @@ void ConnexionWifi(char* ssid, char* pwd, char* number, bool sms) {
       delay(1);
     }
     WifiOff();
+    ESP.restart();
   }
 }
 //---------------------------------------------------------------------------
 void WifiOff() {
   Serial.println(F("Wifi off"));
   WiFi.disconnect(true);
-  WiFi.mode(WIFI_OFF);
+	WiFi.mode(WIFI_OFF);
   WiFi.mode(WIFI_MODE_NULL);
   btStop();
-  Alarm.delay(100);
-  ESP.restart();
+  Alarm.delay(100);  
 }
 //---------------------------------------------------------------------------
 String ExtraireSms(String msgbrut) { //Extraction du contenu du SMS
