@@ -46,10 +46,10 @@
 	entrainant une erreur de mesure,
 	pouvant ne pas detecter une tension 24V trop basse
 	RST reset soft sans effet
-	
+
 	il faut trouver solution
-	
-	
+
+
 	to do
 
   version prod
@@ -530,7 +530,7 @@ void Acquisition() {
   if (Allume) {
     cptallume ++;
     Serial.print(F("Tension 24V :")), Serial.print(float(Tension24 / 100.0)), Serial.print(F(" "));
-		Serial.print("coeff 24V="),Serial.println(CoeffTension[3]);
+    Serial.print("coeff 24V="), Serial.println(CoeffTension[3]);
     if (cptallume > 2 && Tension24 < 2000) { // on attend 2 passages pour mesurer 24V
       FlagAlarme24V = true;
     }
@@ -2242,10 +2242,10 @@ void ConnexionWifi(char* ssid, char* pwd, char* number, bool sms) {
 void WifiOff() {
   Serial.println(F("Wifi off"));
   WiFi.disconnect(true);
-	WiFi.mode(WIFI_OFF);
+  WiFi.mode(WIFI_OFF);
   WiFi.mode(WIFI_MODE_NULL);
   btStop();
-  Alarm.delay(100);  
+  Alarm.delay(100);
 }
 //---------------------------------------------------------------------------
 String ExtraireSms(String msgbrut) { //Extraction du contenu du SMS
