@@ -2235,7 +2235,6 @@ void ConnexionWifi(char* ssid, char* pwd, char* number, bool sms) {
       delay(1);
     }
     WifiOff();
-    ESP.restart();
   }
 }
 //---------------------------------------------------------------------------
@@ -2246,6 +2245,7 @@ void WifiOff() {
   WiFi.mode(WIFI_MODE_NULL);
   btStop();
   Alarm.delay(100);
+  ESP.restart();
 }
 //---------------------------------------------------------------------------
 String ExtraireSms(String msgbrut) { //Extraction du contenu du SMS
