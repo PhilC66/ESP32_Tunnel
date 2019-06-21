@@ -58,8 +58,8 @@
   parametres par defaut
 
 
-  Compilation LOLIN D32,default,80MHz
-  984682 75%, 47552 14%
+  Compilation LOLIN D32,default,80MHz, Arduino IDE 1.8.8
+  984726 75%, 47552 14%
 
 */
 
@@ -1546,6 +1546,10 @@ void generationMessage(bool n) {
   message += fl;
   if (n) {
     message += F("Fin Analyse");
+    message += fl;
+  }
+  if (Allume) {
+    message += F("Allume");
     message += fl;
   }
   if ((calendrier[month()][day()] ^ flagCircule)) {
