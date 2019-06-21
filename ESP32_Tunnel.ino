@@ -58,8 +58,10 @@
   parametres par defaut
 
 
-  Compilation LOLIN D32,default,80MHz, Arduino IDE 1.8.8
-  984726 75%, 47552 14%
+  Compilation LOLIN D32,default,80MHz,
+	Arduino IDE 1.8.8 : 984726 75%, 47552 14%
+	Arduino IDE 1.8.9 : 984726 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 979442 74%, 48172 14% sur raspi
 
 */
 
