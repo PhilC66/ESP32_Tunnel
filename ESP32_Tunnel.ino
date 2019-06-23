@@ -46,8 +46,12 @@
 	entrainant une erreur de mesure,
 	pouvant ne pas detecter une tension 24V trop basse
 	RST reset soft sans effet
+	Solution
+	reset hard liaison RS<->GPIO13
+	apres arret WIFI GPIO13 to LOW
+	apres redemarrage adc OK
 
-	il faut trouver solution
+	apres OTA relancer un RST
 
 
 	to do
@@ -59,9 +63,8 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.8 : 984726 75%, 47552 14%
-	Arduino IDE 1.8.9 : 984726 75%, 47552 14% sur PC
-	Arduino IDE 1.8.9 : 979442 74%, 48172 14% sur raspi
+	Arduino IDE 1.8.9 : 984762 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 979490 74%, 48172 14% sur raspi
 
 */
 
@@ -96,6 +99,7 @@ bool    SPIFFS_present = false;
 #define PinSirene			15   // Sortie Commande Sirene (#0 en sleep 2.3V?)
 #define RX_PIN				16   // TX Sim800
 #define TX_PIN				17   // RX Sim800
+#define PinReset			13   // Reset Hard
 #define SIMPIN				1234 // Code PIN carte SIM
 
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
@@ -114,7 +118,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V1-1";
+String	ver       = "V1-0";
 int Magique       = 4213;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= "";
@@ -339,6 +343,8 @@ void setup() {
   })
   .onEnd([]() {
     Serial.println(F("End"));
+    delay(100);
+    ResetHard();
   })
   .onProgress([](unsigned int progress, unsigned int total) {
     Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
@@ -654,7 +660,7 @@ void Acquisition() {
   }
   else if (nsms == 0 && FlagReset) { // on verifie que tous les SMS sont traités avant Reset
     FlagReset = false;
-    ESP.restart();				//	reset soft
+    ResetHard();				//	reset hard
   }
 
   envoie_alarme();
@@ -2251,7 +2257,13 @@ void WifiOff() {
   WiFi.mode(WIFI_MODE_NULL);
   btStop();
   Alarm.delay(100);
-  ESP.restart();
+  ResetHard();
+}
+//---------------------------------------------------------------------------
+void ResetHard() {
+  // GPIO13 to RS reset hard
+  pinMode(PinReset, OUTPUT);
+  digitalWrite(PinReset, LOW);
 }
 //---------------------------------------------------------------------------
 String ExtraireSms(String msgbrut) { //Extraction du contenu du SMS
