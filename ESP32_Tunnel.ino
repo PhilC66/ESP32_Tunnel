@@ -63,8 +63,8 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 984762 75%, 47552 14% sur PC
-	Arduino IDE 1.8.9 : 979490 74%, 48172 14% sur raspi
+	Arduino IDE 1.8.9 : 984854 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 979494 74%, 48172 14% sur raspi
 
 */
 
@@ -1557,7 +1557,8 @@ void generationMessage(bool n) {
     message += fl;
   }
   if (Allume) {
-    message += F("Allume");
+    message += F("Allume :");
+    message += String(Tension24);
     message += fl;
   }
   if ((calendrier[month()][day()] ^ flagCircule)) {
@@ -2174,6 +2175,7 @@ void Allumage(byte n) {
 //---------------------------------------------------------------------------
 void ConnexionWifi(char* ssid, char* pwd, char* number, bool sms) {
 
+  message = Id + displayTime(0) + fl;
   Serial.print(F("connexion Wifi:")), Serial.print(ssid), Serial.print(char(44)), Serial.println(pwd);
   String ip;
   WiFi.begin(ssid, pwd);
@@ -2190,31 +2192,30 @@ void ConnexionWifi(char* ssid, char* pwd, char* number, bool sms) {
       break;
     }
   }
-  Serial.println();
-  Serial.println(F("WiFi connected"));
-  Serial.print(F("IP address: "));
-  ip = WiFi.localIP().toString();
-  Serial.println(ip);
-  ArduinoOTA.begin();
-
-  server.on("/",         HomePage);
-  server.on("/download", File_Download);
-  server.on("/upload",   File_Upload);
-  server.on("/fupload",  HTTP_POST, []() {
-    server.send(200);
-  }, handleFileUpload);
-  server.on("/delete",   File_Delete);
-  server.on("/dir",      SPIFFS_dir);
-  server.on("/cal",      CalendarPage);
-  server.on("/timeremaining", handleTime); // renvoie temps restant sur demande
-  server.on("/datetime", handleDateTime); // renvoie Date et Heure
-  server.on("/wifioff",  WifiOff);
-  ///////////////////////////// End of Request commands
-  server.begin();
-  Serial.println(F("HTTP server started"));
-
-  message = Id + displayTime(0) + fl;
   if (!error) {
+    Serial.println();
+    Serial.println(F("WiFi connected"));
+    Serial.print(F("IP address: "));
+    ip = WiFi.localIP().toString();
+    Serial.println(ip);
+    ArduinoOTA.begin();
+
+    server.on("/",         HomePage);
+    server.on("/download", File_Download);
+    server.on("/upload",   File_Upload);
+    server.on("/fupload",  HTTP_POST, []() {
+      server.send(200);
+    }, handleFileUpload);
+    server.on("/delete",   File_Delete);
+    server.on("/dir",      SPIFFS_dir);
+    server.on("/cal",      CalendarPage);
+    server.on("/timeremaining", handleTime); // renvoie temps restant sur demande
+    server.on("/datetime", handleDateTime); // renvoie Date et Heure
+    server.on("/wifioff",  WifiOff);
+    ///////////////////////////// End of Request commands
+    server.begin();
+    Serial.println(F("HTTP server started"));
+
     message += F("Connexion Wifi : ");
     message += fl;
     message += String(ip);
