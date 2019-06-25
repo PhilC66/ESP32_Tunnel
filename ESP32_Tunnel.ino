@@ -118,8 +118,8 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V1-0";
-int Magique       = 4213;
+String	ver       = "V1-1";
+int Magique       = 1234;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= "";
 String message;
@@ -295,12 +295,12 @@ void setup() {
     config.RepeatWakeUp  = 60 * 60;
     config.Tanalyse      = 10 * 60;
     config.Intru         = true;
-    config.Silence       = false;
+    config.Silence       = true;
     config.Dsonn         = 60;
     config.DsonnMax      = 90;
     config.Dsonnrepos    = 120;
     config.tempoSortie   = 10;
-    config.timeOutS      = 60;// 3600
+    config.timeOutS      = 3600;// 3600
     config.timeoutWifi   = 10 * 60;
     config.Pedale1       = true;
     config.Pedale2       = true;
