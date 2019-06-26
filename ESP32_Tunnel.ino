@@ -63,8 +63,8 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 984854 75%, 47552 14% sur PC
-	Arduino IDE 1.8.9 : 979494 74%, 48172 14% sur raspi
+	Arduino IDE 1.8.9 : 984850 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 979490 74%, 48172 14% sur raspi
 
 */
 
@@ -159,6 +159,7 @@ int CoeffTensionDefaut = 7000;// Coefficient par defaut
 RTC_DATA_ATTR int CptAllumage  = 0; // Nombre Allumage par jour en memoire RTC
 RTC_DATA_ATTR bool WupAlarme   = false; // declenchement alarme externe
 RTC_DATA_ATTR bool flagCircule = false; // circule demandé -> inverse le calendrier, valable 1 seul jour
+RTC_DATA_ATTR bool FileLogOnce = false; // true si log > seuil alerte
 
 byte anticip = 60;						// temps anticipation du reveille au lancement s
 bool LastWupAlarme = false;   // memo etat Alarme par Wakeup
@@ -1971,10 +1972,9 @@ void MajLog(String Id, String Raison) { // mise à jour fichier log en SPIFFS
   File f = SPIFFS.open(filelog, "r");
   Serial.print(F("Taille fichier log = ")), Serial.println(f.size());
   // Serial.print(Id),Serial.print(","),Serial.println(Raison);
-  static bool once = false;
-  if (f.size() > 150000 && !once) {
+  if (f.size() > 150000 && !FileLogOnce) {
     /* si trop grand on efface */
-    once = true;
+    FileLogOnce = true;
     message = Id + displayTime(0) + fl;
     message += F("Fichier log presque plein\n");
     message += String(f.size());
@@ -1984,7 +1984,7 @@ void MajLog(String Id, String Raison) { // mise à jour fichier log en SPIFFS
     number.toCharArray(num, 13);
     EnvoyerSms(num, true);
   }
-  else if (f.size() > 300000 && once) { // 292Ko 75000 lignes
+  else if (f.size() > 300000 && FileLogOnce) { // 292Ko 75000 lignes
     message = Id + displayTime(0) + fl;
     message += F("Fichier log plein\n");
     message += String(f.size());
@@ -1994,7 +1994,7 @@ void MajLog(String Id, String Raison) { // mise à jour fichier log en SPIFFS
     number.toCharArray(num, 13);
     EnvoyerSms(num, true);
     SPIFFS.remove(filelog);
-    once = false;
+    FileLogOnce = false;
   }
   f.close();
   /* preparation de la ligne */
