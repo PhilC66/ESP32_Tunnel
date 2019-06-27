@@ -63,8 +63,8 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 984850 75%, 47552 14% sur PC
-	Arduino IDE 1.8.9 : 979490 74%, 48172 14% sur raspi
+	Arduino IDE 1.8.9 : 985322 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
 
@@ -732,6 +732,12 @@ void traite_sms(byte slot) {
       // textesms.trim();
     }
     textesms.replace(" ", "");// supp tous les espaces
+    if(textesms.indexOf("A") == 0 || textesms.indexOf("D") == 0){
+      String temp = Id.substring(6, 10);
+      temp.toUpperCase();
+      if(textesms.indexOf("A" + temp) == 0) textesms = F("INTRUON");
+      if(textesms.indexOf("D" + temp) == 0) textesms = F("INTRUOFF");
+    }
     Serial.print(F("textesms  = ")), Serial.println(textesms);
 
     if ((sms && nom.length() > 0) || !sms) {        // si nom appelant existant dans phone book
@@ -913,15 +919,17 @@ fin_i:
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("LOG")) == 0) {	// demande log des 5 derniers commandes
-        message = "";
+        File f = SPIFFS.open(filelog, "r");
+        message = F("size :");
+        message += String(f.size()) + fl;
+        f.close();
         for (int i = 0; i < 5; i++) {
           message += String(record[i].dt) + "," + String(record[i].Act) + "," + String(record[i].Name) + fl;
         }
         //Serial.println( message);
         EnvoyerSms(number, sms);
       }
-      else if (textesms.indexOf(F("INTRUON")) == 0
-               || textesms.indexOf(("A" + Id.substring(6, 10))) == 0) {	//	Armement Alarme
+      else if (textesms.indexOf(F("INTRUON")) == 0) {	//	Armement Alarme
         // conserver INTRUON en depannage si ID non conforme
         if (!config.Intru) {
           config.Intru = !config.Intru;
@@ -936,8 +944,7 @@ fin_i:
         generationMessage(0);
         EnvoyerSms(number, sms);
       }
-      else if (textesms.indexOf(F("INTRUOFF")) == 0
-               || textesms.indexOf(("D" + Id.substring(6, 10))) == 0) { //	Desarmement
+      else if (textesms.indexOf(F("INTRUOFF")) == 0) { //	Desarmement
         if (config.Intru) {
           config.Intru = !config.Intru;
           sauvConfig();														// sauvegarde en EEPROM
@@ -1978,7 +1985,7 @@ void MajLog(String Id, String Raison) { // mise à jour fichier log en SPIFFS
     message = Id + displayTime(0) + fl;
     message += F("Fichier log presque plein\n");
     message += String(f.size());
-    message += F("\nFichier sera efface à 300000");
+    message += F("\nFichier sera efface a 300000");
     String number = Sim800.getPhoneBookNumber(1); // envoyé au premier num seulement
     char num[13];
     number.toCharArray(num, 13);
