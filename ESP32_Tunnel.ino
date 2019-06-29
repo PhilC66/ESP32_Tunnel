@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985322 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 985294 75%, 47552 14% sur PC
 	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
@@ -305,7 +305,7 @@ void setup() {
     config.timeoutWifi   = 10 * 60;
     config.Pedale1       = true;
     config.Pedale2       = true;
-    config.Coffret         = true;
+    config.Coffret       = true;
     config.Jour_Nmax     = 3 * 60 / 10; // 3mn /10 temps de boucle Acquisition
     config.Nuit_Nmax     = 30 / 10; // 30s /10 temps de boucle Acquisition
     for (int i = 0; i < 10; i++) {// initialise liste PhoneBook liste restreinte
@@ -2366,10 +2366,10 @@ String Hdectohhmm(long Hdec) {
 void DesActiveInterrupt() {
 
   if (config.Pedale1) {
-    detachInterrupt(digitalPinToInterrupt(PinPedale1));
+    //detachInterrupt(digitalPinToInterrupt(PinPedale1));
   }
   if (config.Pedale2) {
-    detachInterrupt(digitalPinToInterrupt(PinPedale2));
+    //detachInterrupt(digitalPinToInterrupt(PinPedale2));
   }
   if (config.Coffret) {
     detachInterrupt(digitalPinToInterrupt(PinCoffret));
@@ -2385,7 +2385,7 @@ void ActiveInterrupt() {
     attachInterrupt(digitalPinToInterrupt(PinPedale2), handleInterruptP2, RISING);
   }
   if (config.Coffret) {
-    attachInterrupt(digitalPinToInterrupt(PinCoffret)  , handleInterruptPo, RISING);
+    attachInterrupt(digitalPinToInterrupt(PinCoffret), handleInterruptPo, RISING);
   }
 }
 //---------------------------------------------------------------------------
