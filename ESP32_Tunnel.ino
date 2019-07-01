@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985654 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 985662 75%, 47552 14% sur PC
 	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
@@ -140,7 +140,7 @@ bool Allume = false;
 bool FlagPIR                 = false; //
 RTC_DATA_ATTR bool FlagAlarmeTension       = false; // Alarme tension Batterie
 RTC_DATA_ATTR bool FlagLastAlarmeTension   = false;
-bool FlagMasterOff           = false; // Coupure Allumage en cas de pb
+RTC_DATA_ATTR bool FlagMasterOff           = false; // Coupure Allumage en cas de pb
 bool FlagAlarme24V           = false; // Alarme tension 24V Allumage
 bool FlagLastAlarme24V       = false;
 bool FlagAlarmeIntrusion     = false; // Alarme Defaut Cable detectée
