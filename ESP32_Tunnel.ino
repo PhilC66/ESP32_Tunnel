@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985294 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 985654 75%, 47552 14% sur PC
 	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
@@ -140,6 +140,7 @@ bool Allume = false;
 bool FlagPIR                 = false; //
 RTC_DATA_ATTR bool FlagAlarmeTension       = false; // Alarme tension Batterie
 RTC_DATA_ATTR bool FlagLastAlarmeTension   = false;
+bool FlagMasterOff           = false; // Coupure Allumage en cas de pb
 bool FlagAlarme24V           = false; // Alarme tension 24V Allumage
 bool FlagLastAlarme24V       = false;
 bool FlagAlarmeIntrusion     = false; // Alarme Defaut Cable detectée
@@ -1459,7 +1460,21 @@ fin_i:
           message += String(BattPBpct(tension));
           message += "%";
         }
-
+        message += fl;
+        EnvoyerSms(number, sms);
+      }
+      else if (textesms.indexOf(F("MASTEROFF")) == 0) {
+        FlagMasterOff = true;
+        Extinction();
+        message += F("MasterOFF actif\n");
+        message += F("Allumage Impossible");
+        message += fl;
+        EnvoyerSms(number, sms);
+      }
+      else if (textesms.indexOf(F("MASTERON")) == 0) {
+        FlagMasterOff = false;
+        message += F("MasterOFF inactif\n");
+        message += F("Allumage possible");
         message += fl;
         EnvoyerSms(number, sms);
       }
@@ -2153,7 +2168,7 @@ void Allumage(byte n) {
 
   if (!Allume) {	// si pas Allumé
     Serial.println(F("Allumage"));
-    digitalWrite(PinEclairage, HIGH);
+    if(!FlagMasterOff) digitalWrite(PinEclairage, HIGH);
     Allume = true;
     CptAllumage ++;
     if (n == 1)Al1 = 1;

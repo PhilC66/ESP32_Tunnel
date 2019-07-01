@@ -45,3 +45,5 @@ LOG                                   log des commandes Alarme seulement
 RST																		Reset du systeme
 CALIBRATION														Calibration des mesures de tension cde locale uniquement
 CALIBRATION=.X												X entrée 1 2 3 4, 1=Batterie Solaire,2=Batterie Proc,3=Tension USB,4=Tension24V
+MASTEROFF															Interdiction Allumage en cas de pb
+MASTERON                              Annule MASTEROFF
