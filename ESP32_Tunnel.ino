@@ -838,13 +838,13 @@ fin_tel:
         byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
         for (byte i = 1; i < n + 1; i++) {
           String num = Sim800.getPhoneBookNumber(i);
-          Serial.print(num.length()), Serial.print(" "), Serial.println(num);
+          // Serial.print(num.length()), Serial.print(" "), Serial.println(num);
           if (num.indexOf("+CPBR:") == 0) { // si existe pas sortir
             Serial.println(F("Failed!"));// next i
             goto fin_i;
           }
           String name = Sim800.getPhoneBookName(i);
-          Serial.println(name);
+          // Serial.println(name);
           message += String(i) + ":";
           message += num;
           message += "," + fl;
@@ -857,7 +857,7 @@ fin_tel:
           }
         }
 fin_i:
-        if (message.length() > Id.length()) EnvoyerSms(number, sms);; // SMS final
+        if (message.length() > Id.length()+20) EnvoyerSms(number, sms);; // SMS final
       }
       else if (textesms.indexOf(F("ETAT")) == 0 || textesms.indexOf(F("ST")) == 0) {// "ETAT? de l'installation"
         generationMessage(0);
