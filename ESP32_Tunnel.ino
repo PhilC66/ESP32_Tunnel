@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985662 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 985522 75%, 47552 14% sur PC
 	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
@@ -453,7 +453,7 @@ void loop() {
     IRQ_Cpt_Coffret = 0;
     portEXIT_CRITICAL(&mux);
     if (config.Intru && config.Coffret) {
-      if (digitalRead(PinCoffret) && BattPBpct(TensionBatterie) > 20) {
+      if (BattPBpct(TensionBatterie) > 20) {
         FlagAlarmeCoffret = true;
         FlagAlarmeIntrusion = true;
         FlagPIR = true;
