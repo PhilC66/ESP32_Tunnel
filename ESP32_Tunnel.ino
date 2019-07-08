@@ -1575,44 +1575,6 @@ void generationMessage(bool n) {
     message += F("-------OK-------");
   }
   message += fl;
-  if (n) {
-    message += F("Fin Analyse");
-    message += fl;
-  }
-  if (Allume) {
-    message += F("Allume :");
-    message += String(Tension24);
-    message += fl;
-  }
-  if ((calendrier[month()][day()] ^ flagCircule)) {
-    message += F("Jour Circule");
-  }
-  else {
-    message += F("Jour Non Circule");
-  }
-  message += fl;
-  message += F("Batterie : ");
-  if (!FlagAlarmeTension) {
-    message += F("OK, ");
-    message += String(BattPBpct(TensionBatterie));
-    message += "%" + fl;
-  }
-  else {
-    message += F("Alarme, ");
-    message += String(BattPBpct(TensionBatterie));
-    message += "%";
-    message += fl;
-    message += F("V USB =");
-    message += String(float(VUSB / 1000.0)) + fl;
-  }
-  if (FlagAlarme24V) {
-    message += F("Alarme 24V = ");
-    message += String(float(Tension24 / 1000.0)) + "V" + fl;
-  }
-  message += F("Nbr Allumage = ");
-  message += String(CptAllumage);
-  message += fl ;
-
   if (config.Intru && FlagAlarmeIntrusion) {
     message += F("-- Alarme !--") ;
     message += fl;
@@ -1662,6 +1624,43 @@ void generationMessage(bool n) {
   else
   {
     message += F("Alarme Silencieuse OFF");
+    message += fl;
+  }
+  message += F("Batterie : ");
+  if (!FlagAlarmeTension) {
+    message += F("OK, ");
+    message += String(BattPBpct(TensionBatterie));
+    message += "%" + fl;
+  }
+  else {
+    message += F("Alarme, ");
+    message += String(BattPBpct(TensionBatterie));
+    message += "%";
+    message += fl;
+    message += F("V USB =");
+    message += String(float(VUSB / 1000.0)) + fl;
+  }
+  if (FlagAlarme24V) {
+    message += F("Alarme 24V = ");
+    message += String(float(Tension24 / 1000.0)) + "V" + fl;
+  }
+  if (Allume) {
+    message += F("Allume :");
+    message += String(Tension24);
+    message += fl;
+  }
+  if ((calendrier[month()][day()] ^ flagCircule)) {
+    message += F("Jour Circule");
+  }
+  else {
+    message += F("Jour Non Circule");
+  }
+  message += fl;
+  message += F("Nbr Allumage = ");
+  message += String(CptAllumage);
+  message += fl ;
+  if (n) {
+    message += F("Fin Analyse");
     message += fl;
   }
   // Serial.println(message);
@@ -2712,8 +2711,8 @@ void read_adc(int pin1, int pin2, int pin3, int pin4) {
 }
 //--------------------------------------------------------------------------------//
 void messageId(){
-	message = Id;
-  displayTime(0);
+  message  = Id;
+  message += displayTime(0);
   message += fl;
 }
 //---------------------------------------------------------------------------
