@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985522 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 985330 75%, 47552 14% sur PC
 	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
@@ -2230,6 +2230,7 @@ void ConnexionWifi(char* ssid, char* pwd, char* number, bool sms) {
     server.on("/delete",   File_Delete);
     server.on("/dir",      SPIFFS_dir);
     server.on("/cal",      CalendarPage);
+    server.on("/Tel_list", Tel_listPage);
     server.on("/timeremaining", handleTime); // renvoie temps restant sur demande
     server.on("/datetime", handleDateTime); // renvoie Date et Heure
     server.on("/wifioff",  WifiOff);
@@ -2842,8 +2843,43 @@ void HomePage() {
   webpage += F("<a href='/upload'><button>Upload</button></a>");
   webpage += F("<a href='/delete'><button>Delete</button></a>");
   webpage += F("<a href='/dir'><button>Directory</button></a>");
+  webpage += F("<a href='/Tel_list'><button>Tel_list</button></a>");
   webpage += F("<a href='/cal'><button>Calendar</button></a>");
   webpage += F("<a href='/wifioff'><button>Wifi Off</button></a>");
+  append_page_footer();
+  SendHTML_Content();
+  SendHTML_Stop(); // Stop is needed because no content length was sent
+}
+//---------------------------------------------------------------------------
+void Tel_listPage() {
+  SendHTML_Header();
+  webpage += F("<h3 class='rcorners_m'>Liste des num&eacute;ros t&eacute;l&eacute;phone</h3><br>");
+  webpage += F("<table align='center'>");
+  webpage += F("<tr>");
+  webpage += F("<th> Nom </th>");
+  webpage += F("<th> Num&eacute;ro </th>");
+  webpage += F("<th> Liste restreinte </th>");
+  webpage += F("</tr>");
+  byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
+  for (byte i = 1; i < n + 1; i++) {
+    String num = Sim800.getPhoneBookNumber(i);
+    // Serial.print(num.length()), Serial.print(" "), Serial.println(num);
+    if (num.indexOf("+CPBR:") == 0) { // si existe pas sortir
+      Serial.println(F("Failed!"));// next i
+      goto fin_liste;
+    }
+    String name = Sim800.getPhoneBookName(i);
+    // Serial.println(name);
+    webpage += F("<tr>");
+    webpage += F("<td>"); webpage += name; webpage += F("</td>");
+    webpage += F("<td>"); webpage += num ; webpage += F("</td>");
+    webpage += F("<td>"); webpage += String(config.Pos_Pn_PB[i]); webpage += F("</td>");
+    webpage += F("</tr>");
+  }
+  fin_liste:
+
+  
+  webpage += F("</table><br>");
   append_page_footer();
   SendHTML_Content();
   SendHTML_Stop(); // Stop is needed because no content length was sent
