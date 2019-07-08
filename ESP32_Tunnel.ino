@@ -743,7 +743,7 @@ void traite_sms(byte slot) {
 
     if ((sms && nom.length() > 0) || !sms) {        // si nom appelant existant dans phone book
       numero.toCharArray(number, numero.length() + 1); // on recupere le numéro
-      message = Id + displayTime(0) + fl;
+      messageId();
       if (textesms.indexOf(F("TIMEOUTWIFI")) > -1) { // Parametre Arret Wifi
         if (textesms.substring(11, 12) == "=") {
           int n = textesms.substring(12, textesms.length()).toInt();
@@ -816,7 +816,7 @@ void traite_sms(byte slot) {
 fin_tel:
         if (!FlagOK) { // erreur de format
           //Serial.println(F("false"));
-          message = Id + displayTime(0) + fl;
+          messageId();
           message += F("Commande non reconnue ?");// non reconnu
           message += fl;
           EnvoyerSms(number, sms);					// SMS non reconnu
@@ -827,7 +827,7 @@ fin_tel:
           Alarm.delay(500);
           Sim800.ModeText(); //pour purger buffer fona
           Alarm.delay(500);
-          message = Id + displayTime(0) + fl;
+          messageId();
           message += F("Nouveau Num Tel: ");
           message += F("OK");
           message += fl;
@@ -853,7 +853,7 @@ fin_tel:
           Serial.println(message);
           if ((i % 3) == 0) {
             EnvoyerSms(number, sms);
-            message = Id + displayTime(0) + fl;
+            messageId();
           }
         }
 fin_i:
@@ -914,7 +914,7 @@ fin_i:
           Id = String(config.Idchar);
           Id += fl;
         }
-        message = Id + displayTime(0) + fl;
+        messageId();
         message += F("Nouvel Id");
         message += fl;
         EnvoyerSms(number, sms);
@@ -1567,7 +1567,7 @@ void envoieGroupeSMS(byte grp, bool m) {
 void generationMessage(bool n) {
   // n = 0 message normal
   // n = 1 message fin analyse
-  message = Id + displayTime(0) + fl;
+  messageId();
   if (FlagAlarmeTension || FlagLastAlarmeTension || FlagAlarmeIntrusion || FlagAlarme24V) {
     message += F("--KO--------KO--");
   }
@@ -1997,7 +1997,7 @@ void MajLog(String Id, String Raison) { // mise à jour fichier log en SPIFFS
   if (f.size() > 150000 && !FileLogOnce) {
     /* si trop grand on efface */
     FileLogOnce = true;
-    message = Id + displayTime(0) + fl;
+    messageId();
     message += F("Fichier log presque plein\n");
     message += String(f.size());
     message += F("\nFichier sera efface a 300000");
@@ -2007,7 +2007,7 @@ void MajLog(String Id, String Raison) { // mise à jour fichier log en SPIFFS
     EnvoyerSms(num, true);
   }
   else if (f.size() > 300000 && FileLogOnce) { // 292Ko 75000 lignes
-    message = Id + displayTime(0) + fl;
+    messageId();
     message += F("Fichier log plein\n");
     message += String(f.size());
     message += F("\nFichier efface");
@@ -2197,7 +2197,7 @@ void Allumage(byte n) {
 //---------------------------------------------------------------------------
 void ConnexionWifi(char* ssid, char* pwd, char* number, bool sms) {
 
-  message = Id + displayTime(0) + fl;
+  messageId();
   Serial.print(F("connexion Wifi:")), Serial.print(ssid), Serial.print(char(44)), Serial.println(pwd);
   String ip;
   WiFi.begin(ssid, pwd);
@@ -2709,6 +2709,12 @@ void read_adc(int pin1, int pin2, int pin3, int pin4) {
   if (plus_ancien == nSample) { //gestion du buffer circulaire
     plus_ancien = 0;
   }
+}
+//--------------------------------------------------------------------------------//
+void messageId(){
+	message = Id;
+  displayTime(0);
+  message += fl;
 }
 //---------------------------------------------------------------------------
 void HomePage() {
