@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985330 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 985358 75%, 47552 14% sur PC
 	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
@@ -316,6 +316,7 @@ void setup() {
     String temp          = "TPCF_Canal";// TPCF_TCnls
     temp.toCharArray(config.Idchar, 11);
     EEPROM.put(confign, config);
+    EEPROM.commit();
     // valeur par defaut des record (log)
     for (int i = 0; i < 5 ; i++) {
       temp = "";
@@ -324,6 +325,7 @@ void setup() {
       temp.toCharArray(record[i].Name, 15);
     }
     EEPROM.put(recordn, record);// ecriture des valeurs par defaut
+    EEPROM.commit();
   }
   EEPROM.end();
   PrintEEPROM();
@@ -1855,6 +1857,7 @@ void SignalVie() {
 void sauvConfig() { // sauve configuration en EEPROM
   EEPROM.begin(512);
   EEPROM.put(confign, config);
+  EEPROM.commit();
   EEPROM.end();
 }
 //---------------------------------------------------------------------------
@@ -1905,6 +1908,7 @@ void logRecord(String nom, String action) { // renseigne log et enregistre EEPRO
   // int longueur = EEPROM_writeAnything(recordn, record);// enregistre en EEPROM
   EEPROM.begin(512);
   EEPROM.put(recordn, record);// ecriture des valeurs par defaut
+  EEPROM.commit();
   EEPROM.end();
   if (index < 4) {
     index ++;
