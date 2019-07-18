@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985358 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 985602 75%, 47552 14% sur PC
 	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
@@ -121,7 +121,7 @@ const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1";
 int Magique       = 1234;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
-String Sbidon 		= "";
+String Sbidon 		= ""; // String texte temporaire
 String message;
 String bufferrcpt;
 String fl = "\n";                   //  saut de ligne SMS
@@ -162,7 +162,7 @@ RTC_DATA_ATTR bool WupAlarme   = false; // declenchement alarme externe
 RTC_DATA_ATTR bool flagCircule = false; // circule demandé -> inverse le calendrier, valable 1 seul jour
 RTC_DATA_ATTR bool FileLogOnce = false; // true si log > seuil alerte
 
-byte anticip = 60;						// temps anticipation du reveille au lancement s
+byte anticip = 120;						// temps anticipation du reveille au lancement s
 bool LastWupAlarme = false;   // memo etat Alarme par Wakeup
 
 int    slot = 0;              //this will be the slot number of the SMS
@@ -2551,14 +2551,20 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
       if ((calendrier[month()][day()] ^ flagCircule) && jour) { // jour circulé
         /*  ne rien faire  */
         Nmax = config.Jour_Nmax; // parametre jour
-        Serial.println(F("Jour circule ou demande circulation"));
+        Sbidon = F("Jour circule ou demande circulation");
+        Serial.println(Sbidon);
+        MajLog(F("Auto"),Sbidon);
       }
       else { //if ((calendrier[month()][day()] == 0 || !Circule)) { // non circulé
-        Serial.println(F("Jour noncircule"));
+        Sbidon = F("Jour noncircule");
+        Serial.println(Sbidon);
+        MajLog(F("Auto"),Sbidon);
         Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
         if (TIME_TO_SLEEP <= anticip) { // on continue sans sleep
-          Serial.println(F("on continue sans sleep"));
+          Sbidon = F("on continue sans sleep");
+          Serial.println(Sbidon);
+          MajLog(F("Auto"),Sbidon);
         }
         else {
           DebutSleep();
