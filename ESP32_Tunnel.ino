@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985602 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 985750 75%, 47552 14% sur PC
 	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
@@ -162,7 +162,7 @@ RTC_DATA_ATTR bool WupAlarme   = false; // declenchement alarme externe
 RTC_DATA_ATTR bool flagCircule = false; // circule demandé -> inverse le calendrier, valable 1 seul jour
 RTC_DATA_ATTR bool FileLogOnce = false; // true si log > seuil alerte
 
-byte anticip = 120;						// temps anticipation du reveille au lancement s
+byte anticip = 60;						// temps anticipation du reveille au lancement s
 bool LastWupAlarme = false;   // memo etat Alarme par Wakeup
 
 int    slot = 0;              //this will be the slot number of the SMS
@@ -1644,11 +1644,17 @@ void generationMessage(bool n) {
   }
   if (FlagAlarme24V) {
     message += F("Alarme 24V = ");
-    message += String(float(Tension24 / 1000.0)) + "V" + fl;
+    message += String(float(Tension24 / 100.0)) + "V" + fl;
   }
   if (Allume) {
-    message += F("Allume :");
-    message += String(Tension24);
+    for(int i=0; i<5 ; i++){
+      read_adc(PinBattSol, PinBattProc, PinBattUSB, Pin24V);
+      Alarm.delay(1);
+    }
+    char bid[8];
+    sprintf(bid, "%.2lf V", float(Tension24)/100);
+    message += F("Allume : ");
+    message += String(bid);
     message += fl;
   }
   if ((calendrier[month()][day()] ^ flagCircule)) {
