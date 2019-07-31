@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985750 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 985666 75%, 47544 14% sur PC
 	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
@@ -212,7 +212,7 @@ config_t config;
 
 
 AlarmId loopPrincipale;	// boucle principale
-AlarmId Svie;						// tempo Signal de Vie et MajHeure
+// AlarmId Svie;						// tempo Signal de Vie et MajHeure
 AlarmId TempoAnalyse;		// tempo analyse alarme suite Interruption
 AlarmId TempoSortie;		// Temporisation eclairage a la sortie
 AlarmId TimeOut;				// TimeOut Allumage
@@ -389,8 +389,8 @@ void setup() {
   TimeOut = Alarm.timerRepeat(config.timeOutS, Extinction); // tempo time out extinction
   Alarm.disable(TimeOut);
 
-  Svie = Alarm.alarmRepeat(config.DebutJour, SignalVie); // chaque jour
-  Alarm.enable(Svie);
+  // Svie = Alarm.alarmRepeat(config.DebutJour, SignalVie); // chaque jour
+  // Alarm.enable(Svie);
 
   FinJour = Alarm.alarmRepeat(config.FinJour, FinJournee); // Fin de journée retour deep sleep
   Alarm.enable(FinJour);
@@ -1117,7 +1117,7 @@ fin_i:
           if (i > 0 && i <= 86340) {                    //	ok si entre 0 et 86340(23h59)
             config.DebutJour = i;
             sauvConfig();                               // sauvegarde en EEPROM
-            Svie = Alarm.alarmRepeat(config.DebutJour, SignalVie);// init tempo
+            // Svie = Alarm.alarmRepeat(config.DebutJour, SignalVie);// init tempo
           }
         }
         message += F("Debut Journee = ");
@@ -1482,7 +1482,7 @@ fin_i:
       }
       else if (textesms.indexOf(F("ALLUME")) == 0) {
         if (!Allume) {
-          Allumage(1);
+          Allumage(10);
           message += F("Allumage");
         }
         else {
@@ -1755,7 +1755,7 @@ void MajHeure(String smsdate) {
       Alarm.disable(TempoAnalyse);
       Alarm.disable(TempoSortie);
       Alarm.disable(TimeOut);
-      Alarm.disable(Svie);
+      // Alarm.disable(Svie);
       Alarm.disable(FinJour);
       Alarm.disable(TSonnRepos);
 
@@ -1765,7 +1765,7 @@ void MajHeure(String smsdate) {
       Alarm.enable(TempoAnalyse);
       Alarm.enable(TempoSortie);
       Alarm.enable(TimeOut);
-      Alarm.enable(Svie);
+      // Alarm.enable(Svie);
       Alarm.enable(FinJour);
     }
   }
@@ -2150,56 +2150,58 @@ void Extinction() {
 //---------------------------------------------------------------------------
 void Allumage(byte n) {
   /*
-  	n=0 extinction auto
-  	n=1 Commande depuis pedale 1
-  	n=2 Commande depuis pedale 2
+  	n=0  extinction auto
+  	n=1  Commande depuis pedale 1
+  	n=2  Commande depuis pedale 2
+    n=10 Commande allumage forcé
   */
+  if(jour || n == 10) {
+    static byte Al1 = 0;
+    static byte Al2 = 0;
+    byte Cd1 = 0;
+    byte Cd2 = 0;
+    switch (n) {
+      case 0:
+        Al1 = 0;
+        Al2 = 0;
+        break;
+      case 1:
+        Cd1 = 1;
+        break;
+      case 2:
+        Cd2 = 1;
+        break;
+    }
 
-  static byte Al1 = 0;
-  static byte Al2 = 0;
-  byte Cd1 = 0;
-  byte Cd2 = 0;
-  switch (n) {
-    case 0:
-      Al1 = 0;
-      Al2 = 0;
-      break;
-    case 1:
-      Cd1 = 1;
-      break;
-    case 2:
-      Cd2 = 1;
-      break;
-  }
+    // Serial.print(F("Sub Allumage avec n = ")),Serial.print(n);
+    // Serial.print(F(" Al1,Al2 = ")),Serial.print(Al1),Serial.print(char(44)),Serial.println(Al2);
 
-  // Serial.print(F("Sub Allumage avec n = ")),Serial.print(n);
-  // Serial.print(F(" Al1,Al2 = ")),Serial.print(Al1),Serial.print(char(44)),Serial.println(Al2);
-
-  if (!Allume) {	// si pas Allumé
-    Serial.println(F("Allumage"));
-    if(!FlagMasterOff) digitalWrite(PinEclairage, HIGH);
-    Allume = true;
-    CptAllumage ++;
-    if (n == 1)Al1 = 1;
-    if (n == 2)Al2 = 1;
-    Alarm.enable(TimeOut);
-    Sbidon  = F("Allumage ");
-    Sbidon += n;
-    MajLog(F("Auto"), Sbidon);
-  }
-  else {	// si Allumé
-    if (n == 0) {
-      digitalWrite(PinEclairage, LOW);
-      Allume = false;
-      Sbidon  = F("Extinction ");
+    if (!Allume) {	// si pas Allumé
+      Serial.println(F("Allumage"));
+      if(!FlagMasterOff) digitalWrite(PinEclairage, HIGH);
+      Allume = true;
+      CptAllumage ++;
+      if (n == 1)Al1 = 1;
+      if (n == 2)Al2 = 1;
+      Alarm.enable(TimeOut);
+      Sbidon  = F("Allumage ");
       Sbidon += n;
       MajLog(F("Auto"), Sbidon);
     }
-    else if (Al1 == Cd2 || Al2 == Cd1) {
-      Serial.print(F("Extinction dans (s) ")), Serial.println(config.tempoSortie);
-      Alarm.disable(TempoSortie);
-      Alarm.enable(TempoSortie);
-      Serial.print(F("Nombre Allumage = ")), Serial.println(CptAllumage);
+    else {	// si Allumé
+      if (n == 0) {
+        digitalWrite(PinEclairage, LOW);
+        Allume = false;
+        Sbidon  = F("Extinction ");
+        Sbidon += n;
+        MajLog(F("Auto"), Sbidon);
+      }
+      else if (Al1 == Cd2 || Al2 == Cd1) {
+        Serial.print(F("Extinction dans (s) ")), Serial.println(config.tempoSortie);
+        Alarm.disable(TempoSortie);
+        Alarm.enable(TempoSortie);
+        Serial.print(F("Nombre Allumage = ")), Serial.println(CptAllumage);
+      }
     }
   }
 }
@@ -2555,7 +2557,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
       /* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00
         verifier si wake up arrive avant fin journée marge 1mn*/
       if ((calendrier[month()][day()] ^ flagCircule) && jour) { // jour circulé
-        /*  ne rien faire  */
+        SignalVie();
         Nmax = config.Jour_Nmax; // parametre jour
         Sbidon = F("Jour circule ou demande circulation");
         Serial.println(Sbidon);
