@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985666 75%, 47544 14% sur PC
+	Arduino IDE 1.8.9 : 985650 75%, 47544 14% sur PC
 	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
@@ -118,7 +118,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V1-1";
+String	ver       = "V1-1.2";
 int Magique       = 1234;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
@@ -141,6 +141,7 @@ bool FlagPIR                 = false; //
 RTC_DATA_ATTR bool FlagAlarmeTension       = false; // Alarme tension Batterie
 RTC_DATA_ATTR bool FlagLastAlarmeTension   = false;
 RTC_DATA_ATTR bool FlagMasterOff           = false; // Coupure Allumage en cas de pb
+RTC_DATA_ATTR bool firstWakeup             = true;  // envoie premier message vie une seule fois
 bool FlagAlarme24V           = false; // Alarme tension 24V Allumage
 bool FlagLastAlarme24V       = false;
 bool FlagAlarmeIntrusion     = false; // Alarme Defaut Cable detectée
@@ -162,7 +163,7 @@ RTC_DATA_ATTR bool WupAlarme   = false; // declenchement alarme externe
 RTC_DATA_ATTR bool flagCircule = false; // circule demandé -> inverse le calendrier, valable 1 seul jour
 RTC_DATA_ATTR bool FileLogOnce = false; // true si log > seuil alerte
 
-byte anticip = 60;						// temps anticipation du reveille au lancement s
+byte anticip = 90;						// temps anticipation du reveille au lancement s
 bool LastWupAlarme = false;   // memo etat Alarme par Wakeup
 
 int    slot = 0;              //this will be the slot number of the SMS
@@ -212,7 +213,6 @@ config_t config;
 
 
 AlarmId loopPrincipale;	// boucle principale
-// AlarmId Svie;						// tempo Signal de Vie et MajHeure
 AlarmId TempoAnalyse;		// tempo analyse alarme suite Interruption
 AlarmId TempoSortie;		// Temporisation eclairage a la sortie
 AlarmId TimeOut;				// TimeOut Allumage
@@ -388,9 +388,6 @@ void setup() {
 
   TimeOut = Alarm.timerRepeat(config.timeOutS, Extinction); // tempo time out extinction
   Alarm.disable(TimeOut);
-
-  // Svie = Alarm.alarmRepeat(config.DebutJour, SignalVie); // chaque jour
-  // Alarm.enable(Svie);
 
   FinJour = Alarm.alarmRepeat(config.FinJour, FinJournee); // Fin de journée retour deep sleep
   Alarm.enable(FinJour);
@@ -672,6 +669,8 @@ void Acquisition() {
   digitalWrite(LED_PIN, 0);
   Alarm.delay(50);
   digitalWrite(LED_PIN, 1);
+
+  AIntru_HeureActuelle();
 
   Serial.println();
 }
@@ -1117,7 +1116,7 @@ fin_i:
           if (i > 0 && i <= 86340) {                    //	ok si entre 0 et 86340(23h59)
             config.DebutJour = i;
             sauvConfig();                               // sauvegarde en EEPROM
-            // Svie = Alarm.alarmRepeat(config.DebutJour, SignalVie);// init tempo
+            AIntru_HeureActuelle();
           }
         }
         message += F("Debut Journee = ");
@@ -1755,7 +1754,6 @@ void MajHeure(String smsdate) {
       Alarm.disable(TempoAnalyse);
       Alarm.disable(TempoSortie);
       Alarm.disable(TimeOut);
-      // Alarm.disable(Svie);
       Alarm.disable(FinJour);
       Alarm.disable(TSonnRepos);
 
@@ -1765,7 +1763,6 @@ void MajHeure(String smsdate) {
       Alarm.enable(TempoAnalyse);
       Alarm.enable(TempoSortie);
       Alarm.enable(TimeOut);
-      // Alarm.enable(Svie);
       Alarm.enable(FinJour);
     }
   }
@@ -2444,13 +2441,13 @@ void AIntru_HeureActuelle() {
 void IntruF() { // Charge parametre Alarme Intrusion Jour
   Nmax = config.Jour_Nmax;
   jour = true;
-  Serial.println(F("Jour"));
+  // Serial.println(F("Jour"));
 }
 //---------------------------------------------------------------------------
 void IntruD() { // Charge parametre Alarme Intrusion Nuit
   Nmax = config.Nuit_Nmax;
   jour = false;
-  Serial.println(F("Nuit"));
+  // Serial.println(F("Nuit"));
 }
 //---------------------------------------------------------------------------
 void DebutSleep() {
@@ -2543,7 +2540,6 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
       	si nuit ou jour noncirculé
       	on reste en fonctionnement pendant TempoAnalyse
       	avant retour deep sleep*/
-      // if(!jour ||(jour && calendrier[month()][day()] == 0 && !Circule)){
       WupAlarme = true;
       LastWupAlarme = true;
       Alarm.enable(TempoAnalyse); // debut tempo analyse ->fonctionnement normal
@@ -2556,18 +2552,21 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
     case 4: // SP_SLEEP_WAKEUP_TIMER
       /* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00
         verifier si wake up arrive avant fin journée marge 1mn*/
-      if ((calendrier[month()][day()] ^ flagCircule) && jour) { // jour circulé
+      if(firstWakeup){
         SignalVie();
-        Nmax = config.Jour_Nmax; // parametre jour
+        firstWakeup = false;
+      }
+      if ((calendrier[month()][day()] ^ flagCircule) ) { // jour circulé (&& jour)
+        // Nmax = config.Jour_Nmax; // parametre jour
         Sbidon = F("Jour circule ou demande circulation");
         Serial.println(Sbidon);
         MajLog(F("Auto"),Sbidon);
       }
-      else { //if ((calendrier[month()][day()] == 0 || !Circule)) { // non circulé
+      else { // non circulé
         Sbidon = F("Jour noncircule");
         Serial.println(Sbidon);
         MajLog(F("Auto"),Sbidon);
-        Nmax = config.Nuit_Nmax; // parametre nuit
+        // Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
         if (TIME_TO_SLEEP <= anticip) { // on continue sans sleep
           Sbidon = F("on continue sans sleep");
