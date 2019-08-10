@@ -63,8 +63,8 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985554 75%, 47544 14% sur PC
-	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
+	Arduino IDE 1.8.9 : 986034 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 980450 74%, 48172 14% sur raspi
 
 */
 
@@ -118,8 +118,8 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V1-1.2";
-int Magique       = 1234;
+String	ver       = "V1-1.3";
+int Magique       = 1235;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
 String message;
@@ -163,7 +163,6 @@ RTC_DATA_ATTR bool WupAlarme   = false; // declenchement alarme externe
 RTC_DATA_ATTR bool flagCircule = false; // circule demandé -> inverse le calendrier, valable 1 seul jour
 RTC_DATA_ATTR bool FileLogOnce = false; // true si log > seuil alerte
 
-byte anticip = 90;						// temps anticipation du reveille au lancement s
 bool LastWupAlarme = false;   // memo etat Alarme par Wakeup
 
 int    slot = 0;              //this will be the slot number of the SMS
@@ -188,6 +187,7 @@ byte recordn = 100;							// Num enregistrement EEPROM
 
 struct  config_t 								// Structure configuration sauvée en EEPROM
 {
+  int     anticip     ;         // temps anticipation du reveille au lancement s
   int 		magic				;					// num magique
   long    DebutJour 	;					// Heure message Vie, 7h matin en seconde = 7*60*60
   long    FinJour 		;					// Heure fin jour, 20h matin en seconde = 20*60*60
@@ -292,6 +292,7 @@ void setup() {
     */
     Serial.println(F("Nouvelle Configuration !"));
     config.magic         = Magique;
+    config.anticip       = 90;
     config.DebutJour     = 7 * 60 * 60;
     config.FinJour       = 20 * 60 * 60;
     config.RepeatWakeUp  = 60 * 60;
@@ -746,7 +747,7 @@ void traite_sms(byte slot) {
       numero.toCharArray(number, numero.length() + 1); // on recupere le numéro
       messageId();
       if (textesms.indexOf(F("TIMEOUTWIFI")) > -1) { // Parametre Arret Wifi
-        if (textesms.substring(11, 12) == "=") {
+        if (textesms.indexOf(char(61)) == 11) {
           int n = textesms.substring(12, textesms.length()).toInt();
           if (n > 9 && n < 3601) {
             config.timeoutWifi = n;
@@ -987,8 +988,21 @@ fin_i:
         generationMessage(0);
         EnvoyerSms(number, sms);
       }
+      else if (textesms.indexOf(F("ANTICIP")) > -1) { // Anticipation du wakeup
+        if (textesms.indexOf(char(61)) == 7) {
+          int n = textesms.substring(8, textesms.length()).toInt();
+          if (n > 9 && n < 601) {
+            config.anticip = n;
+            sauvConfig();														// sauvegarde en EEPROM
+          }
+        }
+        message += F("Anticipation WakeUp (s) = ");
+        message += config.anticip;
+        message += fl;
+        EnvoyerSms(number, sms);
+      }
       else if (textesms.indexOf(F("PARAM")) == 0) { // parametre Jour/Nuit
-        if (textesms.indexOf(char(61)) == 5) { //char(61) "="	liste capteur actif
+        if (textesms.indexOf(char(61)) == 5) { //char(61) "="
           Sbidon = textesms.substring(6, textesms.length());
           byte pos = Sbidon.indexOf(char(44)); // char(44) ","
           Serial.print(Sbidon), Serial.print(":"), Serial.println(pos);
@@ -2100,7 +2114,7 @@ void FinJournee() {
   jour = false;
   flagCircule = false;
   Serial.println(F("Fin de journee retour sleep"));
-  TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);// 1.5mn avant
+  TIME_TO_SLEEP = DureeSleep(config.DebutJour - config.anticip);// 1.5mn avant
   Sbidon  = F("FinJour ");
   Sbidon += Hdectohhmm(TIME_TO_SLEEP);
   MajLog(F("Auto"), Sbidon);
@@ -2111,22 +2125,23 @@ void FinJournee() {
 }
 //---------------------------------------------------------------------------
 void PrintEEPROM() {
-  Serial.print(F("Version = "))									, Serial.println(ver);
-  Serial.print(F("ID = "))											, Serial.println(config.Idchar);
-  Serial.print(F("magic = "))										, Serial.println(config.magic);
-  Serial.print(F("Alarme = "))									, Serial.println(config.Intru);
-  Serial.print(F("Debut Jour = "))							, Serial.println(config.DebutJour);
-  Serial.print(F("Fin jour = "))								, Serial.println(config.FinJour);
+  Serial.print(F("Version = "))                 , Serial.println(ver);
+  Serial.print(F("ID = "))                      , Serial.println(config.Idchar);
+  Serial.print(F("magic = "))                   , Serial.println(config.magic);
+  Serial.print(F("Alarme = "))                  , Serial.println(config.Intru);
+  Serial.print(F("Debut Jour = "))              , Serial.println(config.DebutJour);
+  Serial.print(F("Fin jour = "))                , Serial.println(config.FinJour);
+  Serial.print(F("T anticipation Wakeup = "))   , Serial.println(config.anticip);
   Serial.print(F("Tempo repetition Wake up (s)= ")), Serial.println(config.RepeatWakeUp);
   Serial.print(F("Tempo Analyse apres Wake up (s)= ")) , Serial.println(config.Tanalyse);
   Serial.print(F("TimeOut Alarme Jour (s)= "))  , Serial.println(config.Jour_Nmax * 10);
-  Serial.print(F("TimeOut Alarme Nuit (s)= "))	, Serial.println(config.Nuit_Nmax * 10);
-  Serial.print(F("Tempo Sortie (s)= "))				  , Serial.println(config.tempoSortie);
+  Serial.print(F("TimeOut Alarme Nuit (s)= "))  , Serial.println(config.Nuit_Nmax * 10);
+  Serial.print(F("Tempo Sortie (s)= "))         , Serial.println(config.tempoSortie);
   Serial.print(F("Time Out Eclairage (s)= "))   , Serial.println(config.timeOutS);
-  Serial.print(F("Time Out Wifi (s)= "))				, Serial.println(config.timeoutWifi);
-  Serial.print(F("Alarme sur Pedale 1 = ")) 	  , Serial.println(config.Pedale1);
-  Serial.print(F("Alarme sur Pedale 2 = ")) 	  , Serial.println(config.Pedale2);
-  Serial.print(F("Alarme sur Coffret = ")) 	      , Serial.println(config.Coffret);
+  Serial.print(F("Time Out Wifi (s)= "))        , Serial.println(config.timeoutWifi);
+  Serial.print(F("Alarme sur Pedale 1 = "))     , Serial.println(config.Pedale1);
+  Serial.print(F("Alarme sur Pedale 2 = "))     , Serial.println(config.Pedale2);
+  Serial.print(F("Alarme sur Coffret = "))      , Serial.println(config.Coffret);
   Serial.print(F("Liste Restreinte = "));
   for (int i = 1; i < 10; i++) {
     Serial.print(config.Pos_Pn_PB[i]);
@@ -2568,7 +2583,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
         MajLog(F("Auto"), Sbidon);
         // Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
-        if (TIME_TO_SLEEP <= anticip) { // on continue sans sleep
+        if (TIME_TO_SLEEP <= config.anticip) { // on continue sans sleep
           Sbidon = F("on continue sans sleep");
           Serial.println(Sbidon);
           MajLog(F("Auto"), Sbidon);
@@ -2590,24 +2605,24 @@ void calculTimeSleep() {
   AIntru_HeureActuelle(); // determine si jour/nuit
 
   if (jour && (HActuelledec() + config.RepeatWakeUp) > config.FinJour) {
-    if (HActuelledec() > (config.FinJour - anticip)) {
+    if (HActuelledec() > (config.FinJour - config.anticip)) {
       /* eviter de reporter 24H si on est à moins de anticip de FinJour */
       TIME_TO_SLEEP = 1; // si 1 pas de sleep
     }
     else {
-      TIME_TO_SLEEP = DureeSleep(config.FinJour - anticip);
+      TIME_TO_SLEEP = DureeSleep(config.FinJour - config.anticip);
       Serial.print(F("time sleep calcul 1 : ")), print_uint64_t(TIME_TO_SLEEP);
       Serial.println("");
     }
   }
   else if (!jour) {
-    if (HActuelledec() < (config.DebutJour - anticip)) {
-      TIME_TO_SLEEP = DureeSleep(config.DebutJour - anticip);
+    if (HActuelledec() < (config.DebutJour - config.anticip)) {
+      TIME_TO_SLEEP = DureeSleep(config.DebutJour - config.anticip);
       Serial.print(F("time sleep calcul 2 : ")), print_uint64_t(TIME_TO_SLEEP);
       Serial.println("");
     }
     else if (HActuelledec() < 86400) {
-      TIME_TO_SLEEP = (86400 - HActuelledec()) + config.DebutJour - anticip;
+      TIME_TO_SLEEP = (86400 - HActuelledec()) + config.DebutJour - config.anticip;
       Serial.print(F("time sleep calcul 2bis : ")), print_uint64_t(TIME_TO_SLEEP);
       Serial.println("");
     }
@@ -2751,6 +2766,11 @@ void HomePage() {
   webpage += F("<tr>");
   webpage += F("<td>Debut Jour</td>");
   webpage += F("<td>");	webpage += Hdectohhmm(config.DebutJour);	webpage += F("</td>");
+  webpage += F("</tr>");
+
+  webpage += F("<tr>");
+  webpage += F("<td>Anticipation WakeUp (s)</td>");
+  webpage += F("<td>");	webpage += String(config.anticip);	webpage += F("</td>");
   webpage += F("</tr>");
 
   webpage += F("<tr>");

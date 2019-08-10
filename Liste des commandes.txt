@@ -47,3 +47,4 @@ CALIBRATION														Calibration des mesures de tension cde locale uniquemen
 CALIBRATION=.X												X entrée 1 2 3 4, 1=Batterie Solaire,2=Batterie Proc,3=Tension USB,4=Tension24V
 MASTEROFF															Interdiction Allumage en cas de pb
 MASTERON                              Annule MASTEROFF
+ANTICIP                               Temps anticipation Wakeup avant Début jour ou autre calcul de durée Sleep (10-600s) 
