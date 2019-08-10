@@ -734,11 +734,11 @@ void traite_sms(byte slot) {
       // textesms.trim();
     }
     textesms.replace(" ", "");// supp tous les espaces
-    if(textesms.indexOf("A") == 0 || textesms.indexOf("D") == 0){
+    if (textesms.indexOf("A") == 0 || textesms.indexOf("D") == 0) {
       String temp = Id.substring(6, 10);
       temp.toUpperCase();
-      if(textesms.indexOf("A" + temp) == 0) textesms = F("INTRUON");
-      if(textesms.indexOf("D" + temp) == 0) textesms = F("INTRUOFF");
+      if (textesms.indexOf("A" + temp) == 0) textesms = F("INTRUON");
+      if (textesms.indexOf("D" + temp) == 0) textesms = F("INTRUOFF");
     }
     Serial.print(F("textesms  = ")), Serial.println(textesms);
 
@@ -858,7 +858,7 @@ fin_tel:
           }
         }
 fin_i:
-        if (message.length() > Id.length()+20) EnvoyerSms(number, sms);; // SMS final
+        if (message.length() > Id.length() + 20) EnvoyerSms(number, sms);; // SMS final
       }
       else if (textesms.indexOf(F("ETAT")) == 0 || textesms.indexOf(F("ST")) == 0) {// "ETAT? de l'installation"
         generationMessage(0);
@@ -1646,12 +1646,12 @@ void generationMessage(bool n) {
     message += String(float(Tension24 / 100.0)) + "V" + fl;
   }
   if (Allume) {
-    for(int i=0; i<5 ; i++){
+    for (int i = 0; i < 5 ; i++) {
       read_adc(PinBattSol, PinBattProc, PinBattUSB, Pin24V);
       Alarm.delay(1);
     }
     char bid[8];
-    sprintf(bid, "%.2lf V", float(Tension24)/100);
+    sprintf(bid, "%.2lf V", float(Tension24) / 100);
     message += F("Allume : ");
     message += String(bid);
     message += fl;
@@ -2152,7 +2152,7 @@ void Allumage(byte n) {
   	n=2  Commande depuis pedale 2
     n=10 Commande allumage forcé
   */
-  if(jour || n == 10) {
+  if (jour || n == 10) {
     static byte Al1 = 0;
     static byte Al2 = 0;
     byte Cd1 = 0;
@@ -2175,7 +2175,7 @@ void Allumage(byte n) {
 
     if (!Allume) {	// si pas Allumé
       Serial.println(F("Allumage"));
-      if(!FlagMasterOff) digitalWrite(PinEclairage, HIGH);
+      if (!FlagMasterOff) digitalWrite(PinEclairage, HIGH);
       Allume = true;
       CptAllumage ++;
       if (n == 1)Al1 = 1;
@@ -2552,7 +2552,7 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
     case 4: // SP_SLEEP_WAKEUP_TIMER
       /* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00
         verifier si wake up arrive avant fin journée marge 1mn*/
-      if(firstWakeup){
+      if (firstWakeup) {
         SignalVie();
         firstWakeup = false;
       }
@@ -2560,18 +2560,18 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
         // Nmax = config.Jour_Nmax; // parametre jour
         Sbidon = F("Jour circule ou demande circulation");
         Serial.println(Sbidon);
-        MajLog(F("Auto"),Sbidon);
+        MajLog(F("Auto"), Sbidon);
       }
       else { // non circulé
         Sbidon = F("Jour noncircule");
         Serial.println(Sbidon);
-        MajLog(F("Auto"),Sbidon);
+        MajLog(F("Auto"), Sbidon);
         // Nmax = config.Nuit_Nmax; // parametre nuit
         calculTimeSleep();
         if (TIME_TO_SLEEP <= anticip) { // on continue sans sleep
           Sbidon = F("on continue sans sleep");
           Serial.println(Sbidon);
-          MajLog(F("Auto"),Sbidon);
+          MajLog(F("Auto"), Sbidon);
         }
         else {
           DebutSleep();
@@ -2728,7 +2728,7 @@ void read_adc(int pin1, int pin2, int pin3, int pin4) {
   }
 }
 //--------------------------------------------------------------------------------//
-void messageId(){
+void messageId() {
   message  = Id;
   message += displayTime(0);
   message += fl;
@@ -2893,9 +2893,9 @@ void Tel_listPage() {
     webpage += F("<td>"); webpage += String(config.Pos_Pn_PB[i]); webpage += F("</td>");
     webpage += F("</tr>");
   }
-  fin_liste:
+fin_liste:
 
-  
+
   webpage += F("</table><br>");
   append_page_footer();
   SendHTML_Content();
