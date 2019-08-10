@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 985650 75%, 47544 14% sur PC
+	Arduino IDE 1.8.9 : 985554 75%, 47544 14% sur PC
 	Arduino IDE 1.8.9 : xxxxxx 74%, 48172 14% sur raspi
 
 */
