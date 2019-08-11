@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 986054 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 986094 75%, 47552 14% sur PC
 	Arduino IDE 1.8.9 : 980450 74%, 48172 14% sur raspi
 
 */
@@ -453,7 +453,7 @@ void loop() {
     IRQ_Cpt_Coffret = 0;
     portEXIT_CRITICAL(&mux);
     if (config.Intru && config.Coffret) {
-      if (BattPBpct(TensionBatterie) > 20) {
+      if (BattPBpct(TensionBatterie,6) > 20) {
         FlagAlarmeCoffret = true;
         FlagAlarmeIntrusion = true;
         FlagPIR = true;
@@ -550,14 +550,14 @@ void Acquisition() {
     FlagAlarme24V = false;
   }
 
-  if (BattPBpct(TensionBatterie) < 25 || VUSB < 4000) { // || VUSB > 6000
+  if (BattPBpct(TensionBatterie,6) < 25 || VUSB < 4000) { // || VUSB > 6000
     nalaTension ++;
     if (nalaTension == 4) {
       FlagAlarmeTension = true;
       nalaTension = 0;
     }
   }
-  else if (BattPBpct(TensionBatterie) > 80 && VUSB > 4800) { //  && VUSB < 5400	//hysteresis et tempo sur Alarme Batterie
+  else if (BattPBpct(TensionBatterie,6) > 80 && VUSB > 4800) { //  && VUSB < 5400	//hysteresis et tempo sur Alarme Batterie
     nRetourTension ++;
     if (nRetourTension == 4) {
       FlagAlarmeTension = false;
@@ -572,7 +572,7 @@ void Acquisition() {
   message = F("Batt Solaire = ");
   message += float(TensionBatterie / 100.0);
   message += "V ";
-  message += String(BattPBpct(TensionBatterie));
+  message += String(BattPBpct(TensionBatterie,6));
   message += "%";
   message += F(", Batt Proc = ");
   message += (String(VBatterieProc) + "mV ");
@@ -898,7 +898,7 @@ fin_i:
         message += F("V Batt Sol= ");
         message += String(float(TensionBatterie / 100.0));
         message += F("V, ");
-        message += String(BattPBpct(TensionBatterie));
+        message += String(BattPBpct(TensionBatterie,6));
         message += " %";
         message += fl;
         message += F("V USB= ");
@@ -1472,7 +1472,7 @@ fin_i:
         if (M == 1) {
           message += fl;
           message += F("Batterie = ");
-          message += String(BattPBpct(tension));
+          message += String(BattPBpct(tension,6));
           message += "%";
         }
         message += fl;
@@ -1644,12 +1644,12 @@ void generationMessage(bool n) {
   message += F("Batterie : ");
   if (!FlagAlarmeTension) {
     message += F("OK, ");
-    message += String(BattPBpct(TensionBatterie));
+    message += String(BattPBpct(TensionBatterie,6));
     message += "%" + fl;
   }
   else {
     message += F("Alarme, ");
-    message += String(BattPBpct(TensionBatterie));
+    message += String(BattPBpct(TensionBatterie,6));
     message += "%";
     message += fl;
     message += F("V USB =");
@@ -1922,7 +1922,6 @@ void logRecord(String nom, String action) { // renseigne log et enregistre EEPRO
   nom   .toCharArray(record[index].Name, 15);
   action.toCharArray(record[index].Act, 2);
 
-  // int longueur = EEPROM_writeAnything(recordn, record);// enregistre en EEPROM
   EEPROM.begin(512);
   EEPROM.put(recordn, record);// ecriture des valeurs par defaut
   EEPROM.commit();
