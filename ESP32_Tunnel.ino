@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 986034 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 986054 75%, 47552 14% sur PC
 	Arduino IDE 1.8.9 : 980450 74%, 48172 14% sur raspi
 
 */
@@ -118,7 +118,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V1-1.3";
+String	ver       = "V1-1.4";
 int Magique       = 1235;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
@@ -141,7 +141,12 @@ bool FlagPIR                 = false; //
 RTC_DATA_ATTR bool FlagAlarmeTension       = false; // Alarme tension Batterie
 RTC_DATA_ATTR bool FlagLastAlarmeTension   = false;
 RTC_DATA_ATTR bool FlagMasterOff           = false; // Coupure Allumage en cas de pb
-RTC_DATA_ATTR bool firstWakeup             = true;  // envoie premier message vie une seule fois
+RTC_DATA_ATTR bool FirstWakeup             = true;  // envoie premier message vie une seule fois
+RTC_DATA_ATTR int  CptAllumage = 0; // Nombre Allumage par jour en memoire RTC
+RTC_DATA_ATTR bool WupAlarme   = false; // declenchement alarme externe
+RTC_DATA_ATTR bool flagCircule = false; // circule demandé -> inverse le calendrier, valable 1 seul jour
+RTC_DATA_ATTR bool FileLogOnce = false; // true si log > seuil alerte
+
 bool FlagAlarme24V           = false; // Alarme tension 24V Allumage
 bool FlagLastAlarme24V       = false;
 bool FlagAlarmeIntrusion     = false; // Alarme Defaut Cable detectée
@@ -157,11 +162,6 @@ int  Nmax      = 0;						// comptage alarme cable avant alarme different Jour/Nu
 
 int CoeffTension[4];          // Coeff calibration Tension
 int CoeffTensionDefaut = 7000;// Coefficient par defaut
-
-RTC_DATA_ATTR int CptAllumage  = 0; // Nombre Allumage par jour en memoire RTC
-RTC_DATA_ATTR bool WupAlarme   = false; // declenchement alarme externe
-RTC_DATA_ATTR bool flagCircule = false; // circule demandé -> inverse le calendrier, valable 1 seul jour
-RTC_DATA_ATTR bool FileLogOnce = false; // true si log > seuil alerte
 
 bool LastWupAlarme = false;   // memo etat Alarme par Wakeup
 
@@ -923,7 +923,7 @@ fin_i:
       }
       else if (textesms.indexOf(F("LOG")) == 0) {	// demande log des 5 derniers commandes
         File f = SPIFFS.open(filelog, "r");
-        message = F("size :");
+        message = F("local log size :");
         message += String(f.size()) + fl;
         f.close();
         for (int i = 0; i < 5; i++) {
@@ -2113,6 +2113,7 @@ void FinJournee() {
   // fin de journée retour deep sleep
   jour = false;
   flagCircule = false;
+  FirstWakeup = true;
   Serial.println(F("Fin de journee retour sleep"));
   TIME_TO_SLEEP = DureeSleep(config.DebutJour - config.anticip);// 1.5mn avant
   Sbidon  = F("FinJour ");
@@ -2567,9 +2568,9 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
     case 4: // SP_SLEEP_WAKEUP_TIMER
       /* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00
         verifier si wake up arrive avant fin journée marge 1mn*/
-      if (firstWakeup) {
+      if (FirstWakeup) {
         SignalVie();
-        firstWakeup = false;
+        FirstWakeup = false;
       }
       if ((calendrier[month()][day()] ^ flagCircule) ) { // jour circulé (&& jour)
         // Nmax = config.Jour_Nmax; // parametre jour
