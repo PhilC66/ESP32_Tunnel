@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 986094 75%, 47552 14% sur PC
+	Arduino IDE 1.8.9 : 986134 75%, 47544 14% sur PC
 	Arduino IDE 1.8.9 : 980450 74%, 48172 14% sur raspi
 
 */
@@ -119,7 +119,7 @@ char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le lo
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
 String	ver       = "V1-1.4";
-int Magique       = 1235;
+int Magique       = 1234;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
 String message;
@@ -135,7 +135,8 @@ volatile unsigned long rebond1 = 0;		//	antirebond IRQ
 volatile unsigned long rebond2 = 0;
 volatile unsigned long rebond3 = 0;
 byte DbounceTime = 20;				// antirebond
-byte confign = 0;					// Num enregistrement EEPROM
+byte confign = 0;             // position enregistrement config EEPROM
+byte recordn = 100;           // position enregistrement log EEPROM
 bool Allume = false;
 bool FlagPIR                 = false; //
 RTC_DATA_ATTR bool FlagAlarmeTension       = false; // Alarme tension Batterie
@@ -182,8 +183,6 @@ typedef struct										// declaration structure  pour les log
   char 		Name[15];								//	14 car
 } champ;
 champ record[5];
-
-byte recordn = 100;							// Num enregistrement EEPROM
 
 struct  config_t 								// Structure configuration sauvée en EEPROM
 {
@@ -282,8 +281,11 @@ void setup() {
 
   /* Lecture configuration en EEPROM	 */
   EEPROM.begin(512);
-  EEPROM.get(recordn, record); // Lecture des log
+
   EEPROM.get(confign, config); // lecture config
+  recordn = sizeof(config);
+  Serial.print("len config ="),Serial.println(sizeof(config));
+  EEPROM.get(recordn, record); // Lecture des log
   Alarm.delay(500);
   if (config.magic != Magique) {
     /* verification numero magique si different
