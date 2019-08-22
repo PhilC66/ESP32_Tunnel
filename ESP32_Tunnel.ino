@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 986134 75%, 47544 14% sur PC
+	Arduino IDE 1.8.9 : 986262 75%, 47544 14% sur PC
 	Arduino IDE 1.8.9 : 980450 74%, 48172 14% sur raspi
 
 */
@@ -660,6 +660,7 @@ void Acquisition() {
   if (nsms > 0) {	// nombre de SMS en attente
     // il faut les traiter
     int numsms = Sim800.getIndexSms(); // cherche l'index des sms en mémoire
+    Serial.print(F("Numero Sms en attente = ")), Serial.println(numsms);
     traite_sms(numsms);// traitement des SMS en attente
   }
   else if (nsms == 0 && FlagReset) { // on verifie que tous les SMS sont traités avant Reset
