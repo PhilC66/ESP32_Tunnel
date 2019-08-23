@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.9 : 986262 75%, 47544 14% sur PC
+	Arduino IDE 1.8.9 : 986342 75%, 47544 14% sur PC
 	Arduino IDE 1.8.9 : 980450 74%, 48172 14% sur raspi
 
 */
@@ -82,6 +82,7 @@
 #include <WebServer.h>
 #include <FS.h>
 #include <SPI.h>
+#include "passdata.h"
 
 String  webpage = "";
 #define ServerVersion "1.0"
@@ -118,7 +119,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V1-1.4";
+String	ver       = "V1-1.5";
 int Magique       = 1234;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
@@ -284,7 +285,7 @@ void setup() {
 
   EEPROM.get(confign, config); // lecture config
   recordn = sizeof(config);
-  Serial.print("len config ="),Serial.println(sizeof(config));
+  Serial.print("len config ="), Serial.println(sizeof(config));
   EEPROM.get(recordn, record); // Lecture des log
   Alarm.delay(500);
   if (config.magic != Magique) {
@@ -335,7 +336,10 @@ void setup() {
   Id  = String(config.Idchar);
   Id += fl;
 
+  // Port defaults to 3232
+  // ArduinoOTA.setPort(3232);
   ArduinoOTA.setHostname("ESP32_Tunnel");
+  ArduinoOTA.setPasswordHash(OTApwdhash);
   ArduinoOTA
   .onStart([]() {
     String type;
@@ -455,7 +459,7 @@ void loop() {
     IRQ_Cpt_Coffret = 0;
     portEXIT_CRITICAL(&mux);
     if (config.Intru && config.Coffret) {
-      if (BattPBpct(TensionBatterie,6) > 20) {
+      if (BattPBpct(TensionBatterie, 6) > 20) {
         FlagAlarmeCoffret = true;
         FlagAlarmeIntrusion = true;
         FlagPIR = true;
@@ -552,14 +556,14 @@ void Acquisition() {
     FlagAlarme24V = false;
   }
 
-  if (BattPBpct(TensionBatterie,6) < 25 || VUSB < 4000) { // || VUSB > 6000
+  if (BattPBpct(TensionBatterie, 6) < 25 || VUSB < 4000) { // || VUSB > 6000
     nalaTension ++;
     if (nalaTension == 4) {
       FlagAlarmeTension = true;
       nalaTension = 0;
     }
   }
-  else if (BattPBpct(TensionBatterie,6) > 80 && VUSB > 4800) { //  && VUSB < 5400	//hysteresis et tempo sur Alarme Batterie
+  else if (BattPBpct(TensionBatterie, 6) > 80 && VUSB > 4800) { //  && VUSB < 5400	//hysteresis et tempo sur Alarme Batterie
     nRetourTension ++;
     if (nRetourTension == 4) {
       FlagAlarmeTension = false;
@@ -574,7 +578,7 @@ void Acquisition() {
   message = F("Batt Solaire = ");
   message += float(TensionBatterie / 100.0);
   message += "V ";
-  message += String(BattPBpct(TensionBatterie,6));
+  message += String(BattPBpct(TensionBatterie, 6));
   message += "%";
   message += F(", Batt Proc = ");
   message += (String(VBatterieProc) + "mV ");
@@ -901,7 +905,7 @@ fin_i:
         message += F("V Batt Sol= ");
         message += String(float(TensionBatterie / 100.0));
         message += F("V, ");
-        message += String(BattPBpct(TensionBatterie,6));
+        message += String(BattPBpct(TensionBatterie, 6));
         message += " %";
         message += fl;
         message += F("V USB= ");
@@ -1475,7 +1479,7 @@ fin_i:
         if (M == 1) {
           message += fl;
           message += F("Batterie = ");
-          message += String(BattPBpct(tension,6));
+          message += String(BattPBpct(tension, 6));
           message += "%";
         }
         message += fl;
@@ -1647,12 +1651,12 @@ void generationMessage(bool n) {
   message += F("Batterie : ");
   if (!FlagAlarmeTension) {
     message += F("OK, ");
-    message += String(BattPBpct(TensionBatterie,6));
+    message += String(BattPBpct(TensionBatterie, 6));
     message += "%" + fl;
   }
   else {
     message += F("Alarme, ");
-    message += String(BattPBpct(TensionBatterie,6));
+    message += String(BattPBpct(TensionBatterie, 6));
     message += "%";
     message += fl;
     message += F("V USB =");
