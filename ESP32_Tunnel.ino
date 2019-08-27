@@ -91,11 +91,11 @@ bool    SPIFFS_present = false;
 
 #define PinBattProc		35   // liaison interne carte Lolin32 adc
 #define PinBattSol		39   // Batterie générale 12V adc VN
-#define PinBattUSB		36   // V USB 5V adc VP 36, 25 ADC2 pas utilisable avec Wifi 
+#define PinBattUSB		36   // V USB 5V adc VP 36, 25 ADC2 pas utilisable avec Wifi
 #define Pin24V				26   // Mesure Tension 24V
 #define PinPedale1		32   // Entrée Pedale1 Wake up EXT1
 #define PinPedale2		33   // Entrée Pedale2 Wake up EXT1
-#define PinCoffret 		34   // Entrée Porte Coffret Wake up EXT1 
+#define PinCoffret 		34   // Entrée Porte Coffret Wake up EXT1
 #define PinEclairage 	19   // Sortie Commande eclairage
 #define PinSirene			15   // Sortie Commande Sirene (#0 en sleep 2.3V?)
 #define RX_PIN				16   // TX Sim800
@@ -278,7 +278,7 @@ void setup() {
   adcAttachPin(PinBattUSB);
   adcAttachPin(Pin24V);
 
-  init_adc_mm();// initilaisation tableau pour adc Moyenne Mobile
+  init_adc_mm();// initialisation tableau pour adc Moyenne Mobile
 
   /* Lecture configuration en EEPROM	 */
   EEPROM.begin(512);
@@ -686,7 +686,7 @@ void Acquisition() {
 void traite_sms(byte slot) {
   // Alarm.disable(loopPrincipale);
   /* il y a 50 slots dispo
-  	si slot=51, demande de balayer tous les slots pour verification
+  	si slot=51, demande de balayer tous les slots pour verification (pas utilisé trop long)
   	si slot=99, demande depuis liaison serie en test, traiter sans envoyer de sms
   */
 
