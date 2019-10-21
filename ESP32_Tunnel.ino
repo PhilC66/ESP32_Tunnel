@@ -119,7 +119,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V1-1.5";
+String	ver       = "V1-1.6";
 int Magique       = 1234;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
@@ -509,6 +509,8 @@ void Acquisition() {
   static bool firstdecision = false;
   static byte cptallume = 0; // compte le nombre de passage avec Allume
 
+  AIntru_HeureActuelle();
+
   if (cpt > 6 && nsms == 0 && !firstdecision) {
     /* une seule fois au demarrage attendre au moins 70s et plus de sms en attente */
     action_wakeup_reason(get_wakeup_reason());
@@ -677,8 +679,6 @@ void Acquisition() {
   digitalWrite(LED_PIN, 0);
   Alarm.delay(50);
   digitalWrite(LED_PIN, 1);
-
-  AIntru_HeureActuelle();
 
   Serial.println();
 }
