@@ -63,8 +63,8 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.10 : 986342 75%, 47544 14% sur PC
-	Arduino IDE 1.8.9 : 980450 74%, 48172 14% sur raspi
+	Arduino IDE 1.8.10 : 986386 75%, 47544 14% sur PC
+	Arduino IDE 1.8.9 : 980xxx 74%, 48172 14% sur raspi
 
 */
 
@@ -119,7 +119,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V1-1.6";
+String	ver       = "V1-1.7";
 int Magique       = 1234;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
@@ -338,7 +338,7 @@ void setup() {
 
   // Port defaults to 3232
   // ArduinoOTA.setPort(3232);
-  ArduinoOTA.setHostname("ESP32_Tunnel");
+  ArduinoOTA.setHostname(config.Idchar);
   ArduinoOTA.setPasswordHash(OTApwdhash);
   ArduinoOTA
   .onStart([]() {
@@ -577,19 +577,20 @@ void Acquisition() {
     if (nalaTension > 0)nalaTension--;		//	efface progressivement le compteur
   }
 
-  message = F("Batt Solaire = ");
-  message += float(TensionBatterie / 100.0);
-  message += "V ";
-  message += String(BattPBpct(TensionBatterie, 6));
-  message += "%";
-  message += F(", Batt Proc = ");
-  message += (String(VBatterieProc) + "mV ");
-  message += String(BattLipopct(VBatterieProc));
-  message += (F("%, V USB = "));
-  message += (float(VUSB / 1000.0));
-  message += ("V");
-  message += fl;
-  Serial.print(message);
+  String texte;
+  texte = F("Batt Solaire = ");
+  texte += float(TensionBatterie / 100.0);
+  texte += "V ";
+  texte += String(BattPBpct(TensionBatterie, 6));
+  texte += "%";
+  texte += F(", Batt Proc = ");
+  texte += (String(VBatterieProc) + "mV ");
+  texte += String(BattLipopct(VBatterieProc));
+  texte += (F("%, V USB = "));
+  texte += (float(VUSB / 1000.0));
+  texte += ("V");
+  texte += fl;
+  Serial.print(texte);
 
   static byte nalaPIR1 = 0;
   static byte nalaPIR2 = 0;
