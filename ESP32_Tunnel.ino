@@ -549,7 +549,7 @@ void Acquisition() {
     cptallume ++;
     Serial.print(F("Tension 24V :")), Serial.print(float(Tension24 / 100.0)), Serial.print(F(" "));
     Serial.print("coeff 24V="), Serial.println(CoeffTension[3]);
-    if (cptallume > 2 && Tension24 < 2000) { // on attend 2 passages pour mesurer 24V
+    if (cptallume > 4 && Tension24 < 1900) { // on attend 5 passages pour mesurer 24V
       FlagAlarme24V = true;
     }
   }
