@@ -3,7 +3,7 @@
   Alimentation sur panneaux solaires
 
   mode deep sleep
-  reveille tout les matin 06h55
+  reveille tout les matin avant heure debut
   reception des SMS en attente
   apres 5 min de fonctionnement (ex: 2mn pour reception/suppression 8 SMS, 4mn 14SMS)
   envoie sms signal vie
@@ -63,7 +63,7 @@
 
 
   Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.10 : 986386 75%, 47544 14% sur PC
+	Arduino IDE 1.8.10 : 986366 75%, 47544 14% sur PC
 	Arduino IDE 1.8.9 : 980xxx 74%, 48172 14% sur raspi
 
 */
@@ -119,7 +119,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V1-1.7";
+String	ver       = "V1-2";
 int Magique       = 1234;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
@@ -2425,12 +2425,12 @@ void DesActiveInterrupt() {
 //---------------------------------------------------------------------------
 void ActiveInterrupt() {
 
-  if (config.Pedale1) {
+  // if (config.Pedale1) {
     attachInterrupt(digitalPinToInterrupt(PinPedale1), handleInterruptP1, RISING);
-  }
-  if (config.Pedale2) {
+  // }
+  // if (config.Pedale2) {
     attachInterrupt(digitalPinToInterrupt(PinPedale2), handleInterruptP2, RISING);
-  }
+  // }
   if (config.Coffret) {
     attachInterrupt(digitalPinToInterrupt(PinCoffret), handleInterruptPo, RISING);
   }
