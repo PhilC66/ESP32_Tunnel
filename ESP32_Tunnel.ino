@@ -61,7 +61,7 @@
   Tension batterie
   parametres par defaut
 
-
+  V1-2 Installé 03/12/2019
   Compilation LOLIN D32,default,80MHz,
 	Arduino IDE 1.8.10 : 986366 75%, 47544 14% sur PC
 	Arduino IDE 1.8.9 : 980xxx 74%, 48172 14% sur raspi

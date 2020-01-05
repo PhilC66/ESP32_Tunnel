@@ -3,13 +3,6 @@ ID																		Identifiant du site
 ID=abcdefghij													10 caractères max
 ST ou ETAT														demande l'etat de l'installation
 SYS                                   demande l'etat du systeme
-INTRUON																Armement de l'alarme
-INTRUOFF															Desarmement de l'alarme
-SILENCE																Demande etat Alarme Silencieuse
-SILENCEON/OFF													Alarme Silencieuse activé/desactivé
-SIRENE																Active la Sirene pour durée sirene
-CAPTEUR																Capteur activé pour l'alarme
-CAPTEUR=1,1,0													Pedale1, Pedale2, Coffret
 DEBUT																	Heure du signal de vie/débutJour
 DEBUT=25200														Heure en seconde = 7H00
 FIN																		Demande l'heure de fin Jour
@@ -47,4 +40,11 @@ CALIBRATION														Calibration des mesures de tension cde locale uniquemen
 CALIBRATION=.X												X entrée 1 2 3 4, 1=Batterie Solaire,2=Batterie Proc,3=Tension USB,4=Tension24V
 MASTEROFF															Interdiction Allumage en cas de pb
 MASTERON                              Annule MASTEROFF
-ANTICIP                               Temps anticipation Wakeup avant Début jour ou autre calcul de durée Sleep (10-600s) 
+ANTICIP                               Temps anticipation Wakeup avant Début jour ou autre calcul de durée Sleep (10-600s)
+INTRUON																Armement de l'alarme
+INTRUOFF															Desarmement de l'alarme
+SILENCE																Demande etat Alarme Silencieuse
+SILENCEON/OFF													Alarme Silencieuse activé/desactivé
+SIRENE																Active la Sirene pour durée sirene
+CAPTEUR																Capteur activé pour l'alarme
+CAPTEUR=1,1,0													Pedale1, Pedale2, Coffret
