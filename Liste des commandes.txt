@@ -23,7 +23,7 @@ CIRCULE																Demande passer en mode Circulé pour jour courant, sans m
 NONCIRCULE														Demande passer en mode non circulé
 TEMPOWAKEUP=n													Tempo repetition Wake up en s 59 à 36000 (defaut=3600)
 TEMPOANALYSE=n												Tempo Analyse apres Wake up en s 59 à 1800 (defaut=600)
-ALLUME																Allumage jusqu'à Eteindre ou timeout
+ALLUME=1 à 9													Allumage pour x heures
 ETEINDRE															Extinction
 LST? ou LST1													Liste le Phone Book
 tel=+331234567890,Nom									creation nouveau numero dans le Phone Book
@@ -40,7 +40,7 @@ CALIBRATION														Calibration des mesures de tension cde locale uniquemen
 CALIBRATION=.X												X entrée 1 2 3 4, 1=Batterie Solaire,2=Batterie Proc,3=Tension USB,4=Tension24V
 MASTEROFF															Interdiction Allumage en cas de pb
 MASTERON                              Annule MASTEROFF
-ANTICIP                               Temps anticipation Wakeup avant Début jour ou autre calcul de durée Sleep (10-600s)
+ANTICIP                               Temps anticipation Wakeup avant Début jour ou autre calcul de durée Sleep (10-3600s)
 INTRUON																Armement de l'alarme
 INTRUOFF															Desarmement de l'alarme
 SILENCE																Demande etat Alarme Silencieuse

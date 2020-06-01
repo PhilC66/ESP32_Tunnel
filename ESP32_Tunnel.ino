@@ -57,11 +57,25 @@
 	to do
 
   Compilation LOLIN D32,default,80MHz,, ESP32 1.0.2 (1.0.4 bugg?)
-	Arduino IDE 1.8.10 : 992526 75%, 47616 14% sur PC
-	Arduino IDE 1.8.9 : 980xxx 74%, 48172 14% sur raspi
+	Arduino IDE 1.8.10 : 993574 75%, 47632 14% sur PC
+	Arduino IDE 1.8.9 :  993434 75%, 47616 14% sur raspi
 
-  V1-3 pas installé
+  V1-4 24/07/2020 pas installé
+  Allumage entraine par couplage sur cable 350m
+  declenchement Alarme Coffret et double detection pedale entree/sortie
+  correction declenchement Alarme coffret, supprimer par interruption directe
+  uniquement pas comptage dans boucle acquisition (apres 30s)
+  apres declenchement pedale allumage, le declenchement pedale opposée inhibé pour 5s
+
+  V1-3 02/06/2020 installé le 05/06/2020
   1- calendrier format json idem Signalisation
+  2- remaniement demarrage et decision, calcul timetosleep (idem Signalisation)
+     augmentation anticip pour compenser variation du reveil (45minutes 2700s) attendre DebutJour
+  3- si commande ALLUME=1à9, force Allumage sans tenir compte des pedales,
+     pour 1à9 heures jusqu'à ETEINDRE
+  4- corection bug général, pour changer un Alarm.timerRepeat et Alarm.alarmRepeat,
+     il faut utiliser la fonction Alarm.write(Id, durée)
+  5- logrecord au lancement, Id en tete fichier log
 
   V1-2 Installé 03/12/2019
 
@@ -119,8 +133,8 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V1-2";
-int Magique       = 1234;
+String	ver       = "V1-4";
+int Magique       = 10;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
 String message;
@@ -139,7 +153,7 @@ byte DbounceTime = 20;				// antirebond
 byte confign = 0;             // position enregistrement config EEPROM
 byte recordn = 100;           // position enregistrement log EEPROM
 bool Allume = false;
-bool FlagPIR                 = false; //
+bool FlagPIR = false;
 RTC_DATA_ATTR bool FlagAlarmeTension       = false; // Alarme tension Batterie
 RTC_DATA_ATTR bool FlagLastAlarmeTension   = false;
 RTC_DATA_ATTR bool FlagMasterOff           = false; // Coupure Allumage en cas de pb
@@ -216,6 +230,7 @@ AlarmId loopPrincipale;	// boucle principale
 AlarmId TempoAnalyse;		// tempo analyse alarme suite Interruption
 AlarmId TempoSortie;		// Temporisation eclairage a la sortie
 AlarmId TimeOut;				// TimeOut Allumage
+AlarmId DebutJour;      // Debut journée
 AlarmId FinJour;				// Fin de journée retour deep sleep
 AlarmId TSonn;					// 4 tempo durée de la sonnerie
 AlarmId TSonnMax;				// 5 tempo maximum de sonnerie
@@ -295,9 +310,9 @@ void setup() {
     */
     Serial.println(F("Nouvelle Configuration !"));
     config.magic         = Magique;
-    config.anticip       = 90;
-    config.DebutJour     = 7 * 60 * 60;
-    config.FinJour       = 20 * 60 * 60;
+    config.anticip       = 2700;
+    config.DebutJour     = 8 * 60 * 60;
+    config.FinJour       = 19 * 60 * 60;
     config.RepeatWakeUp  = 60 * 60;
     config.Tanalyse      = 10 * 60;
     config.Intru         = true;
@@ -308,8 +323,8 @@ void setup() {
     config.tempoSortie   = 10;
     config.timeOutS      = 3600;// 3600
     config.timeoutWifi   = 10 * 60;
-    config.Pedale1       = true;
-    config.Pedale2       = true;
+    config.Pedale1       = false;
+    config.Pedale2       = false;
     config.Coffret       = true;
     config.Jour_Nmax     = 3 * 60 / 10; // 3mn /10 temps de boucle Acquisition
     config.Nuit_Nmax     = 30 / 10; // 30s /10 temps de boucle Acquisition
@@ -396,6 +411,7 @@ void setup() {
   TimeOut = Alarm.timerRepeat(config.timeOutS, Extinction); // tempo time out extinction
   Alarm.disable(TimeOut);
 
+  DebutJour = Alarm.alarmRepeat(config.DebutJour,SignalVie);
   FinJour = Alarm.alarmRepeat(config.FinJour, FinJournee); // Fin de journée retour deep sleep
   Alarm.enable(FinJour);
 
@@ -417,6 +433,7 @@ void setup() {
     FlagAlarmeIntrusion = true;
     FlagPIR = true;
   }
+  MajLog("Auto","Lancement");
 
 }
 //---------------------------------------------------------------------------
@@ -458,14 +475,14 @@ void loop() {
     portENTER_CRITICAL(&mux);
     IRQ_Cpt_Coffret = 0;
     portEXIT_CRITICAL(&mux);
-    if (config.Intru && config.Coffret) {
-      if (BattPBpct(TensionBatterie, 6) > 20) {
-        FlagAlarmeCoffret = true;
-        FlagAlarmeIntrusion = true;
-        FlagPIR = true;
-        Acquisition();
-      }
-    }
+    // if (config.Intru && config.Coffret) {
+      // if (BattPBpct(TensionBatterie, 6) > 20) {
+        // FlagAlarmeCoffret = true;
+        // FlagAlarmeIntrusion = true;
+        // FlagPIR = true;
+        // Acquisition();
+      // }
+    // }
   }
 
   if (IRQ_Cpt_PDL1 > 0 || IRQ_Cpt_PDL2 > 0) {
@@ -600,7 +617,7 @@ void Acquisition() {
     // verif sur plusieurs passages consecutifs
     if (digitalRead(PinCoffret) && config.Coffret) {
       nalaCoffret ++;
-      if (nalaCoffret > 1) {
+      if (nalaCoffret > 3) {
         FlagAlarmeCoffret = true;
         FlagPIR = true;
         nalaCoffret = 0;
@@ -1003,7 +1020,7 @@ fin_i:
       else if (textesms.indexOf(F("ANTICIP")) > -1) { // Anticipation du wakeup
         if (textesms.indexOf(char(61)) == 7) {
           int n = textesms.substring(8, textesms.length()).toInt();
-          if (n > 9 && n < 601) {
+          if (n > 9 && n < 3601) {
             config.anticip = n;
             sauvConfig();														// sauvegarde en EEPROM
           }
@@ -1111,7 +1128,8 @@ fin_i:
           if (i > 0 && i < 121) {
             config.tempoSortie = i;
             sauvConfig();                               // sauvegarde en EEPROM
-            TempoSortie = Alarm.timerRepeat(config.tempoSortie, Extinction); // tempo extinction a la sortie
+            Alarm.write(TempoSortie,config.tempoSortie);
+            // TempoSortie = Alarm.timerRepeat(config.tempoSortie, Extinction); // tempo extinction a la sortie
             Alarm.disable(TempoSortie);
           }
         }
@@ -1127,7 +1145,9 @@ fin_i:
           if (i > 59 && i < 7201) {
             config.timeOutS = i;
             sauvConfig();                               // sauvegarde en EEPROM
-            TimeOut = Alarm.timerRepeat(config.timeOutS, Extinction); // tempo time out extinction
+            Alarm.disable(TimeOut);
+            Alarm.write(TimeOut,config.timeOutS);
+            // TimeOut = Alarm.timerRepeat(config.timeOutS, Extinction); // tempo time out extinction
             Alarm.disable(TimeOut);
           }
         }
@@ -1142,6 +1162,10 @@ fin_i:
           if (i > 0 && i <= 86340) {                    //	ok si entre 0 et 86340(23h59)
             config.DebutJour = i;
             sauvConfig();                               // sauvegarde en EEPROM
+            Alarm.disable(DebutJour);
+            Alarm.write(DebutJour,config.DebutJour);
+            // FinJour = Alarm.alarmRepeat(config.DebutJour, SignalVie);// init tempo
+            Alarm.enable(DebutJour);
             AIntru_HeureActuelle();
           }
         }
@@ -1167,13 +1191,16 @@ fin_i:
             config.DsonnMax 	= j;
             config.Dsonnrepos = k;
             sauvConfig();															// sauvegarde en EEPROM
-            TSonn = Alarm.timerRepeat(config.Dsonn, ArretSonnerie);	// tempo durée de la sonnerie
+            Alarm.write(TSonn,config.Dsonn);
+            // TSonn = Alarm.timerRepeat(config.Dsonn, ArretSonnerie);	// tempo durée de la sonnerie
             Alarm.disable(TSonn);
 
-            TSonnMax = Alarm.timerRepeat(config.DsonnMax, SonnerieMax); // tempo maximum de sonnerie
+            Alarm.write(TSonnMax,config.DsonnMax);
+            // TSonnMax = Alarm.timerRepeat(config.DsonnMax, SonnerieMax); // tempo maximum de sonnerie
             Alarm.disable(TSonnMax);
 
-            TSonnRepos = Alarm.timerRepeat(config.Dsonnrepos, ResetSonnerie); // tempo repos apres maxi
+            Alarm.write(TSonnRepos,config.Dsonnrepos);
+            // TSonnRepos = Alarm.timerRepeat(config.Dsonnrepos, ResetSonnerie); // tempo repos apres maxi
             Alarm.disable(TSonnRepos);
           }
         }
@@ -1221,7 +1248,10 @@ fin_i:
           if (i > 0 && i <= 86340) {										//	ok si entre 0 et 86340(23h59)
             config.FinJour = i;
             sauvConfig();															// sauvegarde en EEPROM
-            FinJour = Alarm.alarmRepeat(config.FinJour, FinJournee);// init tempo
+            Alarm.disable(FinJour);
+            Alarm.write(FinJour,config.FinJour);
+            // FinJour = Alarm.alarmRepeat(config.FinJour, FinJournee);// init tempo
+            Alarm.enable(FinJour);
           }
         }
         message += F("Fin Journee = ");
@@ -1390,7 +1420,8 @@ fin_i:
           if (i > 59 && i <= 1800) { // 1mn à 30mn
             config.Tanalyse = i;
             sauvConfig();															// sauvegarde en EEPROM
-            TempoAnalyse = Alarm.timerRepeat(config.Tanalyse, FinAnalyse); // Tempo Analyse Alarme sur interruption
+            Alarm.write(TempoAnalyse,config.Tanalyse);
+            // TempoAnalyse = Alarm.timerRepeat(config.Tanalyse, FinAnalyse); // Tempo Analyse Alarme sur interruption
             Alarm.disable(TempoAnalyse);
           }
         }
@@ -1554,13 +1585,28 @@ fin_i:
         message += fl;
         EnvoyerSms(number, sms);
       }
-      else if (textesms.indexOf(F("ALLUME")) == 0) {
-        if (!Allume) {
-          Allumage(10);
-          message += F("Allumage");
-        }
-        else {
-          message += F("Deja Allume");
+      else if (textesms.indexOf(F("ALLUME=")) == 0) {
+        // ALLUME forcée
+        // ALLUME = 1à9 durée en heures, remplace TIMEOUTECL
+
+        int duree = textesms.substring(7,8).toInt();
+        if(duree > 0 && duree < 10){
+          Alarm.disable(TimeOut);
+          Alarm.write(TimeOut,duree * 3600);
+          // TimeOut = Alarm.timerRepeat(duree * 60, Extinction); // tempo time out extinction
+          Alarm.disable(TimeOut);
+
+          if (!Allume) {
+            Allumage(10);
+            message += F("Allumage ");
+            message += String(duree);
+            message += " Heure(s)";
+          }
+          else {
+            message += F("Deja Allume");
+          }
+        }else{
+          message += F("non reconnu");
         }
         message += fl;
         EnvoyerSms(number, sms);
@@ -1829,6 +1875,7 @@ void MajHeure(String smsdate) {
       Alarm.disable(TempoAnalyse);
       Alarm.disable(TempoSortie);
       Alarm.disable(TimeOut);
+      Alarm.disable(DebutJour);
       Alarm.disable(FinJour);
       Alarm.disable(TSonnRepos);
 
@@ -1838,6 +1885,7 @@ void MajHeure(String smsdate) {
       Alarm.enable(TempoAnalyse);
       Alarm.enable(TempoSortie);
       Alarm.enable(TimeOut);
+      Alarm.enable(DebutJour);
       Alarm.enable(FinJour);
     }
   }
@@ -1929,7 +1977,7 @@ void SignalVie() {
   envoieGroupeSMS(0, 0);
   Sim800.delAllSms();// au cas ou, efface tous les SMS envoyé/reçu
   CptAllumage = 0;
-
+  action_wakeup_reason(4);
 }
 //---------------------------------------------------------------------------
 void sauvConfig() { // sauve configuration en EEPROM
@@ -2070,44 +2118,54 @@ void appendFile(fs::FS &fs, const char * path, const char * message) {
 }
 //---------------------------------------------------------------------------
 void MajLog(String Id, String Raison) { // mise à jour fichier log en SPIFFS
-  /* verification de la taille du fichier */
-  File f = SPIFFS.open(filelog, "r");
-  Serial.print(F("Taille fichier log = ")), Serial.println(f.size());
-  // Serial.print(Id),Serial.print(","),Serial.println(Raison);
-  if (f.size() > 150000 && !FileLogOnce) {
-    /* si trop grand on efface */
-    FileLogOnce = true;
-    messageId();
-    message += F("Fichier log presque plein\n");
-    message += String(f.size());
-    message += F("\nFichier sera efface a 300000");
-    String number = Sim800.getPhoneBookNumber(1); // envoyé au premier num seulement
-    char num[13];
-    number.toCharArray(num, 13);
-    EnvoyerSms(num, true);
+  if(SPIFFS.exists(filelog)){
+    /* verification de la taille du fichier */
+    File f = SPIFFS.open(filelog, "r");
+    Serial.print(F("Taille fichier log = ")), Serial.println(f.size());
+    // Serial.print(Id),Serial.print(","),Serial.println(Raison);
+    if (f.size() > 150000 && !FileLogOnce) {
+      /* si trop grand on efface */
+      FileLogOnce = true;
+      messageId();
+      message += F("Fichier log presque plein\n");
+      message += String(f.size());
+      message += F("\nFichier sera efface a 300000");
+      String number = Sim800.getPhoneBookNumber(1); // envoyé au premier num seulement
+      char num[13];
+      number.toCharArray(num, 13);
+      EnvoyerSms(num, true);
+    }
+    else if (f.size() > 300000 && FileLogOnce) { // 292Ko 75000 lignes
+      messageId();
+      message += F("Fichier log plein\n");
+      message += String(f.size());
+      message += F("\nFichier efface");
+      String number = Sim800.getPhoneBookNumber(1); // envoyé au premier num seulement
+      char num[13];
+      number.toCharArray(num, 13);
+      EnvoyerSms(num, true);
+      SPIFFS.remove(filelog);
+      FileLogOnce = false;
+    }
+    f.close();
+    /* preparation de la ligne */
+    char Cbidon[101]; // 100 char maxi
+    sprintf(Cbidon, "%02d/%02d/%4d %02d:%02d:%02d", day(), month(), year(), hour(), minute(), second());
+    Id = ";" + Id + ";";
+    Raison += "\n";
+    strcat(Cbidon, Id.c_str());
+    strcat(Cbidon, Raison.c_str());
+    Serial.println(Cbidon);
+    appendFile(SPIFFS, filelog, Cbidon);
   }
-  else if (f.size() > 300000 && FileLogOnce) { // 292Ko 75000 lignes
-    messageId();
-    message += F("Fichier log plein\n");
-    message += String(f.size());
-    message += F("\nFichier efface");
-    String number = Sim800.getPhoneBookNumber(1); // envoyé au premier num seulement
-    char num[13];
-    number.toCharArray(num, 13);
-    EnvoyerSms(num, true);
-    SPIFFS.remove(filelog);
-    FileLogOnce = false;
+  else{
+    char Cbidon[101]; // 100 char maxi
+    sprintf(Cbidon, "%02d/%02d/%4d %02d:%02d:%02d;", day(), month(), year(), hour(), minute(), second());
+    strcat(Cbidon,config.Idchar);
+    strcat(Cbidon,fl.c_str());
+    appendFile(SPIFFS, filelog, Cbidon);
+    Serial.print("nouveau fichier log:"),Serial.println(Cbidon);
   }
-  f.close();
-  /* preparation de la ligne */
-  char Cbidon[101]; // 100 char maxi
-  sprintf(Cbidon, "%02d/%02d/%4d %02d:%02d:%02d", day(), month(), year(), hour(), minute(), second());
-  Id = ";" + Id + ";";
-  Raison += "\n";
-  strcat(Cbidon, Id.c_str());
-  strcat(Cbidon, Raison.c_str());
-  Serial.println(Cbidon);
-  appendFile(SPIFFS, filelog, Cbidon);
 }
 //---------------------------------------------------------------------------
 void EnregistreCalendrier() { // remplace le nouveau calendrier
@@ -2175,7 +2233,7 @@ void FinJournee() {
   flagCircule = false;
   FirstWakeup = true;
   Serial.println(F("Fin de journee retour sleep"));
-  TIME_TO_SLEEP = DureeSleep(config.DebutJour - config.anticip);// 1.5mn avant
+  TIME_TO_SLEEP = DureeSleep(config.DebutJour - config.anticip);// xx mn avant
   Sbidon  = F("FinJour ");
   Sbidon += Hdectohhmm(TIME_TO_SLEEP);
   MajLog(F("Auto"), Sbidon);
@@ -2219,6 +2277,9 @@ void Extinction() {
   Allumage(0);
   Alarm.disable(TempoSortie);
   Alarm.disable(TimeOut);
+  Alarm.write(TimeOut,config.timeOutS);// retablir timeout memorisé
+  // TimeOut = Alarm.timerRepeat(config.timeOutS, Extinction);// retablir timeout memorisé
+  Alarm.disable(TimeOut);
 }
 //---------------------------------------------------------------------------
 void Allumage(byte n) {
@@ -2228,9 +2289,25 @@ void Allumage(byte n) {
   	n=2  Commande depuis pedale 2
     n=10 Commande allumage forcé
   */
+  static bool AllumageForcee = false;
+  if(n==10) AllumageForcee = true;
+  if(n==0) AllumageForcee = false;
+  static byte Al1 = 0;
+  static byte Al2 = 0;
+
+  // correction extinction intempestive si cde seconde pedale arrive juste apres premiere
+  // a tester
+  static unsigned long t = millis();
+  if((Al1 == 1 && n == 2) || (Al2 == 1 && n == 1)){
+    // allumage depuis pedale, armement du timer
+    if(millis()- t < 5000){
+      // si armement consecutif < 5s on sort
+      return;
+    }
+  }
+  t = millis();
+
   if (jour || n == 10) {
-    static byte Al1 = 0;
-    static byte Al2 = 0;
     byte Cd1 = 0;
     byte Cd2 = 0;
     switch (n) {
@@ -2262,18 +2339,20 @@ void Allumage(byte n) {
       MajLog(F("Auto"), Sbidon);
     }
     else {	// si Allumé
-      if (n == 0) {
-        digitalWrite(PinEclairage, LOW);
-        Allume = false;
-        Sbidon  = F("Extinction ");
-        Sbidon += n;
-        MajLog(F("Auto"), Sbidon);
-      }
-      else if (Al1 == Cd2 || Al2 == Cd1) {
-        Serial.print(F("Extinction dans (s) ")), Serial.println(config.tempoSortie);
-        Alarm.disable(TempoSortie);
-        Alarm.enable(TempoSortie);
-        Serial.print(F("Nombre Allumage = ")), Serial.println(CptAllumage);
+      if(!AllumageForcee){
+        if (n == 0) {
+          digitalWrite(PinEclairage, LOW);
+          Allume = false;
+          Sbidon  = F("Extinction ");
+          Sbidon += n;
+          MajLog(F("Auto"), Sbidon);
+        }
+        else if (Al1 == Cd2 || Al2 == Cd1) {
+          Serial.print(F("Extinction dans (s) ")), Serial.println(config.tempoSortie);
+          Alarm.disable(TempoSortie);
+          Alarm.enable(TempoSortie);
+          Serial.print(F("Nombre Allumage = ")), Serial.println(CptAllumage);
+        }
       }
     }
   }
@@ -2555,20 +2634,6 @@ void DebutSleep() {
     Serial.println(F("pas de pin selectionne pour wakeup!"));
   }
 
-  /* Garde fou si TIME_TO_SLEEP > 20H00 c'est une erreur, on impose 1H00 */
-  if (TIME_TO_SLEEP > 72000) {
-    TIME_TO_SLEEP = 3600;
-    Sbidon = F("jour ");
-    Sbidon += jour;
-    Sbidon = F(", Calendrier ");
-    Sbidon += calendrier[month()][day()];
-    Sbidon = F(", flagCirc ");
-    Sbidon += flagCircule;
-    MajLog(F("Auto"), Sbidon);
-    Sbidon = F("Attention erreur Sleep>20H00 ");
-    Sbidon += Hdectohhmm(TIME_TO_SLEEP);
-    MajLog(F("Auto"), Sbidon);
-  }
 
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   Serial.print(F("Setup ESP32 to sleep for "));
@@ -2628,11 +2693,17 @@ void action_wakeup_reason(byte wr) { // action en fonction du wake up
     case 4: // SP_SLEEP_WAKEUP_TIMER
       /* jour noncirculé retour deep sleep pour RepeatWakeUp 1H00
         verifier si wake up arrive avant fin journée marge 1mn*/
-      if (FirstWakeup) {
-        SignalVie();
+      if (FirstWakeup) { // premier wake up du jour avant DebutJour
+        // SignalVie();
+        // ne rien faire, attendre DebutJour
         FirstWakeup = false;
+        if (HActuelledec() > config.DebutJour) {
+          // premier lancement en journée
+          SignalVie();
+        }
+        break;
       }
-      if ((calendrier[month()][day()] ^ flagCircule) ) { // jour circulé (&& jour)
+      if ((calendrier[month()][day()] ^ flagCircule) && jour) { // jour circulé & jour
         // Nmax = config.Jour_Nmax; // parametre jour
         Sbidon = F("Jour circule ou demande circulation");
         Serial.println(Sbidon);
@@ -2694,7 +2765,22 @@ void calculTimeSleep() {
     Serial.println("");
   }
 
-  Sbidon = F("lance timer \"1H\" ");
+  /* Garde fou si TIME_TO_SLEEP > 20H00 c'est une erreur, on impose 1H00 */
+  if (TIME_TO_SLEEP > 72000) {
+    TIME_TO_SLEEP = 3600;
+    Sbidon = F("jour ");
+    Sbidon += jour;
+    Sbidon = F(", Calendrier ");
+    Sbidon += calendrier[month()][day()];
+    Sbidon = F(", flagCirc ");
+    Sbidon += flagCircule;
+    MajLog(F("Auto"), Sbidon);
+    Sbidon = F("Attention erreur Sleep>20H00 ");
+    Sbidon += Hdectohhmm(TIME_TO_SLEEP);
+    MajLog(F("Auto"), Sbidon);
+  }
+
+  Sbidon = F("lance timer : ");
   Sbidon += Hdectohhmm(TIME_TO_SLEEP);
   MajLog(F("Auto"), Sbidon);
 }
