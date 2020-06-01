@@ -56,15 +56,14 @@
 
 	to do
 
-  version prod
+  Compilation LOLIN D32,default,80MHz,, ESP32 1.0.2 (1.0.4 bugg?)
+	Arduino IDE 1.8.10 : 992526 75%, 47616 14% sur PC
+	Arduino IDE 1.8.9 : 980xxx 74%, 48172 14% sur raspi
 
-  Tension batterie
-  parametres par defaut
+  V1-3 pas installé
+  1- calendrier format json idem Signalisation
 
   V1-2 Installé 03/12/2019
-  Compilation LOLIN D32,default,80MHz,
-	Arduino IDE 1.8.10 : 986366 75%, 47544 14% sur PC
-	Arduino IDE 1.8.9 : 980xxx 74%, 48172 14% sur raspi
 
 */
 
@@ -83,6 +82,7 @@
 #include <FS.h>
 #include <SPI.h>
 #include "passdata.h"
+#include <ArduinoJson.h>
 
 String  webpage = "";
 #define ServerVersion "1.0"
@@ -696,6 +696,7 @@ void traite_sms(byte slot) {
   textesms.reserve(140);
   String numero;
   String nom;
+  bool smsserveur = false; // true si le sms provient du serveur index=1
 
   byte i;
   byte j;
@@ -725,6 +726,9 @@ void traite_sms(byte slot) {
       nom = Sim800.getNameSms(slot);      // recupere le nom appelant
       textesms = Sim800.readSms(slot);    // recupere le contenu
       textesms = ExtraireSms(textesms);
+      if (Sim800.getNumberSms(slot) == Sim800.getPhoneBookNumber(1)) {
+        smsserveur = true; // si sms provient du serveur index=1
+      }
       if (nom.length() < 1) { // si nom vide, cherche si numero est num de la SIM
         if (numero == Sim800.getNumTel()) {
           nom = F("Moi meme");
@@ -1226,55 +1230,104 @@ fin_i:
         message += fl;
         EnvoyerSms(number, sms);
       }
-      else if (textesms.indexOf(F("MOIS")) == 0) { // Calendrier pour un mois
+      else if (textesms.indexOf(F("MOIS")) > -1) { // Calendrier pour un mois
         /* mise a jour calendrier ;format : MOIS=mm,31 fois 0/1
           demande calendrier pour un mois donné ; format : MOIS=mm? */
         bool flag = true; // validation du format
         bool W = true; // true Write, false Read
-
-        byte p1 = textesms.indexOf(char(61)); // =
-        byte p2 = textesms.indexOf(char(44)); // ,
-        if (p2 == 255) {                      // pas de ,
-          p2 = textesms.indexOf(char(63));    // ?
-          W = false;
-        }
-
-        byte m = textesms.substring(p1 + 1, p2).toInt(); // mois
-
-        // printf("p1=%d,p2=%d\n",p1,p2);
-        // Serial.println(textesms.substring(p1+1,p2).toInt());
-        // Serial.println(textesms.substring(p2+1,textesms.length()).length());
-        if (!(m > 0 && m < 13)) flag = false;
-        if (W && flag) { // Write
-          if (!(textesms.substring(p2 + 1, textesms.length()).length() == 31)) flag = false; // si longueur = 31(jours)
-
-          for (int i = 1; i < 32; i++) { // verification 0/1
-            if (!(textesms.substring(p2 + i, p2 + i + 1) == "0" || textesms.substring(p2 + i, p2 + i + 1) == "1")) {
-              flag = false;
+        int m = 0;
+        if (textesms.indexOf("{") == 0) { // json
+          DynamicJsonDocument doc(540);
+          int f = textesms.lastIndexOf("}");
+          // Serial.print("pos }:"),Serial.println(f);
+          // Serial.print("json:"),Serial.print(textesms.substring(0,f+1)),Serial.println(".");,1,1,1,1,1,0,0,0,0,0,0]}";
+          DeserializationError err = deserializeJson(doc, textesms.substring(0, f + 1));
+          if(!err){
+            m = doc["MOIS"]; // 12
+            JsonArray jour = doc["JOUR"];
+            for (int j = 1; j < 32; j++) {
+              calendrier[m][j] = jour[j - 1];
             }
-          }
-          if (flag) {
-            // Serial.println(F("mise a jour calendrier"));
-            for (int i = 1; i < 32; i++) {
-              calendrier[m][i] = textesms.substring(p2 + i, p2 + i + 1).toInt();
-              // Serial.print(textesms.substring(p2+i,p2+i+1));
-            }
+            // Serial.print("mois:"),Serial.println(m);
             EnregistreCalendrier(); // Sauvegarde en SPIFFS
-            message += F("Mise a jour calendrier OK");
+            // message += F("Mise a jour calendrier \nmois:");
+            // message += m;
+            // message += " OK (json)";
+          }
+          else{
+            message += " erreur json ";
+            flag = false;
           }
         }
-        else if (flag) { // ? demande calendrier pour un mois donné
-          message += F("mois = ");
-          message += m;
-          message += fl;
-          for (int i = 1; i < 32 ; i++) {
-            message += calendrier[m][i];
-            if ((i % 5)  == 0) message += " ";
-            if ((i % 10) == 0) message += fl;
+        else { // message normal mois=12,31*0/1
+          byte p1 = textesms.indexOf(char(61)); // =
+          byte p2 = textesms.indexOf(char(44)); // ,
+          if (p2 == 255) {                      // pas de ,
+            p2 = textesms.indexOf(char(63));    // ?
+            W = false;
+          }
+
+          m = textesms.substring(p1 + 1, p2).toInt(); // mois
+
+          // printf("p1=%d,p2=%d\n",p1,p2);
+          // Serial.println(textesms.substring(p1+1,p2).toInt());
+          // Serial.println(textesms.substring(p2+1,textesms.length()).length());
+          if (!(m > 0 && m < 13)) flag = false;
+          if (W && flag) { // Write
+            if (!(textesms.substring(p2 + 1, textesms.length()).length() == 31)) flag = false; // si longueur = 31(jours)
+
+            for (int i = 1; i < 32; i++) { // verification 0/1
+              if (!(textesms.substring(p2 + i, p2 + i + 1) == "0" || textesms.substring(p2 + i, p2 + i + 1) == "1")) {
+                flag = false;
+              }
+            }
+            if (flag) {
+              // Serial.println(F("mise a jour calendrier"));
+              for (int i = 1; i < 32; i++) {
+                calendrier[m][i] = textesms.substring(p2 + i, p2 + i + 1).toInt();
+                // Serial.print(textesms.substring(p2+i,p2+i+1));
+              }
+              EnregistreCalendrier(); // Sauvegarde en SPIFFS
+              // message += F("Mise a jour calendrier mois:");
+              // message += m;
+              // message += " OK";
+            }
+          }
+          if(!flag) {
+            // printf("flag=%d,W=%d\n",flag,W);
+            message += " erreur format ";
           }
         }
-        if (!flag) {
-          message += F("Format non reconnu !");
+        if (flag) { // demande calendrier pour un mois donné
+          if (smsserveur || !sms) {
+            // si serveur reponse json  {"mois":12,"jour":[1,2,4,5,6 .. 31]}
+            DynamicJsonDocument doc(540);
+            doc["mois"] = m;
+            JsonArray jour = doc.createNestedArray("jour");
+            for (int i = 1; i < 32; i++) {
+              jour.add(calendrier[m][i]);
+            }
+            String jsonbidon;
+            serializeJson(doc, jsonbidon);
+            message += jsonbidon;
+            // message +="{\"mois\":" + String(m) + "," +fl;
+            // message += "\"jour\":[";
+            // for (int i = 1; i < 32 ; i++){
+            // message += String(calendrier[m][i]);
+            // if (i < 31) message += ",";
+            // }
+            // message += "]}";
+          }
+          else {
+            message += F("mois = ");
+            message += m;
+            message += fl;
+            for (int i = 1; i < 32 ; i++) {
+              message += calendrier[m][i];
+              if ((i % 5)  == 0) message += " ";
+              if ((i % 10) == 0) message += fl;
+            }
+          }
         }
         message += fl;
         EnvoyerSms(number, sms);
