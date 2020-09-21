@@ -48,3 +48,7 @@ SILENCEON/OFF													Alarme Silencieuse activé/desactivé
 SIRENE																Active la Sirene pour durée sirene
 CAPTEUR																Capteur activé pour l'alarme
 CAPTEUR=1,1,0													Pedale1, Pedale2, Coffret
+UPLOADLOG                             Upload log vers serveur, efface log si upload OK
+GPRSDATA                              "apn":"user":"pass" (case sensitive) sms ou json
+FTPDATA                               sms ou json FTPDATA=Serveur:User:Pass:port, case sensitive pas de : / # space dans user et pass
+FTPSERVEUR                            URL serveur (case sensitive)
