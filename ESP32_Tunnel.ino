@@ -58,8 +58,8 @@
 
 
   Compilation LOLIN D32,default,80MHz,, ESP32 1.0.2 (1.0.4 bugg?)
-	Arduino IDE 1.8.10 : 1006754 76%, 47752 14% sur PC
-	Arduino IDE 1.8.10:  x 75%, x 14% sur raspi
+	Arduino IDE 1.8.10 : 1006898 76%, 47752 14% sur PC
+	Arduino IDE 1.8.10:  1006818 76%, 47752 14% sur raspi
 
   V1-5 14/09/2020 pas installé
   1- upload log en GPRS vers serveur ftp
@@ -1837,7 +1837,7 @@ fin_i:
             JsonObject gprsdata = doc.createNestedObject("GPRSDATA");
             gprsdata["apn"]  = config.apn;
             gprsdata["user"] = config.gprsUser;
-            // gprsdata["pass"] = config.gprsPass;
+            gprsdata["pass"] = config.gprsPass;
             Sbidon = "";
             serializeJson(doc, Sbidon);
             message += Sbidon;
@@ -2512,7 +2512,7 @@ void PrintEEPROM() {
   Serial.print(F("ftp serveur = ")), Serial.println(config.ftpServeur);
   Serial.print(F("ftp port = ")), Serial.println(config.ftpPort);
   Serial.print(F("ftp user = ")), Serial.println(config.ftpUser);
-  Serial.print(F("ftp pass = ")), Serial.println(config.ftpPass););
+  Serial.print(F("ftp pass = ")), Serial.println(config.ftpPass);
 }
 //---------------------------------------------------------------------------
 void Extinction() {
