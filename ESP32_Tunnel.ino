@@ -55,13 +55,18 @@
 
 
 	to do
-
-
+  
   Compilation LOLIN D32,default,80MHz,, ESP32 1.0.2 (1.0.4 bugg?)
-	Arduino IDE 1.8.10 : 1007410 76%, 47792 14% sur PC
-	Arduino IDE 1.8.10:  x 76%, x 14% sur raspi
+	Arduino IDE 1.8.10 : 1007222 76%, 47792 14% sur PC
+	Arduino IDE 1.8.10:  1007142 76%, 47792 14% sur raspi
 
-  V2-0 03/03/2021 pas installé
+  V2-1 03/05/2021 pas installé (testé sur carte V2)
+  bug message etat, les lignes apres Batterie : OK, 100%, seulement si demande St alors que Allumé
+  les lignes Allume:, jour Circule et Nbr Allumage sont doublées
+  suppression ligne: message.reserve(140);
+
+  V2-0 31/03/2021 installé sur carte V1 suite panne carte V2
+  V2-0 03/03/2021 installé 11/03/2021
   1- carte hard V2 identique Cv
      entree E1 devient pedale 1
      entree E2 devient pedale 2
@@ -149,7 +154,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V2-0";
+String	ver       = "V2-1";
 int Magique       = 15;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
@@ -297,7 +302,7 @@ void IRAM_ATTR handleInterruptPo() { // Coffret
 //---------------------------------------------------------------------------
 
 void setup() {
-  message.reserve(140);
+  // message.reserve(140);
 
   Serial.begin(115200);
   Serial.println();
@@ -934,7 +939,7 @@ fin_tel:
           EnvoyerSms(number, sms);
         }
       }
-      else if (gsm && textesms == F("LST?") || textesms == F("LST1")) {	//	Liste des Num Tel
+      else if ((gsm && textesms == "LST?") || (textesms == "LST1")) {	//	Liste des Num Tel
         byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
         for (byte i = 1; i < n + 1; i++) {
           String num = Sim800.getPhoneBookNumber(i);
@@ -959,7 +964,7 @@ fin_tel:
 fin_i:
         if (message.length() > Id.length() + 20) EnvoyerSms(number, sms);; // SMS final
       }
-      else if (textesms.indexOf(F("ETAT")) == 0 || textesms.indexOf(F("ST")) == 0) {// "ETAT? de l'installation"
+      else if (textesms.indexOf("ETAT") == 0 || textesms.indexOf("ST") == 0) {// "ETAT? de l'installation"
         generationMessage(0);
         EnvoyerSms(number, sms);
       }
