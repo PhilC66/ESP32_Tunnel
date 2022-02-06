@@ -57,13 +57,18 @@
 	to do
   
   Compilation LOLIN D32,default,80MHz,, ESP32 1.0.2 (1.0.4 bugg?)
-	Arduino IDE 1.8.10 : 1007222 76%, 47792 14% sur PC
-	Arduino IDE 1.8.10:  1007142 76%, 47792 14% sur raspi
+	Arduino IDE 1.8.16 : 1007002 76%, 47720 14% sur PC
+	Arduino IDE 1.8.16:   76%,  14% sur raspi
 
+  V2-11 05/02/2022 testé sur carte hard V2
+  
   V2-1 03/05/2021 pas installé (testé sur carte V2)
-  bug message etat, les lignes apres Batterie : OK, 100%, seulement si demande St alors que Allumé
-  les lignes Allume:, jour Circule et Nbr Allumage sont doublées
-  suppression ligne: message.reserve(140);
+  1 - extinction si Fin de journée (31/08/2021)
+  2 - pas resolu!
+      bug message etat, les lignes apres Batterie : OK, 100%, seulement si demande St alors que Allumé
+      les lignes Allume:, jour Circule et Nbr Allumage sont doublées
+      suppression ligne: message.reserve(140);
+      changement valeur max temps Allumage ALLUME=X, max=12 heures
 
   V2-0 31/03/2021 installé sur carte V1 suite panne carte V2
   V2-0 03/03/2021 installé 11/03/2021
@@ -154,7 +159,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V2-1";
+String	ver       = "V2-11";
 int Magique       = 15;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
@@ -891,7 +896,7 @@ void traite_sms(byte slot) {
           j = 5;
           // on efface la ligne sauf la 1 pour toujours garder au moins un numéro
           if ( (i != 1) && (textesms.indexOf(F("efface")) == 5
-                            || textesms.indexOf(F("EFFACE")) == 5 )) goto fin_tel;
+                        ||  textesms.indexOf(F("EFFACE")) == 5 )) goto fin_tel;
         }
         else if (textesms.indexOf(char(61)) == 3) { // TEL= nouveau numero
           j = 4;
@@ -1665,10 +1670,10 @@ fin_i:
       }
       else if (textesms.indexOf(F("ALLUME=")) == 0) {
         // ALLUME forcée
-        // ALLUME = 1à9 durée en heures, remplace TIMEOUTECL
+        // ALLUME = 1 à 12 durée en heures, remplace TIMEOUTECL
 
         int duree = textesms.substring(7,8).toInt();
-        if(duree > 0 && duree < 10){
+        if(duree > 0 && duree < 13){
           Alarm.disable(TimeOut);
           Alarm.write(TimeOut,duree * 3600L);
           // TimeOut = Alarm.timerRepeat(duree * 60, Extinction); // tempo time out extinction
@@ -1680,25 +1685,14 @@ fin_i:
             message += String(duree);
             message += " Heure(s)";
           }
-          else {
-            // message += F("Deja Allume");
-          }
-        }else{
-          // message += F("non reconnu");
         }
-        // message += fl;
         generationMessage(0);
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf(F("ETEINDRE")) == 0) {
-        if (Allume) {
+        // if (Allume) {
           Extinction();
-          // message += F("Extinction");
-        }
-        else {
-          // message += F("Deja Eteint");
-        }
-        // message += fl;
+        // }
         generationMessage(0);
         EnvoyerSms(number, sms);
       }
@@ -1726,15 +1720,15 @@ fin_i:
         EnvoyerSms(number, sms);
       }
       else if (textesms.indexOf("FTPDATA") > -1) {
-      // Parametres FTPDATA=Serveur:User:Pass:port
-      // {"FTPDATA":{"serveur":"dd.org","user":"user","pass":"pass",,"port":00}}
-      bool erreur = false;
-      bool formatsms = false;
-      if (textesms.indexOf(":") == 10) { // format json
-        DynamicJsonDocument doc(210); //https://arduinojson.org/v6/assistant/
-        DeserializationError err = deserializeJson(doc, textesms);
-        if (err) {
-          erreur = true;
+        // Parametres FTPDATA=Serveur:User:Pass:port
+        // {"FTPDATA":{"serveur":"dd.org","user":"user","pass":"pass",,"port":00}}
+        bool erreur = false;
+        bool formatsms = false;
+        if (textesms.indexOf(":") == 10) { // format json
+          DynamicJsonDocument doc(210); //https://arduinojson.org/v6/assistant/
+          DeserializationError err = deserializeJson(doc, textesms);
+          if (err) {
+            erreur = true;
         }
         else {
           JsonObject ftpdata = doc["FTPDATA"];
@@ -1768,37 +1762,37 @@ fin_i:
         } else {
           erreur = true;
         }
-      }
-      if (!erreur) {
-        if (formatsms) {
-          message += "Sera pris en compte au prochain demarrage\nOu envoyer RST maintenant";
-          message += fl;
-          message += F("Parametres FTP :");
-          message += fl;
-          message += "Serveur:" + String(config.ftpServeur) + fl;
-          message += "User:"    + String(config.ftpUser) + fl;
-          message += "Pass:"    + String(config.ftpPass) + fl;
-          message += "Port:"    + String(config.ftpPort) + fl;
+        }
+        if (!erreur) {
+          if (formatsms) {
+            message += "Sera pris en compte au prochain demarrage\nOu envoyer RST maintenant";
+            message += fl;
+            message += F("Parametres FTP :");
+            message += fl;
+            message += "Serveur:" + String(config.ftpServeur) + fl;
+            message += "User:"    + String(config.ftpUser) + fl;
+            message += "Pass:"    + String(config.ftpPass) + fl;
+            message += "Port:"    + String(config.ftpPort) + fl;
+          }
+          else {
+            DynamicJsonDocument doc(210);
+            JsonObject FTPDATA = doc.createNestedObject("FTPDATA");
+            FTPDATA["serveur"] = config.ftpServeur;
+            FTPDATA["user"]    = config.ftpUser;
+            FTPDATA["pass"]    = config.ftpPass;
+            FTPDATA["port"]    = config.ftpPort;
+            Sbidon = "";
+            serializeJson(doc, Sbidon);
+            message += Sbidon;
+            message += fl;
+          }
         }
         else {
-          DynamicJsonDocument doc(210);
-          JsonObject FTPDATA = doc.createNestedObject("FTPDATA");
-          FTPDATA["serveur"] = config.ftpServeur;
-          FTPDATA["user"]    = config.ftpUser;
-          FTPDATA["pass"]    = config.ftpPass;
-          FTPDATA["port"]    = config.ftpPort;
-          Sbidon = "";
-          serializeJson(doc, Sbidon);
-          message += Sbidon;
+          message += "Erreur format";
           message += fl;
         }
+        EnvoyerSms(number, sms);
       }
-      else {
-        message += "Erreur format";
-        message += fl;
-      }
-      EnvoyerSms(number, sms);
-    }
       else if (textesms.indexOf("FTPSERVEUR") == 0) { // Serveur FTP
         // case sensitive
         // FTPSERVEUR=xyz.org
@@ -2021,15 +2015,15 @@ void generationMessage(bool n) {
     message += F("Alarme Arrete");
     message += fl;
   }
-  if (config.Silence) {
-    message += F("Alarme Silencieuse ON");
-    message += fl;
-  }
-  else
-  {
-    message += F("Alarme Silencieuse OFF");
-    message += fl;
-  }
+  // if (config.Silence) {
+  //   message += F("Alarme Silencieuse ON");
+  //   message += fl;
+  // }
+  // else
+  // {
+  //   message += F("Alarme Silencieuse OFF");
+  //   message += fl;
+  // }
   message += F("Batterie : ");
   if (!FlagAlarmeTension) {
     message += F("OK, ");
@@ -2533,6 +2527,7 @@ void OuvrirCalendrier() {
 //---------------------------------------------------------------------------
 void FinJournee() {
   // fin de journée retour deep sleep
+  Extinction();
   jour = false;
   flagCircule = false;
   FirstWakeup = true;
@@ -2620,6 +2615,7 @@ void Allumage(byte n) {
     // allumage depuis pedale, armement du timer
     if(millis()- t < 5000){
       // si armement consecutif < 5s on sort
+      Serial.println("Protection pedale <5s");
       return;
     }
   }
