@@ -57,8 +57,17 @@
 	to do
   
   Compilation LOLIN D32,default,80MHz,, ESP32 1.0.2 (1.0.4 bugg?)
-	Arduino IDE 1.8.16 : 1007002 76%, 47720 14% sur PC
-	Arduino IDE 1.8.16:   76%,  14% sur raspi
+	Arduino IDE 1.8.19 : 1008074 76%, 47720 14% sur PC
+	Arduino IDE 1.8.19 : 1007970 76%, 47720 14% sur raspi
+
+  V2-12 30/01/2023 installé Canals
+  1- Renvoie sur liste restreinte message provenant d'un numéro < 8 chiffres (N° Free)
+  2- Comande vide log par SMS
+  3- Print __FILE__ au démarrage
+  4- Supprimer envoie SMS soimeme si pb majheure,
+    remplacé par majheure par defaut 01/08/2022 08:00:00
+  5- Ajouter Commande AT par SMS: SENDAT=cdeAT
+  6- Efface sms en debut de traitement
 
   V2-11 05/02/2022 testé sur carte hard V2
   
@@ -102,7 +111,7 @@
   V1-2 Installé 03/12/2019
 
 */
-
+#include <Arduino.h>
 #include <Battpct.h>
 #include <Sim800l.h>              //my SIM800 modifié
 #include <Time.h>
@@ -159,7 +168,7 @@ char filecalibration[11] = "/coeff.txt";    // fichier en SPIFFS contenant les d
 char filelog[9]          = "/log.txt";      // fichier en SPIFFS contenant le log
 
 const String soft	= "ESP32_Tunnel.ino.d32"; // nom du soft
-String	ver       = "V2-11";
+String	ver       = "V2-12";
 int Magique       = 15;
 const String Mois[13] = {"", "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
 String Sbidon 		= ""; // String texte temporaire
@@ -311,6 +320,7 @@ void setup() {
 
   Serial.begin(115200);
   Serial.println();
+  Serial.println(__FILE__);
   if(gsm){
     Serial.println(F("lancement SIM800"));
     SIM800Serial->begin(9600); // 4800
@@ -828,10 +838,28 @@ void traite_sms(byte slot) {
       }
       Serial.print(F("Nom appelant = ")), Serial.println(nom);
       Serial.print(F("Numero = ")), Serial.println(numero);
+      byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
+      if(numero.length() < 8){ // numero service free
+        for (byte Index = 1; Index < n + 1; Index++) { // Balayage des Num Tel dans Phone Book
+          if (config.Pos_Pn_PB[Index] == 1) { // Num dans liste restreinte
+            String number = Sim800.getPhoneBookNumber(Index);
+            char num[13];
+            number.toCharArray(num, 13);
+            message = textesms;
+            EnvoyerSms(num, true);
+            EffaceSMS(slot);
+            return; // sortir de la procedure traite_sms
+          }
+        }
+      }
     }
     else {
       textesms = String(replybuffer);
       nom = "console";
+    }
+    
+    if (sms) { // suppression du SMS
+      EffaceSMS(slot);
     }
 
     if (!(textesms.indexOf(F("TEL")) == 0 || textesms.indexOf(F("tel")) == 0 || textesms.indexOf(F("Tel")) == 0
@@ -1459,7 +1487,7 @@ fin_i:
         message += fl;
         EnvoyerSms(number, sms);
         if (ok) {
-          if (sms)EffaceSMS(slot);
+          // if (sms)EffaceSMS(slot);
           action_wakeup_reason(4);
         }
       }
@@ -1479,7 +1507,7 @@ fin_i:
         message += fl;
         EnvoyerSms(number, sms);
         if (ok) {
-          if (sms)EffaceSMS(slot);
+          // if (sms)EffaceSMS(slot);
           action_wakeup_reason(4);
         }
       }
@@ -1899,6 +1927,23 @@ fin_i:
         }
         EnvoyerSms(number, sms);
       }
+      else if (textesms == "VIDELOG"){
+        SPIFFS.remove(filelog);
+        FileLogOnce = false;
+        message += "Effacement fichier log";
+        EnvoyerSms(number, sms);
+      }
+      else if (textesms.indexOf(F("SENDAT")) == 0){
+        // envoie commande AT au SIM800
+        // attention DANGEREUX pas de verification!
+        if (textesms.indexOf(char(61)) == 6) {
+          String CdeAT = textesms.substring(7, textesms.length());
+          String reply = sendAT(CdeAT,"OK","ERROR",1000);
+          // Serial.print("reponse: "),Serial.println(reply);
+          message += String(reply);          
+          EnvoyerSms(number, sms);
+        }
+      }
       //**************************************
       else {
         message += F("message non reconnu !");
@@ -1908,9 +1953,6 @@ fin_i:
     }
     else {
       Serial.print(F("Appelant non reconnu ! "));
-    }
-    if (sms) { // suppression du SMS
-      EffaceSMS(slot);
     }
   }
   // Alarm.enable(loopPrincipale);
@@ -2043,7 +2085,7 @@ void generationMessage(bool n) {
       read_adc(PinBattSol, PinBattProc, PinBattUSB, Pin24V);
       Alarm.delay(1);
     }
-    char bid[8];
+    char bid[8];// Allume : 24.26 V
     sprintf(bid, "%.2lf V", float(Tension24) / 100);
     message += F("Allume : ");
     message += String(bid);
@@ -2143,11 +2185,21 @@ void MajHeure(String smsdate) {
         if (millis() - debut > 15000) {
           Serial.println(F("Impossible de mettre à l'heure !"));
           //on s'envoie à soi même un SMS "MAJHEURE"
-          message = F("MAJHEURE");
-          char numchar[13];
-          String numstring = Sim800.getNumTel();
-          numstring.toCharArray(numchar, 13);
-          EnvoyerSms(numchar, true);
+          // message = F("MAJHEURE");
+          // char numchar[13];
+          // String numstring = Sim800.getNumTel();
+          // numstring.toCharArray(numchar, 13);
+          // EnvoyerSms(numchar, true);
+          // break;
+
+          // Mise à l'heure par défaut V2-12
+          Sim800.SetTime("22/08/01,08:00:00+08"); // 01/08 jour toujours circule
+          Nyear   = 22;
+          Nmonth  = 8;
+          Nday    = 1;
+          Nhour   = 8;
+          Nminute = 0;
+          Nsecond = 0;
           break;
         }
       }
@@ -2732,11 +2784,11 @@ void ConnexionWifi(char* ssid, char* pwd, char* number, bool sms) {
   }
   EnvoyerSms(number, sms);
 
-  if (sms) { // suppression du SMS
-    /* Obligatoire ici si non bouclage au redemarrage apres timeoutwifi
-      ou OTA sms demande Wifi toujours present */
-    EffaceSMS(slot);
-  }
+  // if (sms) { // suppression du SMS
+  //   /* Obligatoire ici si non bouclage au redemarrage apres timeoutwifi
+  //     ou OTA sms demande Wifi toujours present */
+  //   EffaceSMS(slot);
+  // }
   debut = millis();
   if (!error) {
     /* boucle permettant de faire une mise à jour OTA et serveur, avec un timeout en cas de blocage */
@@ -3817,6 +3869,31 @@ byte sendATcommand(String ATcommand, String answer1, String answer2, unsigned in
     }
   }
   return reply;
+}
+//---------------------------------------------------------------------------
+String sendAT(String ATcommand, String answer1, String answer2, unsigned int timeout){
+  byte reply = 1;
+  String content = "";
+  char character;
+
+  //Clean the modem input buffer
+  while(Serial2.available()>0) Serial2.read();
+
+  //Send the atcommand to the modem
+  Serial2.println(ATcommand);
+  delay(100);
+  unsigned int timeprevious = millis();
+  while((reply == 1) && ((millis() - timeprevious) < timeout)){
+    while(Serial2.available()>0) {
+      character = Serial2.read();
+      content.concat(character);
+      Serial.print(character);
+      delay(10);
+    }
+  }
+  // Serial.print("reponse: "),Serial.println(content);
+  // Serial.println("fin reponse");
+  return content;
 }
 /* --------------------  test local serial seulement ----------------------*/
 void recvOneChar() {
