@@ -57,8 +57,8 @@
 	to do
   
   Compilation LOLIN D32,default,80MHz,, ESP32 1.0.2 (1.0.4 bugg?)
-	Arduino IDE 1.8.19 : 1008074 76%, 47720 14% sur PC
-	Arduino IDE 1.8.19 : 1007970 76%, 47720 14% sur raspi
+	Arduino IDE 1.8.19 : 1008170 76%, 47720 14% sur PC
+	Arduino IDE 1.8.19 : 1008066 76%, 47720 14% sur raspi
 
   V2-12 30/01/2023 installé Canals
   1- Renvoie sur liste restreinte message provenant d'un numéro < 8 chiffres (N° Free)
