@@ -857,8 +857,8 @@ void traite_sms(byte slot) {
       textesms = String(replybuffer);
       nom = "console";
     }
-    
-    if (sms) { // suppression du SMS
+
+    if (sms && !(textesms.indexOf(F("MAJHEURE")) == 0)) { // suppression du SMS sauf si MAJHEURE
       EffaceSMS(slot);
     }
 
@@ -1343,6 +1343,7 @@ fin_i:
         message += F("Mise a l'heure");
         // Sim800.reset(SIMPIN);// lancer SIM800
         if (gsm)MajHeure(Sim800.getTimeSms(slot)); // mise a l'heure du sms
+        EffaceSMS(slot);
         if (nom != F("Moi meme")) EnvoyerSms(number, sms);
       }
       else if (gsm && textesms.indexOf(F("IMEI")) > -1) {
