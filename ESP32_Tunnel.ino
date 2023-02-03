@@ -56,11 +56,11 @@
 
 	to do
   
-  Compilation LOLIN D32,default,80MHz,, ESP32 1.0.2 (1.0.4 bugg?)
-	Arduino IDE 1.8.19 : 1008170 76%, 47720 14% sur PC
-	Arduino IDE 1.8.19 : 1008066 76%, 47720 14% sur raspi
+  Compilation LOLIN D32,default,80MHz, IMPORTANT ESP32 1.0.2 (1.0.4 et supp bugg?)
+	Arduino IDE 1.8.19 : 1008134 76%, 47720 14% sur PC
+	Arduino IDE 1.8.19 : 1008030 76%, 47720 14% sur raspi
 
-  V2-12 30/01/2023 installé Canals
+  V2-12 03/02/2023 installé Canals
   1- Renvoie sur liste restreinte message provenant d'un numéro < 8 chiffres (N° Free)
   2- Comande vide log par SMS
   3- Print __FILE__ au démarrage
@@ -1989,7 +1989,6 @@ void envoieGroupeSMS(byte grp, bool m) {
     /* m=0 message normal/finanalyse
       si grp = 0,
       envoie un SMS à tous les numero existant (9 max) du Phone Book
-      SAUF ceux de la liste restreinte
       si grp = 1,
       envoie un SMS à tous les numero existant (9 max) du Phone Book
       de la liste restreinte config.Pos_Pn_PB[x]=1			*/
@@ -1997,7 +1996,7 @@ void envoieGroupeSMS(byte grp, bool m) {
     byte n = Sim800.ListPhoneBook(); // nombre de ligne PhoneBook
     // Serial.print(F("Nombre de ligne PB=")),Serial.println(n);
     for (byte Index = 1; Index < n + 1; Index++) { // Balayage des Num Tel dans Phone Book
-      if ((grp == 0 && config.Pos_Pn_PB[Index] == 0) || (grp == 1 && config.Pos_Pn_PB[Index] == 1)) {
+      if ((grp == 0) || (grp == 1 && config.Pos_Pn_PB[Index] == 1)) {
         String number = Sim800.getPhoneBookNumber(Index);
         generationMessage(m);
         char num[13];
