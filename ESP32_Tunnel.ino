@@ -55,10 +55,12 @@
 
 
 	to do
+  V2-12 MAJHEURE par sms ne fonctionne pas, utiliser SENDAT=AT+CCLK="yy/mm/dd,hh:mm:ss+08" puis MAJHEURE
   
-  Compilation LOLIN D32,default,80MHz, IMPORTANT ESP32 1.0.2 (1.0.4 et supp bugg?)
-	Arduino IDE 1.8.19 : 1008134 76%, 47720 14% sur PC
+  Compilation LOLIN D32,default,80MHz, IMPORTANT ESP32 2.0.17
+	Arduino IDE 1.8.19 : 1099929 83%, 56152 17% sur PC
 	Arduino IDE 1.8.19 : 1008030 76%, 47720 14% sur raspi
+
 
   V2-12 03/02/2023 installé Canals
   1- Renvoie sur liste restreinte message provenant d'un numéro < 8 chiffres (N° Free)
